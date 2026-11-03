@@ -68,12 +68,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
     ValueData: """{app}\ReplayRecorder.Recorder.exe"""; Tasks: startup
 
 [Run]
-#ifndef Bundled
-Filename: "winget.exe"; Parameters: "install --id Gyan.FFmpeg -e --silent --accept-source-agreements --accept-package-agreements"; \
-    StatusMsg: "Installing ffmpeg with winget..."; Flags: runhidden waituntilterminated; Tasks: tools; Check: FfmpegMissing
-Filename: "winget.exe"; Parameters: "install --id shinchiro.mpv -e --silent --accept-source-agreements --accept-package-agreements"; \
-    StatusMsg: "Installing the mpv player with winget..."; Flags: runhidden waituntilterminated; Tasks: tools; Check: MpvMissing
-#endif
 ; Normal install: offered on the last page.
 Filename: "{app}\ReplayRecorder.Recorder.exe"; Description: "Start the recorder now"; Flags: postinstall nowait skipifsilent
 Filename: "{app}\ReplayRecorder.exe"; Description: "Open the library"; Flags: postinstall nowait skipifsilent unchecked
@@ -117,14 +111,31 @@ begin
   Result := ExpandConstant('{param:OPENLIBRARY|0}') = '1';
 end;
 
+// Also the saved user/machine PATH: winget may have added a tool there after this setup started.
+function SavedPath(): String;
+var U, M: String;
+begin
+  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', U) then U := '';
+  if not RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', M) then M := '';
+  Result := GetEnv('PATH') + ';' + U + ';' + M;
+end;
+
 function OnPath(const Exe: String): Boolean;
 begin
-  Result := FileSearch(Exe, GetEnv('PATH')) <> '';
+  Result := FileSearch(Exe, SavedPath()) <> '';
+end;
+
+// Without symlink rights winget skips its Links folder; the app also looks in the package folder.
+function WingetFfmpegInstalled(): Boolean;
+var F: TFindRec;
+begin
+  Result := FindFirst(ExpandConstant('{localappdata}\Microsoft\WinGet\Packages\Gyan.FFmpeg_*'), F);
+  if Result then FindClose(F);
 end;
 
 function FfmpegMissing(): Boolean;
 begin
-  Result := not (OnPath('ffmpeg.exe') or FileExists(ExpandConstant('{localappdata}\Microsoft\WinGet\Links\ffmpeg.exe'))
+  Result := not (OnPath('ffmpeg.exe') or WingetFfmpegInstalled() or FileExists(ExpandConstant('{localappdata}\Microsoft\WinGet\Links\ffmpeg.exe'))
                  or FileExists(ExpandConstant('{app}\ffmpeg\ffmpeg.exe')));
 end;
 
@@ -138,6 +149,35 @@ function ToolsMissing(): Boolean;
 begin
   Result := FfmpegMissing() or MpvMissing();
 end;
+
+#ifndef Bundled
+// Installs one tool with winget, keeping its output in a log next to the app.
+procedure WingetInstall(const Id, Name: String);
+var Code: Integer;
+begin
+  WizardForm.StatusLabel.Caption := 'Installing ' + Name + ' with winget (this can take a minute)...';
+  Exec(ExpandConstant('{cmd}'), '/C winget install --id ' + Id +
+    ' -e --silent --accept-source-agreements --accept-package-agreements > "' +
+    ExpandConstant('{app}\winget-' + Id + '.log') + '" 2>&1', '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
+// Checked again afterwards, so a failed winget is reported instead of leaving a recorder that can't start.
+procedure CurStepChanged(CurStep: TSetupStep);
+var Failed: String;
+begin
+  if (CurStep <> ssPostInstall) or not WizardIsTaskSelected('tools') then Exit;
+  Failed := '';
+  if FfmpegMissing() then WingetInstall('Gyan.FFmpeg', 'ffmpeg');
+  if FfmpegMissing() then Failed := Failed + #13#10 + '    winget install Gyan.FFmpeg';
+  if MpvMissing() then WingetInstall('shinchiro.mpv', 'the mpv player');
+  if MpvMissing() then Failed := Failed + #13#10 + '    winget install shinchiro.mpv';
+  if (Failed <> '') and not WizardSilent() then
+    MsgBox('Replay Recorder is installed, but winget couldn''t install everything it needs.' + #13#10#13#10 +
+      'Right-click the Start button, open Terminal and run:' + Failed + #13#10#13#10 +
+      'Then restart your PC. If it says winget isn''t found, update "App Installer" from the Microsoft Store first.',
+      mbError, MB_OK);
+end;
+#endif
 
 // The recorder and library may be running from the install folder (always, for an update).
 function PrepareToInstall(var NeedsRestart: Boolean): String;

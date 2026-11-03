@@ -9,13 +9,17 @@ public static class Ffmpeg
     // check it directly so a freshly installed ffmpeg works without logging out.
     static readonly string WingetLinks = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WinGet", "Links");
 
-    public static string? FfmpegPath { get; } = Find("ffmpeg.exe", "ffmpeg", WingetLinks);
-    public static string? FfprobePath { get; } = Find("ffprobe.exe", "ffmpeg", WingetLinks);
+    // Without symlink rights (no Developer Mode) winget skips Links and puts the package's own bin folder
+    // on the user PATH instead, which a process started by setup doesn't see yet.
+    static readonly string[] WingetFfmpegBins = WingetPackageDirs("Gyan.FFmpeg");
+
+    public static string? FfmpegPath { get; } = Find("ffmpeg.exe", "ffmpeg", [WingetLinks, .. WingetFfmpegBins]);
+    public static string? FfprobePath { get; } = Find("ffprobe.exe", "ffmpeg", [WingetLinks, .. WingetFfmpegBins]);
     public static string? MpvPath { get; } = Find("mpv.exe", "mpv",
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "MPV Player"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "mpv"));
 
-    public const string InstallHint = "ffmpeg was not found. Install it with:  winget install Gyan.FFmpeg  (then restart Replay Recorder)";
+    public const string InstallHint = "ffmpeg is missing. Right-click Start, open Terminal and run:  winget install Gyan.FFmpeg  then restart Replay Recorder.";
     public const string MpvInstallHint = "The mpv player was not found. Install it with:  winget install shinchiro.mpv  (then reopen Replay Recorder)";
 
     static string? Find(string exe, string bundledDir = "ffmpeg", params string[] extraDirs)
@@ -29,16 +33,36 @@ public static class Ffmpeg
             var p = Path.Combine(d, exe);
             if (File.Exists(p)) return p;
         }
-        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+        // This process's PATH, then the saved user and machine PATH: those already include anything
+        // installed since this process (or the setup that started it) was launched.
+        var path = string.Join(';',
+            Environment.GetEnvironmentVariable("PATH"),
+            Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User),
+            Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine));
+        foreach (var dir in path.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
             try
             {
-                var p = Path.Combine(dir.Trim('"'), exe);
+                var p = Path.Combine(Environment.ExpandEnvironmentVariables(dir.Trim('"')), exe);
                 if (File.Exists(p)) return p;
             }
             catch { }
         }
         return null;
+    }
+
+    /// <summary>The bin folders of a winget portable package, e.g. Packages\Gyan.FFmpeg_…\ffmpeg-9.0-full_build\bin.</summary>
+    static string[] WingetPackageDirs(string id)
+    {
+        try
+        {
+            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WinGet", "Packages");
+            if (!Directory.Exists(root)) return [];
+            return Directory.GetDirectories(root, id + "_*")
+                .SelectMany(pkg => Directory.GetDirectories(pkg).Select(d => Path.Combine(d, "bin")).Append(pkg))
+                .ToArray();
+        }
+        catch { return []; }
     }
 
     /// <summary>Runs ffmpeg/ffprobe to completion and returns (exit code, stderr).</summary>
