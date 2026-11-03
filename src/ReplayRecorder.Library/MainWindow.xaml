@@ -59,7 +59,7 @@
                         <Border x:Name="UpdatePanel" Visibility="Collapsed" Margin="-6,0,0,14" Padding="12,10" CornerRadius="8"
                                 Background="{StaticResource Card}" BorderBrush="{StaticResource Accent}" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="Update available" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock x:Name="UpdateTitle" Text="Update available" FontWeight="SemiBold" FontSize="13"/>
                                 <TextBlock x:Name="UpdateText" Foreground="{StaticResource Subtle}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,8"/>
                                 <Button x:Name="UpdateBtn" Style="{StaticResource AccentBtn}" HorizontalAlignment="Left" Click="Update_Click">
                                     <TextBlock x:Name="UpdateBtnText" Text="Update now" Foreground="White"/>

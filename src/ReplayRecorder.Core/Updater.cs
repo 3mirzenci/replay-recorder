@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -23,6 +23,24 @@ public static class Updater
     public static string ReleasesPage => $"https://github.com/{Repo}/releases";
 
     public static Version Current { get; } = Normalize(Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0, 0));
+
+    /// <summary>
+    /// The version this app last ran as, if it was older than now: i.e. "just updated from". Each app
+    /// (recorder, library) keeps its own marker so both can say so once.
+    /// </summary>
+    public static Version? JustUpdatedFrom(string app)
+    {
+        try
+        {
+            var file = Path.Combine(Paths.LocalData, $"last-version-{app}.txt");
+            Version? before = File.Exists(file) && Version.TryParse(File.ReadAllText(file).Trim(), out var v) ? v : null;
+            if (before == Current) return null;
+            Directory.CreateDirectory(Paths.LocalData);
+            File.WriteAllText(file, Current.ToString());
+            return before != null && before < Current ? before : null;
+        }
+        catch { return null; }
+    }
 
     static readonly HttpClient Http = CreateClient();
 
@@ -124,12 +142,12 @@ public static class Updater
     }
 
     /// <summary>
-    /// Runs the installer as an in-place upgrade (progress window only, no questions). It closes both
-    /// apps, installs, and starts the recorder again, plus the library when <paramref name="reopenLibrary"/>.
+    /// Runs the installer as an invisible in-place upgrade. It closes both apps, installs, and starts
+    /// the recorder again, plus the library when <paramref name="reopenLibrary"/>.
     /// </summary>
     public static void Install(string installer, bool reopenLibrary)
     {
-        var args = "/SILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE=1" + (reopenLibrary ? " /OPENLIBRARY=1" : "");
+        var args = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE=1" + (reopenLibrary ? " /OPENLIBRARY=1" : "");
         Log.Info($"Starting update installer: {installer} {args}");
         Process.Start(new ProcessStartInfo(installer, args) { UseShellExecute = true });
     }

@@ -67,6 +67,8 @@ sealed class TrayApp : ApplicationContext
         Displays.LogAll();
         _engine.Start();
         _storageTimer = new System.Threading.Timer(_ => CheckStorage(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
+        if (Updater.JustUpdatedFrom("recorder") is { } from)
+            _tray.ShowBalloonTip(5000, "Replay Recorder updated", $"Now on version {Updater.Current} (was {from}).", ToolTipIcon.Info);
         // First check a minute after start (not while Windows is still booting), then every 6 hours.
         _updateTimer = new System.Threading.Timer(_ => _ui.Post(async _ => await CheckForUpdateAsync(), null), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromHours(6));
@@ -98,6 +100,8 @@ sealed class TrayApp : ApplicationContext
         try
         {
             var file = await Updater.DownloadAsync(u);
+            _tray.ShowBalloonTip(3000, "Replay Recorder", "Installing the update. The recorder restarts by itself in a few seconds.", ToolTipIcon.Info);
+            await Task.Delay(1500);
             Updater.Install(file, reopenLibrary: false);
             Quit();
         }

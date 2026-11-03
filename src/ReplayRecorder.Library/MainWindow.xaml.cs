@@ -990,9 +990,24 @@ public partial class MainWindow : Window
     async Task CheckForUpdateAsync()
     {
         VersionText.Text = $"Version {Updater.Current}";
+        if (Updater.JustUpdatedFrom("library") is { } from)
+        {
+            UpdateTitle.Text = "Updated ✓";
+            UpdateText.Text = $"You're now on version {Updater.Current} (was {from}).";
+            UpdateText.Margin = new Thickness(0, 2, 0, 0);
+            UpdateBtn.Visibility = Visibility.Collapsed;
+            UpdatePanel.Visibility = Visibility.Visible;
+            _ = Task.Delay(TimeSpan.FromSeconds(20)).ContinueWith(_ => Dispatcher.Invoke(() =>
+            {
+                if (_update == null) UpdatePanel.Visibility = Visibility.Collapsed;
+            }));
+        }
         _update = await Updater.CheckAsync(_cts.Token);
         if (_update == null) return;
+        UpdateTitle.Text = "Update available";
         UpdateText.Text = $"Version {_update.Version} is ready (you have {Updater.Current}). Takes a few seconds; your clips and settings stay.";
+        UpdateText.Margin = new Thickness(0, 2, 0, 8);
+        UpdateBtn.Visibility = Visibility.Visible;
         UpdatePanel.Visibility = Visibility.Visible;
         if (((App)Application.Current).UpdateNow) Update_Click(this, new RoutedEventArgs());
     }
@@ -1011,7 +1026,9 @@ public partial class MainWindow : Window
             var progress = new Progress<double>(f => UpdateBtnText.Text = $"Downloading… {f:P0}");
             var file = await Updater.DownloadAsync(_update, progress, _cts.Token);
             UpdateBtnText.Text = "Installing…";
-            Updater.Install(file, reopenLibrary: true); // the installer closes and reopens both apps
+            UpdateText.Text = "Replay Recorder will close and reopen by itself in a few seconds.";
+            await Task.Delay(1500); // long enough to read
+            Updater.Install(file, reopenLibrary: true); // invisible: closes both apps, installs, reopens them
             Application.Current.Shutdown();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

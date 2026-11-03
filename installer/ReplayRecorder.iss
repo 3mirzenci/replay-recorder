@@ -91,6 +91,27 @@ begin
   Result := ExpandConstant('{param:UPDATE|0}') = '1';
 end;
 
+// In-app updates run with no visible setup at all. Older app versions start the update with
+// /SILENT (progress window), so in update mode the wizard also keeps itself off screen.
+procedure InitializeWizard();
+begin
+  if IsUpdate() then
+  begin
+    WizardForm.Position := poDesigned;
+    WizardForm.Left := -32000;
+    WizardForm.Top := -32000;
+  end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if IsUpdate() then
+  begin
+    WizardForm.Left := -32000;
+    WizardForm.Top := -32000;
+  end;
+end;
+
 function OpenLibrary(): Boolean;
 begin
   Result := ExpandConstant('{param:OPENLIBRARY|0}') = '1';
