@@ -1,0 +1,11 @@
+<Project>
+  <!-- Recorder and library build into one folder (build\Debug, build\Release), so the tray's
+       "Open library" finds ReplayRecorder.exe next to itself, exactly as in the packaged app. -->
+  <PropertyGroup>
+    <!-- The app version. release.ps1 bumps it; the in-app updater compares against it. -->
+    <Version>1.0.0</Version>
+    <OutputPath>$(MSBuildThisFileDirectory)build\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+</Project>

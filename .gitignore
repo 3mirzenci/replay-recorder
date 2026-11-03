@@ -1,0 +1,12 @@
+# Build output
+build/
+dist/
+bin/
+obj/
+*.user
+.vs/
+
+# Never commit recordings or local app data
+*.mp4
+*.ts
+*.log
