@@ -97,10 +97,29 @@ public static class Updater
         Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps &&
         (u.Host == "github.com" || u.Host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase));
 
+    static string DownloadFolder => Path.Combine(Path.GetTempPath(), "ReplayRecorder-update");
+
+    /// <summary>
+    /// Deletes installers left from earlier updates (~60 MB each). Run at startup: by then the update
+    /// that started this version has finished, and a file still in use is simply skipped.
+    /// </summary>
+    public static void CleanupDownloads()
+    {
+        try
+        {
+            if (!Directory.Exists(DownloadFolder)) return;
+            foreach (var f in Directory.EnumerateFiles(DownloadFolder))
+            {
+                try { File.Delete(f); } catch { }
+            }
+        }
+        catch { }
+    }
+
     /// <summary>Downloads and verifies the installer. Returns its path in %TEMP%.</summary>
     public static async Task<string> DownloadAsync(UpdateInfo u, IProgress<double>? progress = null, CancellationToken ct = default)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "ReplayRecorder-update");
+        var dir = DownloadFolder;
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, $"ReplayRecorder-Setup-{u.Version}.exe");
         var part = file + ".part";

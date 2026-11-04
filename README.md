@@ -149,7 +149,7 @@ You can change the hotkeys in settings, e.g. `"SaveClipHotkey": "Ctrl+Shift+F10"
 
 ## Settings
 
-Open them from the tray menu (*Settings…*) or the library sidebar. The settings window covers replay length, hotkeys, monitor, resolution and fps, quality, audio devices with live level meters, folders and the storage limit, the Discord size target, startup and game names. Saving restarts capture with the new settings. Everything is stored in `%APPDATA%\Replay Recorder\settings.json`, which you can also edit by hand:
+Open them from the tray menu (*Settings…*) or the library sidebar. The settings window covers replay length, hotkeys, monitor, resolution and fps, quality, audio devices with live level meters, folders and the storage limit, the Discord size target, startup and game names. Saving applies the new settings right away. Only screen, quality, buffer storage or audio-device changes restart capture, which empties the replay buffer. Everything is stored in `%APPDATA%\Replay Recorder\settings.json`, which you can also edit by hand:
 
 | Key | Meaning |
 |---|---|

@@ -72,6 +72,7 @@ sealed class TrayApp : ApplicationContext
         Displays.LogAll();
         _engine.Start();
         _storageTimer = new System.Threading.Timer(_ => CheckStorage(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
+        Task.Run(Updater.CleanupDownloads); // the installer that updated us is done by now
         if (Updater.JustUpdatedFrom("recorder") is { } from)
             _tray.ShowBalloonTip(5000, "Replay Recorder updated", $"Now on version {Updater.Current} (was {from}).", ToolTipIcon.Info);
         // First check a minute after start (not while Windows is still booting), then every 6 hours.
@@ -164,9 +165,9 @@ sealed class TrayApp : ApplicationContext
         var screen = CaptureScreenBounds();
         try
         {
-            var path = await _engine.SaveClipAsync(game);
-            if (_settings.PlaySaveSound) { if (path != null) SaveSound.Saved(); else SaveSound.Failed(); }
-            if (path != null) Notify("Clip saved", $"{game} · last {_settings.BufferSeconds}s", Green, screen);
+            var clip = await _engine.SaveClipAsync(game);
+            if (_settings.PlaySaveSound) { if (clip != null) SaveSound.Saved(); else SaveSound.Failed(); }
+            if (clip != null) Notify("Clip saved", $"{game} · last {Math.Max(1, (int)Math.Round(clip.Seconds))}s", Green, screen);
             else Notify("Clip not saved", "See the log for details", Red, screen);
             CheckStorage();
         }
@@ -270,13 +271,26 @@ sealed class TrayApp : ApplicationContext
 
     void ReloadSettings()
     {
+        var next = Settings.Load();
+        if (!_settings.CaptureDiffers(next) && (_engine.Running || _paused))
+        {
+            // Nothing that capture depends on: apply in place and keep the replay buffer. (Capture that
+            // stopped on an error still restarts below, so saving settings brings it back.)
+            Log.Info("Settings changed, applied without restarting capture");
+            _settings = next;
+            _engine.UseSettings(next);
+            RegisterHotkeys();
+            _startupItem.Checked = Autostart.IsEnabled;
+            RefreshUi();
+            return;
+        }
         if (_engine.IsRecording)
         {
             _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.", ToolTipIcon.Info);
             return;
         }
         Log.Info("Settings changed, restarting capture");
-        _settings = Settings.Load();
+        _settings = next;
         _engine.Dispose();
         _engine = CreateEngine();
         RegisterHotkeys();

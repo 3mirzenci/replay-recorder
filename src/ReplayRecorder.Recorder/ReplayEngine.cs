@@ -29,7 +29,7 @@ sealed class ReplayEngine : IDisposable
 {
     const double SegmentSeconds = 2.0;
 
-    readonly Settings _s;
+    Settings _s;
     Process? _ffmpeg;
     ClockedAudioSink? _sysSink, _micSink;
     WasapiSource? _sysSrc, _micSrc;
@@ -138,8 +138,10 @@ sealed class ReplayEngine : IDisposable
 
         _lastStart = DateTime.UtcNow;
         _housekeeping = new System.Threading.Timer(_ => Housekeep(), null, 1000, 1000);
-        SetStatus($"Recording {Display.DeviceName.TrimStart('\\', '.')} · buffer {_s.BufferSeconds}s");
+        SetStatus(StatusLine());
     }
+
+    string StatusLine() => $"Recording {Display?.DeviceName.TrimStart('\\', '.')} · buffer {_s.BufferSeconds}s";
 
     public void Stop()
     {
@@ -431,6 +433,7 @@ sealed class ReplayEngine : IDisposable
         int fill = 0;
         MemoryStream? cur = null;
         double curStart = 0;
+        int lastSize = 4 << 20;
         byte[]? pat = null, pmt = null;
         try
         {
@@ -451,8 +454,9 @@ sealed class ReplayEngine : IDisposable
 
                     if (pid == VideoPid && KeyframePts(pkt) is double t)
                     {
-                        if (cur != null) CloseSegment(cur, curStart, t);
-                        cur = new MemoryStream(4 << 20);
+                        if (cur != null) { lastSize = (int)cur.Length; CloseSegment(cur, curStart, t); }
+                        // Sized like the previous piece (+25 %) so it rarely has to grow and copy itself.
+                        cur = new MemoryStream(Math.Max(1 << 20, lastSize + lastSize / 4));
                         curStart = t;
                     }
                     cur?.Write(pkt); // packets before the first keyframe can't be decoded; dropped
@@ -500,8 +504,11 @@ sealed class ReplayEngine : IDisposable
 
     // ------------------------------------------------------------------ saving
 
-    /// <summary>Saves the last BufferSeconds as a clip. Returns the file path, or null.</summary>
-    public async Task<string?> SaveClipAsync(string game)
+    /// <summary>A saved clip and its length (shorter than the buffer right after capture starts).</summary>
+    public sealed record SavedClip(string Path, double Seconds);
+
+    /// <summary>Saves the last BufferSeconds as a clip, or null if it failed.</summary>
+    public async Task<SavedClip?> SaveClipAsync(string game)
     {
         if (!Running) return null;
         double hit = Now;
@@ -527,7 +534,7 @@ sealed class ReplayEngine : IDisposable
         _recordingStart = null;
         StatusChanged?.Invoke();
         if (segs.Count == 0) return null;
-        return await JoinAsync(segs, _recordingGame, " (recording)", trimToSeconds: stop - start, endAt: stop);
+        return (await JoinAsync(segs, _recordingGame, " (recording)", trimToSeconds: stop - start, endAt: stop))?.Path;
     }
 
     /// <summary>Waits until the segment containing <paramref name="t"/> is closed, then returns matching segments.</summary>
@@ -550,7 +557,7 @@ sealed class ReplayEngine : IDisposable
         }
     }
 
-    async Task<string?> JoinAsync(List<Segment> segs, string game, string suffix, double trimToSeconds, double endAt)
+    async Task<SavedClip?> JoinAsync(List<Segment> segs, string game, string suffix, double trimToSeconds, double endAt)
     {
         await _saveLock.WaitAsync();
         try
@@ -597,7 +604,7 @@ sealed class ReplayEngine : IDisposable
             }
             File.Move(part, final);
             Log.Info($"Saved {final} ({segs.Count} segments, {new FileInfo(final).Length / 1048576.0:0.0} MB, {sw.ElapsedMilliseconds} ms)");
-            return final;
+            return new SavedClip(final, Math.Min(endAt - first.Start, trimToSeconds));
         }
         finally { _saveLock.Release(); }
 
@@ -605,6 +612,17 @@ sealed class ReplayEngine : IDisposable
     }
 
     // ------------------------------------------------------------------ misc
+
+    /// <summary>
+    /// Switches to new settings that don't need a capture restart (see <see cref="Settings.CaptureDiffers"/>):
+    /// buffer length, clips folder and volumes take effect on the running capture.
+    /// </summary>
+    public void UseSettings(Settings s)
+    {
+        _s = s;
+        ApplyAudioLevels();
+        if (Running) SetStatus(StatusLine());
+    }
 
     public void ApplyAudioLevels()
     {

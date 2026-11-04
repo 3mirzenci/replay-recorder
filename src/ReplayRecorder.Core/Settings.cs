@@ -69,6 +69,19 @@ public sealed class Settings
     public bool PlaySaveSound { get; set; } = true;
     public Dictionary<string, string> GameNames { get; set; } = GameDetector.DefaultNames();
 
+    /// <summary>
+    /// True when <paramref name="other"/> needs capture restarted (which empties the replay buffer):
+    /// the screen, encoding, buffer storage or an audio device changed. Everything else, volumes
+    /// included, applies to the running capture.
+    /// </summary>
+    public bool CaptureDiffers(Settings other) =>
+        Monitor != other.Monitor || Capture != other.Capture || Height != other.Height ||
+        MaxNativeHeight != other.MaxNativeHeight || Fps != other.Fps || Codec != other.Codec ||
+        Encoder != other.Encoder || Quality != other.Quality || MaxBitrateMbps != other.MaxBitrateMbps ||
+        CaptureCursor != other.CaptureCursor || BufferInRam != other.BufferInRam ||
+        !string.Equals(BufferFolder, other.BufferFolder, StringComparison.OrdinalIgnoreCase) ||
+        SystemAudioDeviceId != other.SystemAudioDeviceId || MicDeviceId != other.MicDeviceId;
+
     static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true,
@@ -92,7 +105,9 @@ public sealed class Settings
             Log.Warn($"Settings file unreadable, using defaults: {ex.Message}");
         }
         var d = new Settings();
-        d.Save();
+        // Only create the file when there is none: a file that failed to parse (a typo from a hand
+        // edit, or read mid-save) is kept so it can be fixed instead of being wiped with defaults.
+        if (!File.Exists(Paths.SettingsFile)) d.Save();
         return d;
     }
 

@@ -200,6 +200,31 @@ public sealed class ClipIndex
         finally { _storyboardGate.Release(); }
     }
 
+    /// <summary>
+    /// Deletes thumbnails and hover strips whose clip is gone (deleted, renamed or moved): they're
+    /// keyed by path, size and date, so nothing else ever removes them.
+    /// </summary>
+    public void CleanupThumbnails()
+    {
+        try
+        {
+            if (!Directory.Exists(Paths.ThumbFolder) || !Directory.Exists(_root)) return;
+            var keep = Directory.EnumerateFiles(_root, "*.mp4", SearchOption.AllDirectories)
+                .Select(p => System.IO.Path.GetFileNameWithoutExtension(ThumbFile(new FileInfo(p))))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            int removed = 0;
+            foreach (var f in Directory.EnumerateFiles(Paths.ThumbFolder))
+            {
+                var name = System.IO.Path.GetFileName(f);
+                var hash = name.Length >= 16 ? name[..16] : name; // "<hash>.jpg", "<hash>_sb.jpg", "<hash>_sb.jpg.tmp.jpg"
+                if (keep.Contains(hash)) continue;
+                try { File.Delete(f); removed++; } catch { }
+            }
+            if (removed > 0) Log.Info($"Removed {removed} thumbnails of clips that no longer exist");
+        }
+        catch (Exception ex) { Log.Warn($"Thumbnail cleanup: {ex.Message}"); }
+    }
+
     static string ThumbFile(FileInfo fi)
     {
         var key = $"{fi.FullName.ToLowerInvariant()}|{fi.Length}|{fi.LastWriteTimeUtc.Ticks}";

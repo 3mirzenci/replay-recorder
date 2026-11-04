@@ -1,0 +1,247 @@
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Threading;
+using ReplayRecorder.Core;
+using ReplayRecorder.Library.Player;
+
+namespace ReplayRecorder.Library;
+
+/// <summary>The clip player: opening clips, playback, trim and the game/mic mix.</summary>
+public partial class MainWindow
+{
+    // ================================================================== player
+
+    void OpenClip(ClipItem c)
+    {
+        _current = c;
+        _edit = ClipEdits.Get(c.Path);
+        LibraryView.Visibility = Visibility.Collapsed;
+        PlayerView.Visibility = Visibility.Visible;
+        PlayerTitle.Text = c.Title;
+        PlayerSubtitle.Text = $"{c.Game}  ·  {c.Subtitle}";
+        PlayerError.Visibility = Visibility.Collapsed;
+        PreviewToggle.IsChecked = false;
+
+        var tracks = c.Clip.SeparateTracks;
+        MixPanel.IsEnabled = tracks != null;
+        MixPanel.ToolTip = tracks == null ? "This clip has a single audio track" : null;
+        _loadingClip = true;
+        GameVol.Value = _edit.GameVolumeDb;
+        MicVol.Value = _edit.MicVolumeDb;
+        _loadingClip = false;
+        UpdateVolumeLabels();
+
+        Timeline.SetClip(c.Duration, _edit.In, _edit.EffectiveOut(c.Duration));
+        Timeline.Position = 0;
+        UpdateTrimText();
+        UpdateTimeText(0);
+
+        if (!EnsurePlayer()) return;
+        _mpv!.SetLoop(null, null);
+        _mpv.Load(c.Path, AudioGraph());
+        Focus();
+    }
+
+    bool EnsurePlayer()
+    {
+        if (_mpv != null) return true;
+        try
+        {
+            if (Video.Hwnd == IntPtr.Zero) UpdateLayout();
+            _mpv = new MpvPlayer(Video.Hwnd);
+            _mpv.StateChanged += OnPlayerState;
+            _mpv.FileLoaded += OnFileLoaded;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Player start failed", ex);
+            PlayerError.Text = ex is FileNotFoundException ? Ffmpeg.MpvInstallHint : $"The player couldn't start: {ex.Message}";
+            PlayerError.Visibility = Visibility.Visible;
+            return false;
+        }
+    }
+
+    void OnFileLoaded()
+    {
+        if (_current == null || _mpv == null) return;
+        // Duration from the player is exact; prefer it over the probe.
+        if (_mpv.Duration > 0 && Math.Abs(_mpv.Duration - Timeline.Duration) > 0.05)
+            Timeline.SetClip(_mpv.Duration, _edit.In, _edit.EffectiveOut(_mpv.Duration));
+        // Start where the trimmed clip starts.
+        if (_edit.In > 0) _mpv.Seek(_edit.In);
+        UpdateTrimText();
+    }
+
+    void OnPlayerState()
+    {
+        if (_mpv == null) return;
+        // mpv may report the length after "file-loaded"; whenever it does, it wins over the probe.
+        if (_current != null && _mpv.Duration > 0 && Math.Abs(_mpv.Duration - Timeline.Duration) > 0.05)
+        {
+            Timeline.SetClip(_mpv.Duration, _edit.In, _edit.EffectiveOut(_mpv.Duration));
+            UpdateTrimText();
+        }
+        Timeline.Position = _mpv.Position;
+        UpdateTimeText(_mpv.Position);
+        PlayIcon.Text = _mpv.Paused ? "" : "";
+    }
+
+    void CloseClip()
+    {
+        _mpv?.SetLoop(null, null);
+        _mpv?.Stop();
+        _current = null;
+        PlayerView.Visibility = Visibility.Collapsed;
+        LibraryView.Visibility = Visibility.Visible;
+        ClipGrid.Focus();
+        ScheduleViewUpdate();
+    }
+
+    /// <summary>mpv filter graph that mixes the separate game and mic tracks with the chosen volumes.</summary>
+    string? AudioGraph()
+    {
+        if (_current?.Clip.SeparateTracks is not { } tracks) return null;
+        var (g, m) = tracks;
+        string Db(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
+        return $"[aid{g + 1}]volume={Db(GameVol.Value)}dB[ga];" +
+               $"[aid{m + 1}]volume={Db(MicVol.Value)}dB,aformat=channel_layouts=stereo[ma];" +
+               "[ga][ma]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0[ao];[vid1]null[vo]";
+    }
+
+    void TrimEdited()
+    {
+        if (_current == null) return;
+        ClipEdits.Set(_current.Path, _edit);
+        UpdateTrimText();
+        if (PreviewToggle.IsChecked == true) _mpv?.SetLoop(_edit.In, _edit.EffectiveOut(Timeline.Duration));
+    }
+
+    void UpdateTrimText()
+    {
+        double dur = Timeline.Duration;
+        double len = _edit.EffectiveOut(dur) - _edit.In;
+        TrimText.Text = _edit.IsTrimmed(dur) ? $"Trimmed: {TrimTimeline.Fmt(len)} of {TrimTimeline.Fmt(dur)}" : "";
+    }
+
+    void UpdateTimeText(double t) =>
+        TimeText.Text = $"{TrimTimeline.Fmt(t)}.{(int)(Math.Max(0, t) * 10 % 10)}  /  {TrimTimeline.Fmt(Timeline.Duration)}";
+
+    void UpdateVolumeLabels()
+    {
+        static string L(double v) => v == 0 ? "0 dB" : $"{v:+0;-0} dB";
+        GameVolText.Text = L(GameVol.Value);
+        MicVolText.Text = L(MicVol.Value);
+    }
+
+    void SetIn()
+    {
+        if (_mpv == null) return;
+        _edit.In = Math.Min(_mpv.Position, _edit.EffectiveOut(Timeline.Duration) - 0.5);
+        if (_edit.In < 0) _edit.In = 0;
+        Timeline.SetClip(Timeline.Duration, _edit.In, _edit.EffectiveOut(Timeline.Duration));
+        TrimEdited();
+        TogglePreview(true);
+    }
+
+    void SetOut()
+    {
+        if (_mpv == null) return;
+        _edit.Out = Math.Max(_mpv.Position, _edit.In + 0.5);
+        Timeline.SetClip(Timeline.Duration, _edit.In, _edit.Out);
+        TrimEdited();
+        TogglePreview(true);
+    }
+
+    void TogglePreview(bool? on = null)
+    {
+        bool enable = on ?? PreviewToggle.IsChecked != true;
+        PreviewToggle.IsChecked = enable;
+        if (_mpv == null) return;
+        if (enable)
+        {
+            _mpv.SetLoop(_edit.In, _edit.EffectiveOut(Timeline.Duration));
+            _mpv.Seek(_edit.In);
+            _mpv.SetPause(false);
+        }
+        else _mpv.SetLoop(null, null);
+    }
+
+    void Step(int dir)
+    {
+        if (_mpv == null) return;
+        if (!_mpv.Paused) _mpv.SetPause(true);
+        if (dir > 0) _mpv.FrameStep(); else _mpv.FrameBackStep();
+    }
+
+    void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (PlayerView.Visibility != Visibility.Visible)
+        {
+            if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { SearchBox.Focus(); e.Handled = true; }
+            return;
+        }
+        bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        switch (e.Key)
+        {
+            case Key.Space: _mpv?.TogglePause(); break;
+            case Key.Left when shift: _mpv?.SeekBy(-5); break;
+            case Key.Right when shift: _mpv?.SeekBy(5); break;
+            case Key.Left: Step(-1); break;
+            case Key.Right: Step(+1); break;
+            case Key.J: _mpv?.SeekBy(-10); break;
+            case Key.L: _mpv?.SeekBy(10); break;
+            case Key.I: SetIn(); break;
+            case Key.O: SetOut(); break;
+            case Key.P: TogglePreview(); break;
+            case Key.Home: _mpv?.Seek(_edit.In); break;
+            case Key.End: _mpv?.Seek(Math.Max(_edit.In, _edit.EffectiveOut(Timeline.Duration) - 0.05)); break;
+            case Key.E: _ = ExportCurrent(); break;
+            case Key.Escape: CloseClip(); break;
+            case Key.Delete: if (_current != null) DeleteClips(new() { _current }); break;
+            default: return;
+        }
+        e.Handled = true;
+    }
+
+    void Back_Click(object sender, RoutedEventArgs e) => CloseClip();
+    void Play_Click(object sender, RoutedEventArgs e) => _mpv?.TogglePause();
+    void StepBack_Click(object sender, RoutedEventArgs e) => Step(-1);
+    void StepFwd_Click(object sender, RoutedEventArgs e) => Step(+1);
+    void SetIn_Click(object sender, RoutedEventArgs e) => SetIn();
+    void SetOut_Click(object sender, RoutedEventArgs e) => SetOut();
+    void Preview_Click(object sender, RoutedEventArgs e) => TogglePreview(PreviewToggle.IsChecked == true);
+    void PlayerShow_Click(object sender, RoutedEventArgs e) { if (_current != null) ShowInFolder(_current.Path); }
+    void PlayerDelete_Click(object sender, RoutedEventArgs e) { if (_current != null) DeleteClips(new() { _current }); }
+
+    void ResetTrim_Click(object sender, RoutedEventArgs e)
+    {
+        _edit.In = 0; _edit.Out = 0;
+        Timeline.SetClip(Timeline.Duration, 0, Timeline.Duration);
+        TrimEdited();
+        TogglePreview(false);
+    }
+
+    void Volume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded || _loadingClip) return;
+        if (sender is Slider s) s.Value = Math.Round(s.Value);
+        UpdateVolumeLabels();
+        if (_current == null) return;
+        _edit.GameVolumeDb = GameVol.Value;
+        _edit.MicVolumeDb = MicVol.Value;
+        ClipEdits.Set(_current.Path, _edit);
+        _mixDebounce.Stop(); _mixDebounce.Start();
+    }
+
+    void GameVol_DoubleClick(object sender, MouseButtonEventArgs e) => GameVol.Value = 0;
+    void MicVol_DoubleClick(object sender, MouseButtonEventArgs e) => MicVol.Value = 0;
+}
