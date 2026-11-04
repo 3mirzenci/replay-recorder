@@ -24,7 +24,7 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 
 ## Performance
 
-Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment). Five matches: one with no recorder, two with only Replay Recorder, two with only Moments, about 14 clips saved per match, Discord closed. Both apps record **1080p60** with a 60-second replay on their own default quality (Replay Recorder "Balanced", Moments "High"); the clips came out at a similar bitrate (29–37 vs 24–41 Mbps). Everything else is each app's default, including Replay Recorder's replay buffer on disk ("Keep the replay buffer in RAM" adds about 250 MB of RAM). The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon).
+Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment). Five matches: one with no recorder, two with only Replay Recorder, two with only Moments, Discord closed. Clips saved per match: 14 and 14 with Replay Recorder, 13 and 24 with Moments (16 on average). Both apps record **1080p60** with a 60-second replay on their own default quality (Replay Recorder "Balanced", Moments "High"); the clips came out at a similar bitrate (29–37 vs 24–41 Mbps). Everything else is each app's default, including Replay Recorder's replay buffer on disk ("Keep the replay buffer in RAM" adds about 250 MB of RAM). The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon).
 
 | | No recorder | Replay Recorder 1.0.8 | SteelSeries Moments + GG |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with 
 
 The two numbers in a cell are the two matches. Matches vary by a few FPS on their own, so 71 with Replay Recorder vs 69 without doesn't mean recording made the game faster.
 
-- **Game FPS:** with Replay Recorder the average was unchanged; the 1 % low matched the no-recorder match in one run and was lower in the other. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12. About 14 saves per match is more than most people make, so in everyday play Moments' penalty from its save spikes would be smaller.
+- **Game FPS:** with Replay Recorder the average was unchanged; the 1 % low matched the no-recorder match in one run and was lower in the other. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12, even in the match with only 13 saves. That many saves per match is more than most people make, so in everyday play Moments' penalty from its save spikes would be smaller.
 - **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
 - **CPU and encoder:** about the same.
 - **GPU:** Moments is lighter here. Replay Recorder captures the 144 Hz screen and scales 1440p down to 1080p on the GPU; making that cheaper is the next thing being worked on.
