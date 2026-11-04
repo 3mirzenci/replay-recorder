@@ -97,6 +97,7 @@ public partial class MainWindow
 
     void CloseClip()
     {
+        SetFullscreen(false);
         _mpv?.SetLoop(null, null);
         _mpv?.Stop();
         _current = null;
@@ -190,6 +191,8 @@ public partial class MainWindow
             return;
         }
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        // Fullscreen is for watching: no trimming, exporting or deleting from there.
+        if (_fullscreen != null && e.Key is Key.I or Key.O or Key.P or Key.E or Key.Delete) { e.Handled = true; return; }
         switch (e.Key)
         {
             case Key.Space: _mpv?.TogglePause(); break;
@@ -205,7 +208,8 @@ public partial class MainWindow
             case Key.Home: _mpv?.Seek(_edit.In); break;
             case Key.End: _mpv?.Seek(Math.Max(_edit.In, _edit.EffectiveOut(Timeline.Duration) - 0.05)); break;
             case Key.E: _ = ExportCurrent(); break;
-            case Key.Escape: CloseClip(); break;
+            case Key.F: SetFullscreen(_fullscreen == null); break;
+            case Key.Escape: if (_fullscreen != null) SetFullscreen(false); else CloseClip(); break;
             case Key.Delete: if (_current != null) DeleteClips(new() { _current }); break;
             default: return;
         }
@@ -213,6 +217,56 @@ public partial class MainWindow
     }
 
     void Back_Click(object sender, RoutedEventArgs e) => CloseClip();
+    void Fullscreen_Click(object sender, RoutedEventArgs e) => SetFullscreen(_fullscreen == null);
+
+    // Window state before fullscreen, or null when not fullscreen.
+    (WindowState State, WindowStyle Style, ResizeMode Resize)? _fullscreen;
+    FullscreenBar? _fsBar;
+
+    /// <summary>Video only, edge to edge. Keyboard shortcuts keep working; F or Esc comes back.</summary>
+    void SetFullscreen(bool on)
+    {
+        if (on == (_fullscreen != null)) return;
+        var hide = on ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var el in new UIElement[] { PlayerHeader, Timeline, PlayerControls, PlayerTopPanel, PlayerBottomPanel }) el.Visibility = hide;
+        VideoFrame.Margin = on ? new Thickness(0) : new Thickness(20, 0, 20, 20);
+        if (on)
+        {
+            _fullscreen = (WindowState, WindowStyle, ResizeMode);
+            WindowState = WindowState.Normal; // Maximized with a border would leave the taskbar showing
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+            if (_mpv != null)
+            {
+                _fsBar = new FullscreenBar(this, _mpv, () => SetFullscreen(false), GameVol, MicVol, MixPanel.IsEnabled);
+                // Placed once the window has finished growing to the full screen.
+                Dispatcher.BeginInvoke(() => { if (_fsBar == null) return; _fsBar.PlaceOver(this); _fsBar.Show(); }, DispatcherPriority.Loaded);
+            }
+        }
+        else
+        {
+            _fsBar?.Close();
+            _fsBar = null;
+            var (state, style, resize) = _fullscreen!.Value;
+            _fullscreen = null;
+            WindowStyle = style;
+            ResizeMode = resize;
+            WindowState = state;
+        }
+    }
+
+    /// <summary>Too narrow for the mix sliders + export beside the centred transport: move them to a row below.</summary>
+    void PlayerControls_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        RightControls.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double room = (PlayerControls.ActualWidth - Transport.ActualWidth - Transport.Margin.Left - Transport.Margin.Right) / 2;
+        bool below = RightControls.DesiredSize.Width > room;
+        Grid.SetRow(RightControls, below ? 1 : 0);
+        Grid.SetColumn(RightControls, below ? 0 : 2);
+        Grid.SetColumnSpan(RightControls, below ? 3 : 1);
+        RightControls.Margin = new Thickness(0, below ? 12 : 0, 0, 0);
+    }
     void Play_Click(object sender, RoutedEventArgs e) => _mpv?.TogglePause();
     void StepBack_Click(object sender, RoutedEventArgs e) => Step(-1);
     void StepFwd_Click(object sender, RoutedEventArgs e) => Step(+1);

@@ -313,8 +313,9 @@ sealed class TrayApp : ApplicationContext
         {
             // Replacing the engine now would cut the recording or the clip being written; ApplyPendingSettings runs it after.
             _reloadPending = true;
+            // Own pop-up, not a tray balloon: Windows often hides balloons (focus assist, notification settings).
             if (_engine.IsRecording)
-                _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.".T(), ToolTipIcon.Info);
+                Notify("Settings saved".T(), "They apply when the recording stops".T(), Grey, CaptureScreenBounds());
             return;
         }
         _reloadPending = false;
