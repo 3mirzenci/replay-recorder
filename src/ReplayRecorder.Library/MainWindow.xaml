@@ -241,7 +241,7 @@
                                 <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="Black"/></Border.Effect>
                                 <Border CornerRadius="6">
                                     <Border.Background>
-                                        <ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/>
+                                        <ImageBrush ImageSource="{Binding Icon}" Stretch="Uniform"/>
                                     </Border.Background>
                                 </Border>
                             </Border>

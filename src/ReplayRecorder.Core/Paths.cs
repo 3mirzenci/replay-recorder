@@ -16,6 +16,8 @@ public static class Paths
     public static string LogFolder => Path.Combine(LocalData, "logs");
     public static string CacheFolder => Path.Combine(LocalData, "cache");
     public static string ThumbFolder => Path.Combine(CacheFolder, "thumbs");
+    public static string GameIconFolder => Path.Combine(CacheFolder, "game-icons");
+    public static string GameIconFile(string game) => Path.Combine(GameIconFolder, SafeName(game) + ".png");
 
     public static string DefaultClipsFolder { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Replay Recorder");
