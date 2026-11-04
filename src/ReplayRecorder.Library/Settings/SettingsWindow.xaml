@@ -41,7 +41,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Section menu: jumps to each section -->
+        <!-- Section menu: each entry is its own page -->
         <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="8,18,8,8">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Settings" FontFamily="{DynamicResource DisplayFont}" FontSize="26" FontWeight="Bold" Margin="14,0,0,16"/>
@@ -109,7 +109,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Content panel: sections scroll, Save/Cancel stay at the bottom -->
+        <!-- Content panel: the chosen page, Save/Cancel stay at the bottom -->
         <Border Grid.Column="2" CornerRadius="8" Background="{DynamicResource Panel}">
         <DockPanel>
         <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="28,14">
@@ -124,7 +124,7 @@
         </Border>
 
         <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="28,0,20,28">
-            <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+            <StackPanel x:Name="Pages" MaxWidth="760" HorizontalAlignment="Left">
                 <!-- ============ Replay & hotkeys ============ -->
                 <TextBlock x:Name="SecReplay" Text="Instant replay" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        NavList.SelectedIndex = 0; // first page
         SourceInitialized += (_, _) => App.UseDarkTitleBar(this);
         Load();
         _meterTimer.Tick += (_, _) => UpdateMeters();
@@ -261,11 +262,16 @@ public partial class SettingsWindow : Window
 
     void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 
-    /// <summary>Section menu: scrolls so the chosen section's heading sits at the top.</summary>
+    /// <summary>Section menu: shows only the chosen section. Each heading (x:Name "Sec...") starts a page that runs to the next heading.</summary>
     void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // shortcut: the menu doesn't follow manual scrolling; add a ScrollChanged sync if that's missed.
-        if (NavList.SelectedItem is ListBoxItem { Tag: string name } && FindName(name) is FrameworkElement section)
-            Scroller.ScrollToVerticalOffset(Scroller.VerticalOffset + section.TranslatePoint(new Point(0, 0), Scroller).Y - 8);
+        if (NavList.SelectedItem is not ListBoxItem { Tag: string page }) return;
+        string current = "";
+        foreach (FrameworkElement el in Pages.Children)
+        {
+            if (el.Name.StartsWith("Sec")) current = el.Name;
+            el.Visibility = current == page ? Visibility.Visible : Visibility.Collapsed;
+        }
+        Scroller.ScrollToTop();
     }
 }

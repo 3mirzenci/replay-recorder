@@ -158,7 +158,6 @@ public partial class MainWindow : Window
         int shown = visible.Count;
         CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
         UpdateDayGroups();
-        UpdateHero(visible);
         ScheduleViewUpdate();
         EmptyState.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_items.Count > 0 && shown == 0)
@@ -167,16 +166,6 @@ public partial class MainWindow : Window
             ((TextBlock)EmptyState.Children[0]).Text = "Nothing here";
         }
     }
-
-    /// <summary>The header's folder button belongs to the newest clip in view.</summary>
-    void UpdateHero(List<ClipItem> visible)
-    {
-        Hero.DataContext = visible.MaxBy(c => c.Created);
-        HeroActions.IsEnabled = Hero.DataContext != null;
-    }
-
-    // The header's folder button shows the newest clip.
-    void HeroShow_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) ShowInFolder(c.Path); }
 
     void ApplySort(string key)
     {

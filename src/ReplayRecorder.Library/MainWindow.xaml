@@ -159,13 +159,8 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
                     </Border>
-                    <!-- One slim row: title and count, plus the newest clip's folder -->
-                    <DockPanel x:Name="Hero" Margin="24,16,20,8">
-                        <StackPanel x:Name="HeroActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Style="{StaticResource RoundBtn}" Click="HeroShow_Click" ToolTip="Show the newest clip in its folder">
-                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
-                            </Button>
-                        </StackPanel>
+                    <!-- One slim row: title and count -->
+                    <DockPanel Margin="24,16,20,8">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="26" FontWeight="Bold"
                                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
