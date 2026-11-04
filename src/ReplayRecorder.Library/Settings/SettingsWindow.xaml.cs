@@ -27,7 +27,7 @@ public partial class SettingsWindow : Window
         Closed += (_, _) =>
         {
             _meterTimer.Stop(); OnMeterThread(() => { _sysMeter.Dispose(); _micMeter.Dispose(); });
-            if (DialogResult != true) App.ApplyTheme(_s.Theme); // undo the live preview
+            if (DialogResult != true) App.ApplyTheme(_s.Theme, _s.AccentColor); // undo the live preview
         };
     }
 
@@ -78,7 +78,10 @@ public partial class SettingsWindow : Window
         NotifyBox.IsChecked = _s.ShowNotifications;
         SoundBox.IsChecked = _s.PlaySaveSound;
         Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("windows", "Windows (blue)"), ("amber", "Amber"));
-        ThemeBox.SelectionChanged += (_, _) => App.ApplyTheme(Get(ThemeBox, "windows")); // live preview
+        _accent = _s.AccentColor;
+        foreach (var rb in AccentSwatches.Children.OfType<RadioButton>())
+            rb.IsChecked = string.Equals((string)rb.Tag, _accent, StringComparison.OrdinalIgnoreCase);
+        ThemeBox.SelectionChanged += (_, _) => PreviewLook();
         RamBox.IsChecked = _s.BufferInRam;
         GamesBox.Text = string.Join(Environment.NewLine, _s.GameNames.OrderBy(k => k.Value).Select(kv => $"{kv.Key} = {kv.Value}"));
         UpdateLabels();
@@ -226,6 +229,7 @@ public partial class SettingsWindow : Window
         _s.ShowNotifications = NotifyBox.IsChecked == true;
         _s.PlaySaveSound = SoundBox.IsChecked == true;
         _s.Theme = Get(ThemeBox, "windows");
+        _s.AccentColor = _accent;
         _s.BufferInRam = RamBox.IsChecked == true;
         _s.StartWithWindows = StartupBox.IsChecked == true;
         _s.GameNames = ParseGames(GamesBox.Text);
@@ -261,6 +265,25 @@ public partial class SettingsWindow : Window
     void Error(string msg) => MessageBox.Show(this, msg, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
 
     void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    // ---- Look and accent colour: previewed live, saved with Save, undone on Cancel
+    string _accent = "";
+    void PreviewLook() => App.ApplyTheme(Get(ThemeBox, "windows"), _accent);
+
+    void Swatch_Checked(object sender, RoutedEventArgs e)
+    {
+        _accent = (string)((FrameworkElement)sender).Tag;
+        if (IsLoaded) PreviewLook(); // not while Load() ticks the saved one
+    }
+
+    void CustomAccent_Click(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.ColorDialog { FullOpen = true };
+        if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+        foreach (var rb in AccentSwatches.Children.OfType<RadioButton>()) rb.IsChecked = false;
+        _accent = $"#{dlg.Color.R:X2}{dlg.Color.G:X2}{dlg.Color.B:X2}";
+        PreviewLook();
+    }
 
     /// <summary>Section menu: shows only the chosen section. Each heading (x:Name "Sec...") starts a page that runs to the next heading.</summary>
     void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)

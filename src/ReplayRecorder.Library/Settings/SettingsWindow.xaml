@@ -32,6 +32,34 @@
         <Style x:Key="Row" TargetType="Grid">
             <Setter Property="Margin" Value="0,9"/>
         </Style>
+        <!-- Accent colour circle: Background is the colour, Tag the saved value -->
+        <Style x:Key="Swatch" TargetType="RadioButton">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="GroupName" Value="accent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="ring" Stroke="{DynamicResource Text}" StrokeThickness="0"/>
+                            <Ellipse Margin="4" Fill="{TemplateBinding Background}"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ring" Property="StrokeThickness" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ring" Property="StrokeThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="8">
@@ -339,6 +367,27 @@
                                 <TextBlock Text="Changes right away; Save keeps it" Style="{StaticResource Hint}"/>
                             </StackPanel>
                             <ComboBox x:Name="ThemeBox" Grid.Column="1" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Accent colour" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Buttons, selection and the trim bar" Style="{StaticResource Hint}"/>
+                            </StackPanel>
+                            <WrapPanel x:Name="AccentSwatches" Grid.Column="1" VerticalAlignment="Center">
+                                <RadioButton Style="{StaticResource Swatch}" Tag="" Background="{DynamicResource Card}" ToolTip="Auto: the look's own colour" Checked="Swatch_Checked">
+                                    <TextBlock Text="A" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Subtle}"/>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#4CC2FF" Background="#4CC2FF" ToolTip="Blue" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#8B7CFF" Background="#8B7CFF" ToolTip="Violet" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#FF6BD5" Background="#FF6BD5" ToolTip="Pink" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#FF5A5F" Background="#FF5A5F" ToolTip="Red" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#FF9F43" Background="#FF9F43" ToolTip="Orange" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#FFB627" Background="#FFB627" ToolTip="Amber" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#3DDC84" Background="#3DDC84" ToolTip="Green" Checked="Swatch_Checked"/>
+                                <RadioButton Style="{StaticResource Swatch}" Tag="#2ED3E6" Background="#2ED3E6" ToolTip="Cyan" Checked="Swatch_Checked"/>
+                                <Button Content="Custom…" Padding="12,6" Margin="4,0,0,6" Click="CustomAccent_Click" ToolTip="Pick any colour"/>
+                            </WrapPanel>
                         </Grid>
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>

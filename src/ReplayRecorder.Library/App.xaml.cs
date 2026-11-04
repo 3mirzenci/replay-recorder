@@ -36,7 +36,8 @@ public partial class App : Application
             ex.Handled = true;
         };
 
-        ApplyTheme(Settings.Load().Theme);
+        var saved = Settings.Load();
+        ApplyTheme(saved.Theme, saved.AccentColor);
         StartRecorderIfNeeded();
         base.OnStartup(e);
         // "ReplayRecorder.exe --open <clip>" opens that clip straight in the player.
@@ -93,11 +94,30 @@ public partial class App : Application
     }
 
     /// <summary>Swaps the colour/font dictionary; every DynamicResource updates live.</summary>
-    public static void ApplyTheme(string theme)
+    public static void ApplyTheme(string theme, string accent = "")
     {
         var file = theme is "amber" or "booth" ? "Amber" : "Windows"; // "booth" = older name for amber
-        Current.Resources.MergedDictionaries[0] = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{file}.xaml") };
+        var dict = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{file}.xaml") };
+        if (TryParseColor(accent, out var c))
+        {
+            dict["Accent"] = Frozen(c);
+            dict["AccentSoft"] = Frozen(System.Windows.Media.Color.FromArgb(0x2E, c.R, c.G, c.B));
+            // Dark text on light accents, white on dark ones (perceived brightness).
+            bool light = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B > 150;
+            dict["OnAccent"] = Frozen(light ? System.Windows.Media.Color.FromRgb(0x10, 0x10, 0x12) : System.Windows.Media.Colors.White);
+        }
+        Current.Resources.MergedDictionaries[0] = dict;
         foreach (Window w in Current.Windows) UseDarkTitleBar(w);
+    }
+
+    static System.Windows.Media.SolidColorBrush Frozen(System.Windows.Media.Color c) { var b = new System.Windows.Media.SolidColorBrush(c); b.Freeze(); return b; }
+
+    static bool TryParseColor(string s, out System.Windows.Media.Color c)
+    {
+        c = default;
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        try { c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(s); return true; }
+        catch (Exception e) when (e is FormatException or NotSupportedException) { return false; } // hand-edited settings file: fall back to the look's colour
     }
 
     /// <summary>Gives a window the Windows 11 dark title bar.</summary>
