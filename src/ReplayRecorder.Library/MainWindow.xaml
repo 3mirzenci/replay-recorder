@@ -235,19 +235,20 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Border Width="256" Height="144" CornerRadius="6" Background="{DynamicResource Card}" Cursor="Hand"
-                                    MouseLeftButtonUp="HeroPlay_Click" ToolTip="Play the newest clip">
-                                <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.5" Color="Black"/></Border.Effect>
+                            <!-- Game cover (its newest clip), only while one game is shown -->
+                            <Border x:Name="HeroCover" Width="76" Height="76" CornerRadius="6" Background="{DynamicResource Card}"
+                                    Margin="0,0,18,0" VerticalAlignment="Bottom" Visibility="Collapsed">
+                                <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="Black"/></Border.Effect>
                                 <Border CornerRadius="6">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/>
                                     </Border.Background>
                                 </Border>
                             </Border>
-                            <StackPanel Grid.Column="1" Margin="24,0,0,2" VerticalAlignment="Bottom">
-                                <TextBlock x:Name="HeaderKind" Text="Library" FontSize="13" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="56" FontWeight="Bold"
-                                           TextTrimming="CharacterEllipsis" Margin="-2,0,0,2"/>
+                            <StackPanel Grid.Column="1" Margin="0,0,0,2" VerticalAlignment="Bottom">
+                                <TextBlock x:Name="HeaderKind" Text="Library" FontSize="12.5" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="40" FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis" Margin="-1,0,0,2"/>
                                 <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5"/>
                             </StackPanel>
                         </Grid>

@@ -156,6 +156,7 @@ public partial class MainWindow : Window
     {
         HeaderText.Text = _gameFilter.Length == 0 ? "All clips" : _gameFilter == FavKey ? "Favorites" : _gameFilter;
         HeaderKind.Text = _gameFilter.Length == 0 ? "Library" : _gameFilter == FavKey ? "Collection" : "Game";
+        HeroCover.Visibility = _gameFilter.Length > 0 && _gameFilter != FavKey ? Visibility.Visible : Visibility.Collapsed;
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
         CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
