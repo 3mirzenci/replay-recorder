@@ -1,8 +1,9 @@
-# Publishes a new version: bumps the version, builds the installer, commits + tags, pushes, and
-# creates the GitHub release that the in-app update button and the download link point at.
+# Publishes a new version: bumps the version, commits, tags and pushes. GitHub then builds the
+# installer and creates the release (.github/workflows/release.yml), which the in-app update
+# button and the download link point at. Nothing is built on this PC.
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Notes "Fixed X, added Y"            # 1.0.3 -> 1.0.4
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -Notes "Big update"
-# Needs: git, gh (logged in), plus everything build.ps1 needs.
+# The notes become the release text and the "What's new" window. Needs: git (and gh to watch the build).
 param(
     [string]$Version = "",
     [Parameter(Mandatory = $true)][string]$Notes
@@ -21,17 +22,15 @@ $text = [IO.File]::ReadAllText((Resolve-Path $props))
 $text = $text -replace '<Version>[^<]*</Version>', "<Version>$Version</Version>"
 [IO.File]::WriteAllText((Resolve-Path $props), $text)
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Version $Version
-if ($LASTEXITCODE -ne 0) { throw "build failed" }
-$setup = "dist\ReplayRecorder-Setup.exe"
-if (-not (Test-Path $setup)) { throw "$setup missing" }
-
+# The tag message carries the notes to the GitHub build (a file keeps multi-line notes intact).
+$notesFile = [IO.Path]::GetTempFileName()
+[IO.File]::WriteAllText($notesFile, $Notes)
 git add -A
 git commit -m "Release v$Version" -m $Notes
-git tag -a "v$Version" -m "Replay Recorder $Version"
+git tag -a "v$Version" -F $notesFile
+Remove-Item $notesFile
 git push origin HEAD --follow-tags
 if ($LASTEXITCODE -ne 0) { throw "git push failed" }
 
-gh release create "v$Version" $setup --repo $repo --title "Replay Recorder $Version" --notes $Notes
-if ($LASTEXITCODE -ne 0) { throw "gh release failed" }
-Write-Host "Released $Version. Download link: https://github.com/$repo/releases/latest/download/ReplayRecorder-Setup.exe"
+Write-Host "Pushed v$Version. GitHub is building it (about 5 minutes): https://github.com/$repo/actions"
+Write-Host "Then it's live at https://github.com/$repo/releases/latest/download/ReplayRecorder-Setup.exe"

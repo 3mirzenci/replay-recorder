@@ -127,7 +127,7 @@ The offline installer contains ffmpeg, which is GPL-licensed. If you share it, i
 powershell -ExecutionPolicy Bypass -File release.ps1 -Notes "What changed"
 ```
 
-This bumps the version in `Directory.Build.props` (1.0.3 becomes 1.0.4, or pass `-Version 1.1.0`) and builds the installer. Then it commits, tags and pushes, and creates the GitHub release. Every installed copy sees the update the next time it checks, at library start or every 6 hours in the tray.
+This bumps the version in `Directory.Build.props` (1.0.3 becomes 1.0.4, or pass `-Version 1.1.0`), then commits, tags and pushes. GitHub builds the installer from the pushed code and creates the release (`.github/workflows/release.yml`, about 5 minutes), with your notes as its text; the "What's new" window shows them after the update. Every installed copy sees the update the next time it checks, at library start or every 6 hours in the tray.
 
 The updater only downloads `ReplayRecorder-Setup.exe` from this repo's latest release, over HTTPS, from GitHub's own servers. The file must match the size and SHA-256 that GitHub lists for that file before it runs. Anyone who can publish releases here can ship code to every user, so keep two-factor authentication on the GitHub account.
 
