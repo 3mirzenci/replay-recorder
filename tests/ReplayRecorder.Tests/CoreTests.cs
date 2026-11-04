@@ -73,6 +73,28 @@ public class LangTests
     }
 }
 
+public class CaptureRateTests
+{
+    [Theory]
+    [InlineData(144, 60, 72)]
+    [InlineData(180, 60, 90)]
+    [InlineData(240, 60, 80)]
+    [InlineData(165, 60, 82.5)]
+    [InlineData(60, 60, 60)]
+    [InlineData(120, 60, 120)]
+    [InlineData(144, 30, 36)]
+    public void Delivered_rate_stays_above_fps_with_fewer_frames(int refresh, int fps, double expectedDelivered)
+    {
+        double limit = Displays.CaptureRateLimit(refresh, fps);
+        // What WGC does with the limit: wait 1/limit, then deliver on the next refresh tick.
+        double tick = 1.0 / refresh;
+        double delivered = 1.0 / (Math.Ceiling((1.0 / limit) / tick - 1e-9) * tick);
+        Assert.Equal(expectedDelivered, delivered, 1);
+        Assert.True(delivered >= fps, "would need doubled frames");
+        Assert.True(limit <= 1000, "ffmpeg's max_framerate tops out at 1000");
+    }
+}
+
 public class SettingsTests
 {
     [Fact]

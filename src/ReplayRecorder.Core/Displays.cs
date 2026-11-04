@@ -24,6 +24,21 @@ public sealed record DisplayInfo(
 
 public static class Displays
 {
+    /// <summary>
+    /// The max_framerate to give Windows Graphics Capture. WGC waits at least 1/max_framerate between
+    /// frames and then delivers on the next refresh tick, so the delivered rate is always refresh / k.
+    /// A plain 60 on 144 Hz lands on every 3rd tick = 48 fps (stutter); capturing every tick wastes a
+    /// GPU copy + scale per unused frame. So pick the largest k that still leaves ~10 % headroom over
+    /// fps, and put the limit half a tick before the k-th tick so timing jitter can't push it to k+1.
+    /// 144 Hz -> 72 fps delivered, 180 -> 90, 240 -> 80, 165 -> 82.5, 60 -> 60.
+    /// </summary>
+    public static double CaptureRateLimit(int refreshHz, int fps)
+    {
+        if (refreshHz <= 0) return fps * 2; // unknown refresh rate: the old, safe behaviour
+        int k = Math.Max(1, (int)(refreshHz / (fps * 1.1)));
+        return refreshHz / (k - 0.5);
+    }
+
     public static List<DisplayInfo> Enumerate()
     {
         var targets = QueryTargets();

@@ -301,12 +301,9 @@ sealed class ReplayEngine : IDisposable
         string src;
         if (_wgc)
         {
-            // Capture at the monitor's refresh rate, not the output rate: WGC can only deliver on
-            // refresh ticks, so a 60 fps cap on a 144 Hz screen rounds to every 3rd tick = 48 fps,
-            // and the fps filter then has to duplicate ~12 frames a second (visible stutter).
-            // Capturing every tick lets the fps filter pick the frame nearest each 1/60 s slot;
-            // the extra frames are dropped on the GPU before encoding.
-            int captureRate = Math.Clamp(d.RefreshHz > 0 ? d.RefreshHz : fps * 2, fps, 240);
+            // WGC delivers only on refresh ticks, and every delivered frame costs a GPU copy + scale
+            // (see Displays.CaptureRateLimit for how the limit is picked).
+            var captureRate = Displays.CaptureRateLimit(d.RefreshHz, fps).ToString("0.###", CultureInfo.InvariantCulture);
             src = $"gfxcapture=hmonitor={d.HMonitor}:max_framerate={captureRate}:capture_cursor={(_s.CaptureCursor ? 1 : 0)}";
             if (scale) src += $":width={w}:height={h}:resize_mode=scale_aspect:scale_mode=bicubic";
         }
