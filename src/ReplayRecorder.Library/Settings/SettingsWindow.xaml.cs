@@ -260,4 +260,12 @@ public partial class SettingsWindow : Window
     void Error(string msg) => MessageBox.Show(this, msg, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
 
     void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    /// <summary>Section menu: scrolls so the chosen section's heading sits at the top.</summary>
+    void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // shortcut: the menu doesn't follow manual scrolling; add a ScrollChanged sync if that's missed.
+        if (NavList.SelectedItem is ListBoxItem { Tag: string name } && FindName(name) is FrameworkElement section)
+            Scroller.ScrollToVerticalOffset(Scroller.VerticalOffset + section.TranslatePoint(new Point(0, 0), Scroller).Y - 8);
+    }
 }

@@ -518,8 +518,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
+            <!-- Panels behind the rows: header + video on top, timeline + controls below -->
+            <Border Grid.RowSpan="2" Margin="8,8,8,0" CornerRadius="8" Background="{DynamicResource Panel}"/>
+            <Border Grid.Row="2" Grid.RowSpan="2" Margin="8" CornerRadius="8" Background="{DynamicResource Panel}"/>
+
             <!-- Header -->
-            <DockPanel Margin="16,12,16,10">
+            <DockPanel Margin="20,18,20,12">
                 <Button DockPanel.Dock="Left" Style="{StaticResource GhostBtn}" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,6">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"/>
@@ -533,13 +537,13 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12"/>
+                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12.5"/>
                 </StackPanel>
             </DockPanel>
 
             <!-- Video -->
-            <Border Grid.Row="1" Background="#000" Margin="16,0">
+            <Border Grid.Row="1" Background="#000" Margin="20,0,20,20">
                 <Grid>
                     <player:VideoHost x:Name="Video"/>
                     <TextBlock x:Name="PlayerError" Visibility="Collapsed" Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
@@ -548,39 +552,39 @@
             </Border>
 
             <!-- Timeline -->
-            <player:TrimTimeline x:Name="Timeline" Grid.Row="2" Margin="16,14,16,0"/>
+            <player:TrimTimeline x:Name="Timeline" Grid.Row="2" Margin="24,22,24,0"/>
 
-            <!-- Controls -->
-            <Grid Grid.Row="3" Margin="16,8,16,16">
+            <!-- Controls: trim tools left, transport centred, mix + export right -->
+            <Grid Grid.Row="3" Margin="24,6,24,26">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="PlayBtn" Click="Play_Click" ToolTip="Play / pause (Space)" Width="44" Padding="0,7">
-                        <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
+                    <Button Style="{StaticResource RoundBtn}" Click="StepBack_Click" ToolTip="Previous frame (←)">
+                        <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
                     </Button>
-                    <Button Click="StepBack_Click" ToolTip="Previous frame (←)" Margin="6,0,0,0" Padding="9,7">
-                        <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"/>
+                    <Button x:Name="PlayBtn" Style="{StaticResource PlayCircle}" Width="48" Height="48" Margin="10,0" Click="Play_Click" ToolTip="Play / pause (Space)">
+                        <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource OnAccent}"/>
                     </Button>
-                    <Button Click="StepFwd_Click" ToolTip="Next frame (→)" Margin="4,0,0,0" Padding="9,7">
-                        <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"/>
+                    <Button Style="{StaticResource RoundBtn}" Click="StepFwd_Click" ToolTip="Next frame (→)">
+                        <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
                     </Button>
                     <TextBlock x:Name="TimeText" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="14" FontFamily="{DynamicResource NumFont}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <WrapPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
                     <Button Content="Set start  (I)" Click="SetIn_Click" Margin="0,0,6,0"/>
                     <Button Content="Set end  (O)" Click="SetOut_Click" Margin="0,0,6,0"/>
                     <ToggleButton x:Name="PreviewToggle" Style="{StaticResource Seg}" Content="Preview trim  (P)" Click="Preview_Click"
                                   Background="{DynamicResource Card}" Padding="12,7" Margin="0,0,6,0"/>
                     <Button Content="Reset" Click="ResetTrim_Click" Style="{StaticResource GhostBtn}"/>
                     <TextBlock x:Name="TrimText" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12.5"/>
-                </StackPanel>
+                </WrapPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel x:Name="MixPanel" Orientation="Horizontal">
                         <StackPanel Margin="0,0,16,0">
                             <DockPanel Width="150">
@@ -610,7 +614,7 @@
             </Grid>
 
             <!-- Export panel (shown while exporting and afterwards) -->
-            <Border x:Name="ExportPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,0,16,16" Padding="14"
+            <Border x:Name="ExportPanel" Grid.Row="4" Visibility="Collapsed" Margin="8,0,8,8" Padding="14"
                     Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
