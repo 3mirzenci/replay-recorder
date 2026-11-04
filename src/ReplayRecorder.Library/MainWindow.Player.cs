@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -32,7 +32,7 @@ public partial class MainWindow
 
         var tracks = c.Clip.SeparateTracks;
         MixPanel.IsEnabled = tracks != null;
-        MixPanel.ToolTip = tracks == null ? "This clip has a single audio track" : null;
+        MixPanel.ToolTip = tracks == null ? "This clip has a single audio track".T() : null;
         _loadingClip = true;
         GameVol.Value = _edit.GameVolumeDb;
         MicVol.Value = _edit.MicVolumeDb;
@@ -64,7 +64,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             Log.Error("Player start failed", ex);
-            PlayerError.Text = ex is FileNotFoundException ? Ffmpeg.MpvInstallHint : $"The player couldn't start: {ex.Message}";
+            PlayerError.Text = ex is FileNotFoundException ? Ffmpeg.MpvInstallHint.T() : "The player couldn't start: {0}".T(ex.Message);
             PlayerError.Visibility = Visibility.Visible;
             return false;
         }
@@ -129,7 +129,7 @@ public partial class MainWindow
     {
         double dur = Timeline.Duration;
         double len = _edit.EffectiveOut(dur) - _edit.In;
-        TrimText.Text = _edit.IsTrimmed(dur) ? $"Trimmed: {TrimTimeline.Fmt(len)} of {TrimTimeline.Fmt(dur)}" : "";
+        TrimText.Text = _edit.IsTrimmed(dur) ? "Trimmed: {0} of {1}".T(TrimTimeline.Fmt(len), TrimTimeline.Fmt(dur)) : "";
     }
 
     void UpdateTimeText(double t) =>

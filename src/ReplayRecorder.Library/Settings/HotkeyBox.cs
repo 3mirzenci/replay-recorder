@@ -1,3 +1,4 @@
+using ReplayRecorder.Core;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -90,13 +91,13 @@ sealed class HotkeyBox : Border
     {
         if (_listening)
         {
-            _text.Text = AllowEmpty ? "Press keys…  (Esc cancel, Backspace clear)" : "Press keys…  (Esc cancel)";
+            _text.Text = (AllowEmpty ? "Press keys…  (Esc cancel, Backspace clear)" : "Press keys…  (Esc cancel)").T();
             _text.Foreground = (Brush)Application.Current.FindResource("Accent");
             BorderBrush = (Brush)Application.Current.FindResource("Accent");
         }
         else
         {
-            _text.Text = _value.Length > 0 ? _value.Replace("+", " + ") : "Not set";
+            _text.Text = _value.Length > 0 ? _value.Replace("+", " + ") : "Not set".T();
             _text.Foreground = (Brush)Application.Current.FindResource(_value.Length > 0 ? "Text" : "Subtle");
             BorderBrush = (Brush)Application.Current.FindResource("Line");
         }

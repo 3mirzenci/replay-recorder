@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -40,12 +40,12 @@ public partial class MainWindow
         CancelExportBtn.Visibility = Visibility.Visible;
         CloseExportBtn.Visibility = Visibility.Collapsed;
         DragTile.Opacity = 0.4;
-        ExportFileText.Text = "Preparing…";
+        ExportFileText.Text = "Preparing…".T();
         ExportSizeText.Text = "";
         ExportStatus.Foreground = (System.Windows.Media.Brush)FindResource("Text");
-        ExportStatus.Text = "Starting export…";
+        ExportStatus.Text = "Starting export…".T();
         double len = edit.EffectiveOut(clip.Duration) - edit.In;
-        ExportDetail.Text = $"{TrimTimeline.Fmt(len)} clip · target {_settings.DiscordTargetMB:0.#} MB · original is never changed";
+        ExportDetail.Text = "{0} clip · target {1:0.#} MB · original is never changed".T(TrimTimeline.Fmt(len), _settings.DiscordTargetMB);
         SetExportBar(0);
 
         var progress = new Progress<(double Fraction, string Status)>(p =>
@@ -58,18 +58,18 @@ public partial class MainWindow
             var r = await Task.Run(() => DiscordExporter.ExportAsync(clip, edit, _settings, progress, _exportCts.Token));
             _exportPath = r.Path;
             SetExportBar(1);
-            ExportStatus.Text = "Ready for Discord";
+            ExportStatus.Text = "Ready for Discord".T();
             ExportSizeText.Text = $"{r.SizeBytes / 1e6:0.0} MB";
             ExportDetail.Text = $"{r.Plan.Describe()} · {r.Elapsed.TotalSeconds:0}s" +
-                                (r.Attempts > 1 ? $" · {r.Attempts} passes to fit" : "") +
-                                (r.Plan.StreamCopy ? " · starts at the nearest keyframe" : "");
+                                (r.Attempts > 1 ? " · {0} passes to fit".T(r.Attempts) : "") +
+                                (r.Plan.StreamCopy ? " · starts at the nearest keyframe".T() : "");
             ExportFileText.Text = Path.GetFileName(r.Path);
             DragTile.Opacity = 1;
             CopyFileBtn.IsEnabled = OpenExportBtn.IsEnabled = true;
         }
         catch (OperationCanceledException)
         {
-            ExportStatus.Text = "Export cancelled";
+            ExportStatus.Text = "Export cancelled".T();
             ExportFileText.Text = "";
             SetExportBar(0);
         }
@@ -112,7 +112,7 @@ public partial class MainWindow
         if (!KeepExport(_exportPath)) { ExportExpired(); return; }
         // Same clipboard format as Ctrl+C in Explorer, so Ctrl+V in Discord attaches the file.
         Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection { _exportPath });
-        ExportStatus.Text = "Copied! Press Ctrl+V in Discord";
+        ExportStatus.Text = "Copied! Press Ctrl+V in Discord".T();
     }
 
     void OpenExport_Click(object sender, RoutedEventArgs e)
@@ -134,7 +134,7 @@ public partial class MainWindow
     void ExportExpired()
     {
         ExportStatus.Foreground = (System.Windows.Media.Brush)FindResource("Danger");
-        ExportStatus.Text = $"This export was cleaned up after {DiscordExporter.ExportLifetime.TotalMinutes:0} minutes. Export it again.";
+        ExportStatus.Text = "This export was cleaned up after {0:0} minutes. Export it again.".T(DiscordExporter.ExportLifetime.TotalMinutes);
         DragTile.Opacity = 0.4;
         CopyFileBtn.IsEnabled = OpenExportBtn.IsEnabled = false;
     }
@@ -180,10 +180,10 @@ public partial class MainWindow
                 int n = i;
                 var progress = new Progress<(double Fraction, string Status)>(p =>
                 {
-                    BatchStatus.Text = $"{n + 1} of {clips.Count}: {p.Status}";
+                    BatchStatus.Text = "{0} of {1}: {2}".T(n + 1, clips.Count, p.Status);
                     SetBatchBar((n + p.Fraction) / clips.Count);
                 });
-                BatchStatus.Text = $"Exporting {n + 1} of {clips.Count}…";
+                BatchStatus.Text = "Exporting {0} of {1}…".T(n + 1, clips.Count);
                 try
                 {
                     // Each clip keeps the trim and volumes saved for it in the player.
@@ -200,9 +200,9 @@ public partial class MainWindow
                 }
             }
             SetBatchBar(1);
-            BatchStatus.Text = failedCount == 0 ? "All exported" : $"{failedCount} failed (see log)";
+            BatchStatus.Text = failedCount == 0 ? "All exported".T() : "{0} failed (see log)".T(failedCount);
         }
-        catch (OperationCanceledException) { BatchStatus.Text = "Export cancelled"; }
+        catch (OperationCanceledException) { BatchStatus.Text = "Export cancelled".T(); }
         finally
         {
             _batchCts.Dispose();
@@ -216,7 +216,7 @@ public partial class MainWindow
             foreach (var f in done) KeepExport(f);
             _batchPaths = done;
             long total = done.Where(File.Exists).Sum(f => new FileInfo(f).Length);
-            BatchDragText.Text = $"Drag {done.Count} file{(done.Count == 1 ? "" : "s")} into Discord  ·  {total / 1e6:0.0} MB";
+            BatchDragText.Text = (done.Count == 1 ? "Drag {0} file into Discord  ·  {1:0.0} MB" : "Drag {0} files into Discord  ·  {1:0.0} MB").T(done.Count, total / 1e6);
             BatchDragTile.Visibility = BatchCopyBtn.Visibility = Visibility.Visible;
             BatchProgress.Visibility = failedCount > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -246,8 +246,8 @@ public partial class MainWindow
         {
             BatchProgress.Visibility = Visibility.Visible;
             BatchStatus.Text = still.Length == 0
-                ? $"These exports were cleaned up after {DiscordExporter.ExportLifetime.TotalMinutes:0} minutes. Export them again."
-                : $"{_batchPaths.Count - still.Length} of {_batchPaths.Count} exports were cleaned up; using the other {still.Length}.";
+                ? "These exports were cleaned up after {0:0} minutes. Export them again.".T(DiscordExporter.ExportLifetime.TotalMinutes)
+                : "{0} of {1} exports were cleaned up; using the other {2}.".T(_batchPaths.Count - still.Length, _batchPaths.Count, still.Length);
         }
         return still;
     }
@@ -260,7 +260,7 @@ public partial class MainWindow
         if (still.Length == 0) return;
         files.AddRange(still);
         Clipboard.SetFileDropList(files);
-        BatchStatus.Text = "Copied! Press Ctrl+V in Discord";
+        BatchStatus.Text = "Copied! Press Ctrl+V in Discord".T();
         BatchProgress.Visibility = Visibility.Visible;
         SetBatchBar(1);
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -40,6 +40,8 @@ public partial class MainWindow : Window
     {
         _openOnStart = openOnStart;
         InitializeComponent();
+        App.TranslateTree(this);
+        ContentRendered += (_, _) => App.TranslateTree(this); // template parts exist only once shown
         _index = new ClipIndex(_settings.ClipsFolder);
         _view = CollectionViewSource.GetDefaultView(_items);
         _view.Filter = o => o is ClipItem c
@@ -68,7 +70,7 @@ public partial class MainWindow : Window
 
     void LoadLibrary()
     {
-        EmptyHint.Text = $"Press {_settings.SaveClipHotkey} in a game and the clip shows up here.";
+        EmptyHint.Text = "Press {0} in a game and the clip shows up here.".T(_settings.SaveClipHotkey);
         foreach (var c in _index.Scan()) _items.Add(new ClipItem(c));
         RefreshSidebar();
         WatchFolder();
@@ -147,23 +149,23 @@ public partial class MainWindow : Window
         if (GameList.SelectedItem is GameEntry ge && ge.Name != _gameFilter) { _gameFilter = ge.Name; _view.Refresh(); }
 
         long total = _items.Sum(i => i.SizeBytes);
-        StorageText.Text = $"{_items.Count} clips · {ClipItem.FormatSize(total)}\n{_settings.ClipsFolder}";
+        StorageText.Text = "{0} clips · {1}\n{2}".T(_items.Count, ClipItem.FormatSize(total), _settings.ClipsFolder);
         UpdateHeader();
     }
 
     void UpdateHeader()
     {
-        HeaderText.Text = _gameFilter.Length == 0 ? "All clips" : _gameFilter == FavKey ? "Favorites" : _gameFilter;
+        HeaderText.Text = _gameFilter.Length == 0 ? "All clips".T() : _gameFilter == FavKey ? "Favorites".T() : _gameFilter;
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
-        CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
+        CountText.Text = (shown == 1 ? "1 clip" : "{0} clips").T(shown) + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
         UpdateDayGroups();
         ScheduleViewUpdate();
         EmptyState.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_items.Count > 0 && shown == 0)
         {
-            EmptyHint.Text = "No clips match your filter.";
-            ((TextBlock)EmptyState.Children[0]).Text = "Nothing here";
+            EmptyHint.Text = "No clips match your filter.".T();
+            ((TextBlock)EmptyState.Children[0]).Text = "Nothing here".T();
         }
     }
 
@@ -270,9 +272,9 @@ public partial class MainWindow : Window
         int n = ClipGrid.SelectedItems.Count;
         CtxOpen.Visibility = CtxRename.Visibility = n == 1 ? Visibility.Visible : Visibility.Collapsed;
         bool allFav = ClipGrid.SelectedItems.Cast<ClipItem>().All(c => c.IsFavorite);
-        CtxFav.Header = allFav ? "Remove from favorites" : "Add to favorites";
-        CtxExport.Header = n == 1 ? "Export for Discord" : $"Export {n} clips for Discord";
-        CtxDelete.Header = n == 1 ? "Delete" : $"Delete {n} clips";
+        CtxFav.Header = (allFav ? "Remove from favorites" : "Add to favorites").T();
+        CtxExport.Header = (n == 1 ? "Export for Discord" : "Export {0} clips for Discord").T(n);
+        CtxDelete.Header = (n == 1 ? "Delete" : "Delete {0} clips").T(n);
     }
 
     void CtxOpen_Click(object sender, RoutedEventArgs e) { if (Selected() is [var c]) OpenClip(c); }
@@ -291,9 +293,9 @@ public partial class MainWindow : Window
         ClipGrid.Tag = sel.Count > 1 ? "multi" : null;
         bool busy = _batchCts != null;
         SelectionBar.Visibility = sel.Count > 0 || busy || _batchPaths != null ? Visibility.Visible : Visibility.Collapsed;
-        SelectionText.Text = sel.Count == 1 ? "1 clip selected" : $"{sel.Count} clips selected";
+        SelectionText.Text = (sel.Count == 1 ? "1 clip selected" : "{0} clips selected").T(sel.Count);
         SelectionDetail.Text = sel.Count == 0 ? "" :
-            $"{ClipItem.FormatSize(sel.Sum(c => c.SizeBytes))}  ·  {TrimTimeline.Fmt(sel.Sum(c => c.Duration))} total";
+            "{0}  ·  {1} total".T(ClipItem.FormatSize(sel.Sum(c => c.SizeBytes)), TrimTimeline.Fmt(sel.Sum(c => c.Duration)));
         SelOpenBtn.Visibility = sel.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
         SelExportBtn.IsEnabled = sel.Count > 0 && !busy;
         UpdateDayGroups();
@@ -308,7 +310,7 @@ public partial class MainWindow : Window
         {
             if (g.Name is not DayGroup day) continue;
             var clips = g.Items.Cast<ClipItem>().ToList();
-            day.Summary = $"{(clips.Count == 1 ? "1 clip" : $"{clips.Count} clips")}  ·  {ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))}";
+            day.Summary = $"{(clips.Count == 1 ? "1 clip" : "{0} clips").T(clips.Count)}  ·  {ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))}";
             int n = clips.Count(selected.Contains);
             day.State = n == 0 ? 0 : n == clips.Count ? 2 : 1;
         }
@@ -365,7 +367,7 @@ public partial class MainWindow : Window
         var files = new System.Collections.Specialized.StringCollection();
         files.AddRange(sel.Select(c => c.Path).ToArray());
         Clipboard.SetFileDropList(files);
-        SelectionDetail.Text = $"Copied {sel.Count} file{(sel.Count == 1 ? "" : "s")}: paste with Ctrl+V";
+        SelectionDetail.Text = (sel.Count == 1 ? "Copied 1 file: paste with Ctrl+V" : "Copied {0} files: paste with Ctrl+V").T(sel.Count);
     }
 
     void SelDelete_Click(object sender, RoutedEventArgs e) => DeleteClips(Selected());
@@ -407,7 +409,7 @@ public partial class MainWindow : Window
         var target = Path.Combine(Path.GetDirectoryName(c.Path)!, name + ".mp4");
         if (File.Exists(target) && !string.Equals(target, c.Path, StringComparison.OrdinalIgnoreCase))
         {
-            MessageBox.Show(this, $"There is already a clip called \"{name}\" in this folder.", "Rename clip", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "There is already a clip called \"{0}\" in this folder.".T(name), "Rename clip".T(), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         if (_current == c) CloseClip();
@@ -417,7 +419,7 @@ public partial class MainWindow : Window
             catch (IOException) when (attempt < 10) { Thread.Sleep(100); } // the player may still be letting go of it
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"Couldn't rename the clip: {ex.Message}", "Rename clip", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Couldn't rename the clip: {0}".T(ex.Message), "Rename clip".T(), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
         }
@@ -530,11 +532,11 @@ public partial class MainWindow : Window
     {
         if (clips.Count == 0) return;
         string what = clips.Count == 1 ? $"\"{clips[0].Clip.FileName}\"" :
-            $"{clips.Count} clips ({ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))})";
+            "{0} clips ({1})".T(clips.Count, ClipItem.FormatSize(clips.Sum(c => c.SizeBytes)));
         int favs = clips.Count(c => c.IsFavorite);
-        string favNote = favs == 0 ? "" : clips.Count == 1 ? "\n\nThis clip is a favorite." : $"\n\n{favs} of them are favorites.";
-        var r = MessageBox.Show(this, $"Delete {what}?{favNote}\n\n{(clips.Count == 1 ? "It's" : "They're")} deleted for good, not moved to the Recycle Bin.",
-            clips.Count == 1 ? "Delete clip" : "Delete clips", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
+        string favNote = favs == 0 ? "" : (clips.Count == 1 ? "\n\nThis clip is a favorite." : "\n\n{0} of them are favorites.").T(favs);
+        var r = MessageBox.Show(this, (clips.Count == 1 ? "Delete {0}?{1}\n\nIt's deleted for good, not moved to the Recycle Bin." : "Delete {0}?{1}\n\nThey're deleted for good, not moved to the Recycle Bin.").T(what, favNote),
+            (clips.Count == 1 ? "Delete clip" : "Delete clips").T(), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
         if (r != MessageBoxResult.OK) return;
 
         var open = _current != null && clips.Contains(_current) ? _current : null;
@@ -552,8 +554,8 @@ public partial class MainWindow : Window
         _ = Task.Run(_index.CleanupThumbnails);
         if (failed.Count > 0)
         {
-            MessageBox.Show(this, $"Couldn't delete {failed.Count} clip{(failed.Count == 1 ? "" : "s")} (open in another app?).",
-                "Delete clips", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, (failed.Count == 1 ? "Couldn't delete 1 clip (open in another app?)." : "Couldn't delete {0} clips (open in another app?).").T(failed.Count),
+                "Delete clips".T(), MessageBoxButton.OK, MessageBoxImage.Warning);
             if (open != null && failed.Contains(open.Path)) OpenClip(open);
         }
     }
@@ -564,12 +566,12 @@ public partial class MainWindow : Window
 
     async Task CheckForUpdateAsync()
     {
-        VersionText.Text = $"Version {Updater.Current}";
-        SettingsBtn.ToolTip = $"Settings (version {Updater.Current})";
+        VersionText.Text = "Version {0}".T(Updater.Current);
+        SettingsBtn.ToolTip = "Settings (version {0})".T(Updater.Current);
         if (Updater.JustUpdatedFrom("library") is { } from)
         {
-            UpdateTitle.Text = "Updated ✓";
-            UpdateText.Text = $"You're now on version {Updater.Current} (was {from}).";
+            UpdateTitle.Text = "Updated ✓".T();
+            UpdateText.Text = "You're now on version {0} (was {1}).".T(Updater.Current, from);
             UpdateText.Margin = new Thickness(0, 2, 0, 0);
             UpdateBtn.Visibility = Visibility.Collapsed;
             UpdatePanel.Visibility = Visibility.Visible;
@@ -581,8 +583,8 @@ public partial class MainWindow : Window
         }
         _update = await Updater.CheckAsync(_cts.Token);
         if (_update == null) return;
-        UpdateTitle.Text = "Update available";
-        UpdateText.Text = $"Version {_update.Version} is ready (you have {Updater.Current}). Takes a few seconds; your clips and settings stay.";
+        UpdateTitle.Text = "Update available".T();
+        UpdateText.Text = "Version {0} is ready (you have {1}). Takes a few seconds; your clips and settings stay.".T(_update.Version, Updater.Current);
         UpdateText.Margin = new Thickness(0, 2, 0, 8);
         UpdateBtn.Visibility = Visibility.Visible;
         UpdatePanel.Visibility = Visibility.Visible;
@@ -594,16 +596,16 @@ public partial class MainWindow : Window
         if (_update == null) return;
         if (_exportCts != null || _batchCts != null)
         {
-            UpdateText.Text = "Wait for the export to finish, then update.";
+            UpdateText.Text = "Wait for the export to finish, then update.".T();
             return;
         }
         UpdateBtn.IsEnabled = false;
         try
         {
-            var progress = new Progress<double>(f => UpdateBtnText.Text = $"Downloading… {f:P0}");
+            var progress = new Progress<double>(f => UpdateBtnText.Text = "Downloading… {0:P0}".T(f));
             var file = await Updater.DownloadAsync(_update, progress, _cts.Token);
-            UpdateBtnText.Text = "Installing…";
-            UpdateText.Text = "Replay Recorder will close and reopen by itself in a few seconds.";
+            UpdateBtnText.Text = "Installing…".T();
+            UpdateText.Text = "Replay Recorder will close and reopen by itself in a few seconds.".T();
             await Task.Delay(1500); // long enough to read
             Updater.Install(file, reopenLibrary: true); // invisible: closes both apps, installs, reopens them
             Application.Current.Shutdown();
@@ -611,8 +613,8 @@ public partial class MainWindow : Window
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Log.Error("Update failed", ex);
-            UpdateText.Text = $"Update failed: {ex.Message}";
-            UpdateBtnText.Text = "Try again";
+            UpdateText.Text = "Update failed: {0}".T(ex.Message);
+            UpdateBtnText.Text = "Try again".T();
             UpdateBtn.IsEnabled = true;
         }
     }
@@ -631,14 +633,27 @@ public partial class MainWindow : Window
         if (!saved) return;
 
         _settings = Settings.Load();
-        EmptyHint.Text = $"Press {_settings.SaveClipHotkey} in a game and the clip shows up here.";
+        EmptyHint.Text = "Press {0} in a game and the clip shows up here.".T(_settings.SaveClipHotkey);
         if (!string.Equals(oldRoot, _settings.ClipsFolder, StringComparison.OrdinalIgnoreCase))
         {
             // Different clips folder: simplest correct thing is a fresh start of the library.
             ((App)Application.Current).Restart();
             return;
         }
+        if (Lang.Use(_settings.Language)) RefreshLanguage();
         RefreshSidebar();
+    }
+
+    /// <summary>Switches every open window to the language just saved, without a restart.</summary>
+    void RefreshLanguage()
+    {
+        foreach (Window w in Application.Current.Windows) App.TranslateTree(w);
+        foreach (var c in _items) c.RefreshSubtitle();
+        if (_view.Groups != null) foreach (CollectionViewGroup g in _view.Groups) (g.Name as DayGroup)?.RefreshLabel();
+        UpdateSelectionUi();
+        VersionText.Text = "Version {0}".T(Updater.Current);
+        SettingsBtn.ToolTip = "Settings (version {0})".T(Updater.Current);
+        if (_current != null) UpdateTrimText();
     }
 
     void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings();

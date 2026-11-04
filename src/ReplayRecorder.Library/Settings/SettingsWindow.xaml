@@ -1,4 +1,4 @@
-﻿<Window x:Class="ReplayRecorder.Library.SettingsUi.SettingsWindow"
+<Window x:Class="ReplayRecorder.Library.SettingsUi.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:ReplayRecorder.Library.SettingsUi"
@@ -375,6 +375,14 @@
                                 <TextBlock Text="Changes right away; Save keeps it" Style="{StaticResource Hint}"/>
                             </StackPanel>
                             <ComboBox x:Name="ThemeBox" Grid.Column="1" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Language" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Applies when you save" Style="{StaticResource Hint}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="LanguageBox" Grid.Column="1" VerticalAlignment="Center"/>
                         </Grid>
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>

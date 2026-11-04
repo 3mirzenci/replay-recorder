@@ -21,6 +21,7 @@ static partial class WhatsNewWindow
     {
         var notes = await Updater.NotesForAsync(version);
         if (string.IsNullOrWhiteSpace(notes)) return; // offline or no notes: the "Updated ✓" banner still shows
+        notes = Lang.PickNotes(notes);
 
         var text = (Brush)owner.FindResource("Text");
         var body = new StackPanel();
@@ -52,10 +53,10 @@ static partial class WhatsNewWindow
             });
         }
 
-        var ok = new Button { Content = "Got it", Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, IsCancel = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+        var ok = new Button { Content = "Got it".T(), Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, IsCancel = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
         var win = new Window
         {
-            Title = "What's new",
+            Title = "What's new".T(),
             Owner = owner,
             Width = 560,
             SizeToContent = SizeToContent.Height,
@@ -68,7 +69,7 @@ static partial class WhatsNewWindow
                 Margin = new Thickness(20),
                 Children =
                 {
-                    new TextBlock { Text = $"What's new in {version}", Foreground = text, FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) },
+                    new TextBlock { Text = "What's new in {0}".T(version), Foreground = text, FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) },
                     new ScrollViewer { Content = body, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
                     ok,
                 },

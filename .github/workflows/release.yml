@@ -37,5 +37,6 @@ jobs:
           $tag = '${{ github.ref_name }}'
           # checkout keeps only the commit; fetch the annotated tag itself to read its message
           git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
-          git tag -l --format='%(contents)' $tag | Set-Content notes.md
+          [Console]::OutputEncoding = [Text.Encoding]::UTF8  # keep Turkish letters in the notes intact
+          git tag -l --format='%(contents)' $tag | Set-Content -Encoding utf8 notes.md
           gh release create $tag dist/ReplayRecorder-Setup.exe --title "Replay Recorder $($tag.TrimStart('v'))" --notes-file notes.md

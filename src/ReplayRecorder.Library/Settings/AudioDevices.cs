@@ -1,3 +1,4 @@
+using ReplayRecorder.Core;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
@@ -15,16 +16,16 @@ static class AudioDevices
 
     public static List<DeviceChoice> Outputs()
     {
-        var list = new List<DeviceChoice> { new("", "Automatic (real device behind the Windows default)") };
+        var list = new List<DeviceChoice> { new("", "Automatic (real device behind the Windows default)".T()) };
         using var en = new MMDeviceEnumerator();
         foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
-            list.Add(new(d.ID, IsVirtual(d.FriendlyName) ? $"{d.FriendlyName}  (virtual: may record silence)" : d.FriendlyName));
+            list.Add(new(d.ID, IsVirtual(d.FriendlyName) ? "{0}  (virtual: may record silence)".T(d.FriendlyName) : d.FriendlyName));
         return list;
     }
 
     public static List<DeviceChoice> Mics()
     {
-        var list = new List<DeviceChoice> { new("", "Windows default (communications) mic") };
+        var list = new List<DeviceChoice> { new("", "Windows default (communications) mic".T()) };
         using var en = new MMDeviceEnumerator();
         foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
             list.Add(new(d.ID, d.FriendlyName));

@@ -8,7 +8,7 @@ namespace ReplayRecorder.Core;
 public sealed record ExportPlan(int Width, int Height, int Fps, int VideoKbps, int AudioKbps, string Encoder, bool StreamCopy = false)
 {
     public string Describe() => StreamCopy
-        ? $"{Height}p (original quality, no re-encode)"
+        ? "{0}p (original quality, no re-encode)".T(Height)
         : $"{Height}p{Fps} · {VideoKbps / 1000.0:0.0} Mbps · {(Encoder == "h264_nvenc" ? "NVENC" : "x264")}";
 }
 
@@ -111,7 +111,7 @@ public static class DiscordExporter
             if (CanStreamCopy(clip, edit, seconds, target))
             {
                 attempts++;
-                progress?.Report((0.1, "Cutting without re-encoding…"));
+                progress?.Report((0.1, "Cutting without re-encoding…".T()));
                 var plan = new ExportPlan(clip.Width, clip.Height, (int)Math.Round(clip.Fps), 0, 0, "copy", StreamCopy: true);
                 var code = await RunFfmpeg(CopyArgs(clip, start, seconds, part), seconds, null, ct);
                 if (code == 0 && File.Exists(part) && new FileInfo(part).Length <= target)
@@ -133,14 +133,14 @@ public static class DiscordExporter
                 attempts++;
                 var plan = PlanFor(clip, videoKbps, audioKbps, encoder);
                 string label = attempts == 1 ? plan.Describe() : $"{plan.Describe()} (retry {attempts - 1}, smaller)";
-                progress?.Report((0, $"Encoding {label}"));
+                progress?.Report((0, "Encoding {0}".T(label)));
                 Log.Info($"Export attempt {attempts}: {plan.Describe()} for {clip.Path} [{start:0.00}-{end:0.00}]");
 
                 int code;
                 if (encoder == "h264_nvenc")
                 {
                     code = await RunFfmpeg(EncodeArgs(clip, edit, start, seconds, plan, gpuDecode, part, null), seconds,
-                        f => progress?.Report((f, $"Encoding {label}")), ct);
+                        f => progress?.Report((f, "Encoding {0}".T(label))), ct);
                     if (code != 0 && gpuDecode)
                     {
                         // GPU decode/scale path failed (driver, odd source): same encoder, CPU decode.
@@ -189,7 +189,7 @@ public static class DiscordExporter
         File.Move(part, final);
         long size = new FileInfo(final).Length;
         Log.Info($"Exported {final}: {size / 1e6:0.00} MB, {plan.Describe()}, {attempts} attempt(s), {sw.Elapsed.TotalSeconds:0.0}s");
-        progress?.Report((1, "Done"));
+        progress?.Report((1, "Done".T()));
         return new ExportResult(final, size, plan, attempts, sw.Elapsed);
     }
 
@@ -302,10 +302,10 @@ public static class DiscordExporter
         try
         {
             int c1 = await RunFfmpeg(EncodeArgs(clip, edit, start, seconds, plan, false, output, (1, log)), seconds,
-                f => progress?.Report((f * 0.5, $"Analysing ({label})")), ct);
+                f => progress?.Report((f * 0.5, "Analysing ({0})".T(label))), ct);
             if (c1 != 0) return c1;
             return await RunFfmpeg(EncodeArgs(clip, edit, start, seconds, plan, false, output, (2, log)), seconds,
-                f => progress?.Report((0.5 + f * 0.5, $"Encoding {label}")), ct);
+                f => progress?.Report((0.5 + f * 0.5, "Encoding {0}".T(label))), ct);
         }
         finally
         {

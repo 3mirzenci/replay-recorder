@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ReplayRecorder.Core;
@@ -75,6 +75,8 @@ public sealed class Settings
     public string Theme { get; set; } = "windows";
     /// <summary>Accent colour as "#RRGGBB"; empty = the look's own.</summary>
     public string AccentColor { get; set; } = "";
+    /// <summary>UI language: "en" or "tr".</summary>
+    public string Language { get; set; } = "en";
     public Dictionary<string, string> GameNames { get; set; } = GameDetector.DefaultNames();
 
     /// <summary>

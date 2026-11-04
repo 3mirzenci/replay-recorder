@@ -1,3 +1,4 @@
+using ReplayRecorder.Core;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,13 +13,13 @@ static class RenameDialog
     {
         var box = new TextBox { Text = current, Style = (Style)owner.FindResource("Field"), Margin = new Thickness(0, 8, 0, 0) };
         var error = new TextBlock { Foreground = (Brush)owner.FindResource("Danger"), FontSize = 12, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
-        var ok = new Button { Content = "Rename", Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, MinWidth = 90, Margin = new Thickness(0, 0, 8, 0) };
-        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 90 };
+        var ok = new Button { Content = "Rename".T(), Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, MinWidth = 90, Margin = new Thickness(0, 0, 8, 0) };
+        var cancel = new Button { Content = "Cancel".T(), IsCancel = true, MinWidth = 90 };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0), Children = { ok, cancel } };
 
         var win = new Window
         {
-            Title = "Rename clip",
+            Title = "Rename clip".T(),
             Owner = owner,
             Width = 440,
             SizeToContent = SizeToContent.Height,
@@ -31,7 +32,7 @@ static class RenameDialog
                 Margin = new Thickness(20),
                 Children =
                 {
-                    new TextBlock { Text = "New name", Foreground = (Brush)owner.FindResource("Subtle"), FontSize = 12.5 },
+                    new TextBlock { Text = "New name".T(), Foreground = (Brush)owner.FindResource("Subtle"), FontSize = 12.5 },
                     box, error, buttons,
                 },
             },
@@ -41,9 +42,9 @@ static class RenameDialog
         ok.Click += (_, _) =>
         {
             var name = box.Text.Trim();
-            if (name.Length == 0) { error.Text = "Enter a name."; return; }
-            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) { error.Text = "A name can't contain \\ / : * ? \" < > |"; return; }
-            if (name.EndsWith('.')) { error.Text = "A name can't end with a dot."; return; }
+            if (name.Length == 0) { error.Text = "Enter a name.".T(); return; }
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) { error.Text = "A name can't contain \\ / : * ? \" < > |".T(); return; }
+            if (name.EndsWith('.')) { error.Text = "A name can't end with a dot.".T(); return; }
             win.DialogResult = true;
         };
         if (win.ShowDialog() != true) return null;

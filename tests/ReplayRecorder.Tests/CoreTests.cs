@@ -34,6 +34,45 @@ public class ExportSizeTests
     }
 }
 
+public class LangTests
+{
+    [Fact]
+    public void Every_translation_keeps_the_same_placeholders()
+    {
+        var holes = new System.Text.RegularExpressions.Regex(@"\{\d+(:[^}]*)?\}");
+        foreach (var (en, tr) in Lang.Entries)
+        {
+            var a = holes.Matches(en).Select(m => m.Value).Order();
+            var b = holes.Matches(tr).Select(m => m.Value).Order();
+            Assert.True(a.SequenceEqual(b), $"placeholders differ: \"{en}\" -> \"{tr}\"");
+        }
+    }
+
+    [Fact]
+    public void Switching_back_to_English_restores_every_plain_text()
+    {
+        Lang.Use("en");
+        foreach (var (en, tr) in Lang.Entries.Where(kv => !kv.Key.Contains('{')))
+            Assert.Equal(en, Lang.Retranslate(tr)); // fails if two English texts share one Turkish text
+        Lang.Use("tr");
+        Assert.Equal("Tüm klipler", Lang.Retranslate("All clips"));
+        Lang.Use("en");
+    }
+
+    [Fact]
+    public void Release_notes_show_in_the_app_language()
+    {
+        var notes = "- Fixed X\n\n<!-- tr -->\n- X düzeltildi";
+        Lang.Use("en");
+        Assert.Equal("- Fixed X", Lang.PickNotes(notes));
+        Assert.Equal("- only English", Lang.PickNotes("- only English"));
+        Lang.Use("tr");
+        Assert.Equal("- X düzeltildi", Lang.PickNotes(notes));
+        Assert.Equal("- only English", Lang.PickNotes("- only English")); // older notes without a Turkish part
+        Lang.Use("en");
+    }
+}
+
 public class SettingsTests
 {
     [Fact]

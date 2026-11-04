@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using ReplayRecorder.Core;
 using ReplayRecorder.Recorder.Audio;
@@ -65,7 +65,7 @@ sealed class ReplayEngine : IDisposable
     public bool Running => _ffmpeg is { HasExited: false };
     public bool IsRecording => _recordingStart != null;
     public DisplayInfo? Display { get; private set; }
-    public string StatusText { get; private set; } = "Stopped";
+    public string StatusText { get; private set; } = "Stopped".T();
     public event Action? StatusChanged;
     public event Action<string>? Problem;
 
@@ -88,10 +88,10 @@ sealed class ReplayEngine : IDisposable
     public void Start()
     {
         _stopping = false;
-        if (Ffmpeg.FfmpegPath == null) { Fail(Ffmpeg.InstallHint); return; }
+        if (Ffmpeg.FfmpegPath == null) { Fail(Ffmpeg.InstallHint.T()); return; }
 
         Display = Displays.Pick(_s.Monitor);
-        if (Display == null) { Fail("No monitor found to capture."); return; }
+        if (Display == null) { Fail("No monitor found to capture.".T()); return; }
 
         var encoder = ChooseEncoder(Display);
         _wgc = _s.Capture == CaptureMethod.Wgc;
@@ -99,14 +99,14 @@ sealed class ReplayEngine : IDisposable
         {
             _wgc = false;
             Log.Warn($"ffmpeg at {Ffmpeg.FfmpegPath} has no gfxcapture (needs 8.0+); using Desktop Duplication");
-            Problem?.Invoke("Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder.");
+            Problem?.Invoke("Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder.".T());
         }
         if (Display.HdrEnabled)
         {
             // Capture is 8-bit SDR: Windows maps the HDR desktop down, so SDR content looks right
             // but bright HDR highlights clip. Recording real HDR (10-bit HEVC) is not supported yet.
             Log.Warn($"{Display.DeviceName} has Windows HDR on; clips are recorded in SDR and HDR highlights may clip");
-            Problem?.Invoke("HDR is on for this monitor. Clips are recorded in SDR, so very bright highlights may look clipped. Turn HDR off in Windows display settings for the most accurate colours.");
+            Problem?.Invoke("HDR is on for this monitor. Clips are recorded in SDR, so very bright highlights may look clipped. Turn HDR off in Windows display settings for the most accurate colours.".T());
         }
         Directory.CreateDirectory(_s.BufferFolder);
         CleanOldRuns();
@@ -148,7 +148,7 @@ sealed class ReplayEngine : IDisposable
         }
         catch (Exception ex)
         {
-            Fail($"Could not start ffmpeg: {ex.Message}");
+            Fail("Could not start ffmpeg: {0}".T(ex.Message));
             DisposeAudio();
             return;
         }
@@ -165,7 +165,7 @@ sealed class ReplayEngine : IDisposable
         SetStatus(StatusLine());
     }
 
-    string StatusLine() => $"Recording {Display?.DeviceName.TrimStart('\\', '.')} · buffer {_s.BufferSeconds}s";
+    string StatusLine() => "Recording {0} · buffer {1}s".T(Display?.DeviceName.TrimStart('\\', '.'), _s.BufferSeconds);
 
     public void Stop()
     {
@@ -188,7 +188,7 @@ sealed class ReplayEngine : IDisposable
             ff.Dispose();
         }
         DisposeAudio();
-        SetStatus("Paused");
+        SetStatus("Paused".T());
     }
 
     void DisposeAudio()
@@ -212,7 +212,7 @@ sealed class ReplayEngine : IDisposable
             Stop();
             if (_restartCount >= 3)
             {
-                Fail("Capture keeps failing. Check the log (tray menu > Open log).");
+                Fail("Capture keeps failing. Check the log (tray menu > Open log).".T());
                 return;
             }
             Thread.Sleep(1000 * _restartCount);
@@ -246,7 +246,7 @@ sealed class ReplayEngine : IDisposable
                 // the Intel GPU. Encode there with Quick Sync instead of copying across GPUs.
                 Log.Warn($"{d.DeviceName} is driven by \"{d.AdapterName}\", not the NVIDIA GPU. " +
                          "Using Intel Quick Sync. For best results switch the MUX to discrete-GPU mode.");
-                Problem?.Invoke($"{d.DeviceName} is on {d.AdapterName}: using Intel Quick Sync instead of NVENC.");
+                Problem?.Invoke("{0} is on {1}: using Intel Quick Sync instead of NVENC.".T(d.DeviceName, d.AdapterName));
                 e = d.OnIntel ? EncoderBackend.Qsv : EncoderBackend.X264;
             }
         }
@@ -680,7 +680,7 @@ sealed class ReplayEngine : IDisposable
     void Fail(string message)
     {
         Log.Error(message);
-        SetStatus("Error");
+        SetStatus("Error".T());
         Problem?.Invoke(message);
     }
 

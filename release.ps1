@@ -3,10 +3,12 @@
 # button and the download link point at. Only the tests run on this PC.
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Notes "Fixed X, added Y"            # 1.0.3 -> 1.0.4
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -Notes "Big update"
+#   ... -Notes "- Fixed X" -NotesTr "- (the same in Turkish)"   # Turkish users see the Turkish part
 # The notes become the release text and the "What's new" window. Needs: git (and gh to watch the build).
 param(
     [string]$Version = "",
-    [Parameter(Mandatory = $true)][string]$Notes
+    [Parameter(Mandatory = $true)][string]$Notes,
+    [string]$NotesTr = ""
 )
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
@@ -25,6 +27,9 @@ if ($LASTEXITCODE -ne 0) { throw "Tests failed; nothing was released" }
 $text = [IO.File]::ReadAllText((Resolve-Path $props))
 $text = $text -replace '<Version>[^<]*</Version>', "<Version>$Version</Version>"
 [IO.File]::WriteAllText((Resolve-Path $props), $text)
+
+# Turkish part after a hidden marker (Lang.NotesTrMarker): the app shows the part in its language.
+if ($NotesTr) { $Notes = "$Notes`n`n<!-- tr -->`n$NotesTr" }
 
 # The tag message carries the notes to the GitHub build (a file keeps multi-line notes intact).
 $notesFile = [IO.Path]::GetTempFileName()

@@ -30,18 +30,19 @@ sealed class TrayApp : ApplicationContext
     {
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _settings = Settings.Load();
+        Lang.Use(_settings.Language);
         // Discord exports are temporary. The recorder is always running, so it removes them on time
         // even when the library was closed right after exporting.
         _exportCleanup = new System.Threading.Timer(_ => DiscordExporter.CleanupExports(_settings, DiscordExporter.ExportLifetime),
             null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
         _iconLive = MakeIcon(Green); _iconRec = MakeIcon(Red); _iconPaused = MakeIcon(Grey);
 
-        _statusItem = new ToolStripMenuItem("Starting…") { Enabled = false };
-        _saveItem = new ToolStripMenuItem("Save clip", null, (_, _) => SaveClip());
-        _recordItem = new ToolStripMenuItem("Start recording", null, (_, _) => ToggleRecording());
-        _pauseItem = new ToolStripMenuItem("Pause", null, (_, _) => TogglePause());
-        _startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => ToggleStartup()) { Checked = Autostart.IsEnabled };
-        _updateItem = new ToolStripMenuItem("Install update", null, (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
+        _statusItem = new ToolStripMenuItem("Starting…".T()) { Enabled = false };
+        _saveItem = new ToolStripMenuItem("Save clip".T(), null, (_, _) => SaveClip());
+        _recordItem = new ToolStripMenuItem("Start recording".T(), null, (_, _) => ToggleRecording());
+        _pauseItem = new ToolStripMenuItem("Pause".T(), null, (_, _) => TogglePause());
+        _startupItem = new ToolStripMenuItem("Start with Windows".T(), null, (_, _) => ToggleStartup()) { Checked = Autostart.IsEnabled };
+        _updateItem = new ToolStripMenuItem("Install update".T(), null, (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
 
         var menu = new ContextMenuStrip();
         menu.Items.AddRange(new ToolStripItem[]
@@ -51,13 +52,13 @@ sealed class TrayApp : ApplicationContext
             new ToolStripSeparator(),
             _saveItem, _recordItem, _pauseItem,
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Open library", null, (_, _) => OpenLibrary()),
-            new ToolStripMenuItem("Open clips folder", null, (_, _) => OpenFolder(_settings.ClipsFolder)),
-            new ToolStripMenuItem("Settings…", null, (_, _) => OpenSettings()),
+            new ToolStripMenuItem("Open library".T(), null, (_, _) => OpenLibrary()),
+            new ToolStripMenuItem("Open clips folder".T(), null, (_, _) => OpenFolder(_settings.ClipsFolder)),
+            new ToolStripMenuItem("Settings…".T(), null, (_, _) => OpenSettings()),
             _startupItem,
-            new ToolStripMenuItem("Open log", null, (_, _) => Shell(Log.CurrentFile)),
+            new ToolStripMenuItem("Open log".T(), null, (_, _) => Shell(Log.CurrentFile)),
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Quit Replay Recorder", null, (_, _) => Quit()),
+            new ToolStripMenuItem("Quit Replay Recorder".T(), null, (_, _) => Quit()),
         });
 
         _tray = new NotifyIcon { Icon = _iconPaused, Text = "Replay Recorder", ContextMenuStrip = menu, Visible = true };
@@ -74,7 +75,7 @@ sealed class TrayApp : ApplicationContext
         _storageTimer = new System.Threading.Timer(_ => CheckStorage(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
         Task.Run(Updater.CleanupDownloads); // the installer that updated us is done by now
         if (Updater.JustUpdatedFrom("recorder") is { } from)
-            _tray.ShowBalloonTip(5000, "Replay Recorder updated", $"Now on version {Updater.Current} (was {from}).", ToolTipIcon.Info);
+            _tray.ShowBalloonTip(5000, "Replay Recorder updated".T(), "Now on version {0} (was {1}).".T(Updater.Current, from), ToolTipIcon.Info);
         // First check a minute after start (not while Windows is still booting), then every 6 hours.
         _updateTimer = new System.Threading.Timer(_ => _ui.Post(async _ => await CheckForUpdateAsync(), null), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromHours(6));
@@ -87,10 +88,10 @@ sealed class TrayApp : ApplicationContext
         var u = await Updater.CheckAsync();
         if (u == null || u.Version == _update?.Version) return;
         _update = u;
-        _updateItem.Text = $"Install update {u.Version}";
+        _updateItem.Text = "Install update {0}".T(u.Version);
         _updateItem.Visible = true;
         Log.Info($"Update available: {u.Version} (running {Updater.Current})");
-        _tray.ShowBalloonTip(6000, "Replay Recorder update", $"Version {u.Version} is ready. Right-click the tray icon > Install update.", ToolTipIcon.Info);
+        _tray.ShowBalloonTip(6000, "Replay Recorder update".T(), "Version {0} is ready. Right-click the tray icon > Install update.".T(u.Version), ToolTipIcon.Info);
     }
 
     async void InstallUpdate()
@@ -98,15 +99,15 @@ sealed class TrayApp : ApplicationContext
         if (_update is not { } u) return;
         if (_engine.IsRecording)
         {
-            _tray.ShowBalloonTip(4000, "Replay Recorder", "Stop the full recording first, then install the update.", ToolTipIcon.Info);
+            _tray.ShowBalloonTip(4000, "Replay Recorder", "Stop the full recording first, then install the update.".T(), ToolTipIcon.Info);
             return;
         }
         _updateItem.Enabled = false;
-        _updateItem.Text = "Downloading update…";
+        _updateItem.Text = "Downloading update…".T();
         try
         {
             var file = await Updater.DownloadAsync(u);
-            _tray.ShowBalloonTip(3000, "Replay Recorder", "Installing the update. The recorder restarts by itself in a few seconds.", ToolTipIcon.Info);
+            _tray.ShowBalloonTip(3000, "Replay Recorder", "Installing the update. The recorder restarts by itself in a few seconds.".T(), ToolTipIcon.Info);
             await Task.Delay(1500);
             Updater.Install(file, reopenLibrary: false);
             Quit();
@@ -114,8 +115,8 @@ sealed class TrayApp : ApplicationContext
         catch (Exception ex)
         {
             Log.Error("Update failed", ex);
-            _tray.ShowBalloonTip(6000, "Update failed", ex.Message, ToolTipIcon.Warning);
-            _updateItem.Text = $"Install update {u.Version}";
+            _tray.ShowBalloonTip(6000, "Update failed".T(), ex.Message, ToolTipIcon.Warning);
+            _updateItem.Text = "Install update {0}".T(u.Version);
             _updateItem.Enabled = true;
         }
     }
@@ -132,7 +133,7 @@ sealed class TrayApp : ApplicationContext
     {
         _hotkeys.UnregisterAll();
         if (!_hotkeys.Register(_settings.SaveClipHotkey, SaveClip))
-            _tray.ShowBalloonTip(5000, "Replay Recorder", $"Couldn't register the save-clip hotkey {_settings.SaveClipHotkey}. Change it in settings.", ToolTipIcon.Warning);
+            _tray.ShowBalloonTip(5000, "Replay Recorder", "Couldn't register the save-clip hotkey {0}. Change it in settings.".T(_settings.SaveClipHotkey), ToolTipIcon.Warning);
         _hotkeys.Register(_settings.ToggleRecordingHotkey, ToggleRecording);
         _saveItem.ShortcutKeyDisplayString = _settings.SaveClipHotkey;
         _recordItem.ShortcutKeyDisplayString = _settings.ToggleRecordingHotkey;
@@ -142,14 +143,14 @@ sealed class TrayApp : ApplicationContext
     {
         bool running = _engine.Running && !_paused;
         _tray.Icon = !running ? _iconPaused : _engine.IsRecording ? _iconRec : _iconLive;
-        var status = _paused ? "Paused" : _engine.IsRecording ? "● Full recording in progress" : _engine.StatusText;
+        var status = _paused ? "Paused".T() : _engine.IsRecording ? "● Full recording in progress".T() : _engine.StatusText;
         _statusItem.Text = status;
         var tip = $"Replay Recorder – {status}";
         _tray.Text = tip.Length > 127 ? tip[..127] : tip;
         _saveItem.Enabled = running;
         _recordItem.Enabled = running;
-        _recordItem.Text = _engine.IsRecording ? "Stop recording" : "Start recording";
-        _pauseItem.Text = _paused ? "Resume" : "Pause";
+        _recordItem.Text = (_engine.IsRecording ? "Stop recording" : "Start recording").T();
+        _pauseItem.Text = (_paused ? "Resume" : "Pause").T();
     }
 
     // ------------------------------------------------------------------ actions
@@ -167,15 +168,15 @@ sealed class TrayApp : ApplicationContext
         {
             var clip = await _engine.SaveClipAsync(game);
             if (_settings.PlaySaveSound) { if (clip != null) SaveSound.Saved(); else SaveSound.Failed(); }
-            if (clip != null) Notify("Clip saved", $"{game} · last {Math.Max(1, (int)Math.Round(clip.Seconds))}s", Green, screen);
-            else Notify("Clip not saved", "See the log for details", Red, screen);
+            if (clip != null) Notify("Clip saved".T(), "{0} · last {1}s".T(game, Math.Max(1, (int)Math.Round(clip.Seconds))), Green, screen);
+            else Notify("Clip not saved".T(), "See the log for details".T(), Red, screen);
             CheckStorage();
         }
         catch (Exception ex)
         {
             Log.Error("Save failed", ex);
             if (_settings.PlaySaveSound) SaveSound.Failed();
-            Notify("Clip not saved", ex.Message, Red, screen);
+            Notify("Clip not saved".T(), ex.Message, Red, screen);
         }
     }
 
@@ -187,15 +188,15 @@ sealed class TrayApp : ApplicationContext
         {
             var game = GameDetector.Detect(_settings.GameNames);
             _engine.StartRecording(game);
-            Notify("Recording started", $"{game} · press {_settings.ToggleRecordingHotkey} to stop", Red, screen);
+            Notify("Recording started".T(), "{0} · press {1} to stop".T(game, _settings.ToggleRecordingHotkey), Red, screen);
         }
         else
         {
-            Notify("Saving recording…", "", Grey, screen);
+            Notify("Saving recording…".T(), "", Grey, screen);
             var path = await _engine.StopRecordingAsync();
             if (_settings.PlaySaveSound) { if (path != null) SaveSound.Saved(); else SaveSound.Failed(); }
-            if (path != null) Notify("Recording saved", Path.GetFileName(path), Green, screen);
-            else Notify("Recording not saved", "See the log for details", Red, screen);
+            if (path != null) Notify("Recording saved".T(), Path.GetFileName(path), Green, screen);
+            else Notify("Recording not saved".T(), "See the log for details".T(), Red, screen);
         }
         RefreshUi();
     }
@@ -272,6 +273,11 @@ sealed class TrayApp : ApplicationContext
     void ReloadSettings()
     {
         var next = Settings.Load();
+        if (Lang.Use(next.Language))
+        {
+            foreach (ToolStripItem item in _tray.ContextMenuStrip!.Items) item.Text = Lang.Retranslate(item.Text ?? "");
+            if (_update != null) _updateItem.Text = "Install update {0}".T(_update.Version);
+        }
         if (!_settings.CaptureDiffers(next) && (_engine.Running || _paused))
         {
             // Nothing that capture depends on: apply in place and keep the replay buffer. (Capture that
@@ -286,7 +292,7 @@ sealed class TrayApp : ApplicationContext
         }
         if (_engine.IsRecording)
         {
-            _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.", ToolTipIcon.Info);
+            _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.".T(), ToolTipIcon.Info);
             return;
         }
         Log.Info("Settings changed, restarting capture");
@@ -296,7 +302,7 @@ sealed class TrayApp : ApplicationContext
         RegisterHotkeys();
         if (!_paused) _engine.Start();
         RefreshUi();
-        _tray.ShowBalloonTip(2000, "Replay Recorder", "Settings applied.", ToolTipIcon.Info);
+        _tray.ShowBalloonTip(2000, "Replay Recorder", "Settings applied.".T(), ToolTipIcon.Info);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -319,8 +325,8 @@ sealed class TrayApp : ApplicationContext
                 if (_storageWarned) return;
                 _storageWarned = true;
                 Log.Warn($"Clips folder is {gb:0.0} GB (limit {limit:0} GB)");
-                _tray.ShowBalloonTip(8000, "Replay Recorder: clips folder is getting big",
-                    $"Your clips use {gb:0.0} GB (warning limit {limit:0} GB). Open the library to delete old clips.", ToolTipIcon.Warning);
+                _tray.ShowBalloonTip(8000, "Replay Recorder: clips folder is getting big".T(),
+                    "Your clips use {0:0.0} GB (warning limit {1:0} GB). Open the library to delete old clips.".T(gb, limit), ToolTipIcon.Warning);
             }, null);
         });
     }

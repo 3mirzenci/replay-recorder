@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using ReplayRecorder.Core;
@@ -38,6 +38,13 @@ public partial class App : Application
 
         var saved = Settings.Load();
         ApplyTheme(saved.Theme, saved.AccentColor);
+        Lang.Use(saved.Language);
+        // XAML text is English. Windows translate their tree when built (TranslateTree); tooltips and
+        // context menus are translated as they open, which also covers ones inside templates.
+        EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.ToolTipOpeningEvent,
+            new System.Windows.Controls.ToolTipEventHandler((s, _) => { if (s is FrameworkElement { ToolTip: string tip } fe) fe.ToolTip = Lang.Retranslate(tip); }));
+        EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.ContextMenuOpeningEvent,
+            new System.Windows.Controls.ContextMenuEventHandler((s, _) => { if (s is FrameworkElement { ContextMenu: { } m }) TranslateTree(m); }));
         StartRecorderIfNeeded();
         base.OnStartup(e);
         // "ReplayRecorder.exe --open <clip>" opens that clip straight in the player.
@@ -94,6 +101,33 @@ public partial class App : Application
     }
 
     /// <summary>Swaps the colour/font dictionary; every DynamicResource updates live.</summary>
+    /// <summary>Puts every literal text in this tree (logical and visual) into the current language.</summary>
+    public static void TranslateTree(DependencyObject root) => TranslateTree(root, new HashSet<DependencyObject>());
+
+    static void TranslateTree(DependencyObject o, HashSet<DependencyObject> seen)
+    {
+        if (!seen.Add(o)) return;
+        if (o is FrameworkElement fe)
+        {
+            Translate(fe);
+            if (fe.ContextMenu != null) TranslateTree(fe.ContextMenu, seen);
+        }
+        foreach (var child in LogicalTreeHelper.GetChildren(o).OfType<DependencyObject>()) TranslateTree(child, seen);
+        if (o is System.Windows.Media.Visual)
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(o); i++)
+                TranslateTree(System.Windows.Media.VisualTreeHelper.GetChild(o, i), seen);
+    }
+
+    static void Translate(FrameworkElement e)
+    {
+        static bool Bound(DependencyObject o, DependencyProperty p) => System.Windows.Data.BindingOperations.IsDataBound(o, p);
+        if (e is Window w) w.Title = Lang.Retranslate(w.Title);
+        else if (e is System.Windows.Controls.TextBlock t && !Bound(t, System.Windows.Controls.TextBlock.TextProperty)) t.Text = Lang.Retranslate(t.Text);
+        else if (e is System.Windows.Controls.HeaderedItemsControl h && h.Header is string hs) h.Header = Lang.Retranslate(hs);
+        else if (e is System.Windows.Controls.ContentControl c && c.Content is string cs && !Bound(c, System.Windows.Controls.ContentControl.ContentProperty)) c.Content = Lang.Retranslate(cs);
+        if (e.ToolTip is string tip) e.ToolTip = Lang.Retranslate(tip);
+    }
+
     public static void ApplyTheme(string theme, string accent = "")
     {
         var file = theme is "amber" or "booth" ? "Amber" : "Windows"; // "booth" = older name for amber

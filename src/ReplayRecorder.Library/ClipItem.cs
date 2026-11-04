@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
@@ -55,9 +55,9 @@ sealed class ClipItem : INotifyPropertyChanged
         get
         {
             var d = Clip.Created;
-            if (d.Date == DateTime.Today) return $"Today {d:HH:mm}";
-            if (d.Date == DateTime.Today.AddDays(-1)) return $"Yesterday {d:HH:mm}";
-            return d.Year == DateTime.Today.Year ? d.ToString("d MMM HH:mm") : d.ToString("d MMM yyyy");
+            if (d.Date == DateTime.Today) return "Today {0:HH:mm}".T(d);
+            if (d.Date == DateTime.Today.AddDays(-1)) return "Yesterday {0:HH:mm}".T(d);
+            return d.Year == DateTime.Today.Year ? d.ToString("d MMM HH:mm", Lang.Culture) : d.ToString("d MMM yyyy", Lang.Culture);
         }
     }
     /// <summary>True while the grid is grouped by day: the day header already says the date, so cards show only the time.</summary>
@@ -148,8 +148,8 @@ sealed class ClipItem : INotifyPropertyChanged
 /// <summary>A row in the game filter sidebar.</summary>
 sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false)
 {
-    public string Label => IsAll ? "All clips" : IsFavorites ? "Favorites" : Name;
-    public string Detail => Count == 1 ? "1 clip" : $"{Count} clips";
+    public string Label => IsAll ? "All clips".T() : IsFavorites ? "Favorites".T() : Name;
+    public string Detail => (Count == 1 ? "1 clip" : "{0} clips").T(Count);
 }
 
 /// <summary>
@@ -159,7 +159,7 @@ sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavor
 sealed class DayGroup : INotifyPropertyChanged
 {
     static readonly Dictionary<DateTime, DayGroup> Days = new();
-    static readonly CultureInfo En = CultureInfo.GetCultureInfo("en-GB");
+    static CultureInfo En => Lang.Culture;
 
     public static DayGroup For(DateTime when)
     {
@@ -169,11 +169,12 @@ sealed class DayGroup : INotifyPropertyChanged
     }
 
     DayGroup(DateTime date) => Date = date;
+    public void RefreshLabel() => OnChanged(nameof(Label));
     public DateTime Date { get; }
 
     public string Label =>
-        Date == DateTime.Today ? "Today" :
-        Date == DateTime.Today.AddDays(-1) ? "Yesterday" :
+        Date == DateTime.Today ? "Today".T() :
+        Date == DateTime.Today.AddDays(-1) ? "Yesterday".T() :
         Date > DateTime.Today.AddDays(-7) ? Date.ToString("dddd", En) :
         Date.Year == DateTime.Today.Year ? Date.ToString("dddd, d MMMM", En) : Date.ToString("d MMMM yyyy", En);
 

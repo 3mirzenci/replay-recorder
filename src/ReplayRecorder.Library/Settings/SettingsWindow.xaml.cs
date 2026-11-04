@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +19,8 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        App.TranslateTree(this);
+        ContentRendered += (_, _) => App.TranslateTree(this); // template parts exist only once shown
         NavList.SelectedIndex = 0; // first page
         SourceInitialized += (_, _) => App.UseDarkTitleBar(this);
         Load();
@@ -41,7 +43,7 @@ public partial class SettingsWindow : Window
         // re-plugged, so pinning one is only done when the user picks it explicitly.
         _displays = Displays.Enumerate();
         var primary = _displays.FirstOrDefault(d => d.Primary);
-        var monitorChoices = new List<Choice<string>> { new("", $"Automatic: primary monitor{(primary != null ? $" ({primary.Label.Split(" · ")[0]})" : "")}") };
+        var monitorChoices = new List<Choice<string>> { new("", primary != null ? "Automatic: primary monitor ({0})".T(primary.Label.Split(" · ")[0]) : "Automatic: primary monitor".T()) };
         monitorChoices.AddRange(_displays.Select(d => new Choice<string>(d.DeviceName, d.Label)));
         MonitorBox.ItemsSource = monitorChoices;
         MonitorBox.SelectedIndex = Math.Max(0, monitorChoices.FindIndex(c => c.Value.Length > 0 &&
@@ -59,11 +61,11 @@ public partial class SettingsWindow : Window
         SysEnabled.IsChecked = _s.SystemAudioEnabled;
         // Audio devices are listed after the window is up (LoadDevicesAsync): Windows can take
         // seconds to enumerate them. Until then the saved choice stands in, so Save keeps it.
-        SysDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.SystemAudioDeviceId, "Loading devices…") };
+        SysDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.SystemAudioDeviceId, "Loading devices…".T()) };
         SysDeviceBox.SelectedIndex = 0;
         SysVol.Value = _s.SystemVolumeDb;
         MicEnabled.IsChecked = _s.MicEnabled;
-        MicDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.MicDeviceId, "Loading devices…") };
+        MicDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.MicDeviceId, "Loading devices…".T()) };
         MicDeviceBox.SelectedIndex = 0;
         MicVol.Value = _s.MicVolumeDb;
         Fill(MicLevelingBox, _s.MicLevelingStrength, (MicLeveling.Off, "Off"), (MicLeveling.Light, "Light"),
@@ -79,6 +81,7 @@ public partial class SettingsWindow : Window
         StartupBox.IsChecked = Autostart.IsEnabled;
         NotifyBox.IsChecked = _s.ShowNotifications;
         SoundBox.IsChecked = _s.PlaySaveSound;
+        Fill(LanguageBox, _s.Language, ("en", "English"), ("tr", "Türkçe"));
         Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("windows", "Windows (blue)"), ("amber", "Amber"));
         _accent = _s.AccentColor;
         foreach (var rb in AccentSwatches.Children.OfType<RadioButton>())
@@ -91,7 +94,7 @@ public partial class SettingsWindow : Window
 
     static void Fill<T>(ComboBox box, T current, params (T Value, string Label)[] options)
     {
-        var items = options.Select(o => new Choice<T>(o.Value, o.Label)).ToList();
+        var items = options.Select(o => new Choice<T>(o.Value, o.Label.T())).ToList();
         box.ItemsSource = items;
         box.SelectedIndex = Math.Max(0, items.FindIndex(i => EqualityComparer<T>.Default.Equals(i.Value, current)));
     }
@@ -102,7 +105,7 @@ public partial class SettingsWindow : Window
     {
         var folder = _s.ClipsFolder;
         long bytes = await Task.Run(() => Paths.FolderSize(folder));
-        UsageText.Text = $"Using {bytes / 1e9:0.0} GB right now";
+        UsageText.Text = "Using {0:0.0} GB right now".T(bytes / 1e9);
     }
 
     // ------------------------------------------------------------------ live bits
@@ -111,10 +114,10 @@ public partial class SettingsWindow : Window
     {
         if (BufferText == null) return;
         int b = (int)(Math.Round(BufferSlider.Value / 5) * 5);
-        BufferText.Text = b >= 60 ? $"{b / 60}:{b % 60:00} min" : $"{b} s";
+        BufferText.Text = b >= 60 ? "{0}:{1:00} min".T(b / 60, b % 60) : "{0} s".T(b);
         // ~3.5 MB/s measured at 1440p60 on the desktop, up to the bitrate cap in busy games.
         int lo = (int)Math.Round((b + 6) * 3.5 / 10) * 10, hi = (int)Math.Round((b + 6) * 6.25 / 10) * 10;
-        RamHint.Text = $"No constant SSD writes. Uses about {lo}–{hi} MB of RAM for {BufferText.Text}.";
+        RamHint.Text = "No constant SSD writes. Uses about {0}–{1} MB of RAM for {2}.".T(lo, hi, BufferText.Text);
         static string Db(double v) => Math.Round(v) == 0 ? "0 dB" : $"{Math.Round(v):+0;-0} dB";
         SysVolText.Text = Db(SysVol.Value);
         MicVolText.Text = Db(MicVol.Value);
@@ -122,8 +125,8 @@ public partial class SettingsWindow : Window
         var sel = MonitorBox.SelectedItem as Choice<string>;
         var d = sel == null ? null : sel.Value.Length == 0 ? _displays.FirstOrDefault(x => x.Primary) : _displays.FirstOrDefault(x => x.DeviceName == sel.Value);
         string? warn = d == null ? null
-            : !d.OnNvidia ? $"This screen is driven by {d.AdapterName}, not the RTX GPU (hybrid/Optimus mode). Replay Recorder will use Intel Quick Sync; for best results switch the MUX to discrete-GPU mode."
-            : d.HdrEnabled ? "HDR is on for this screen. Clips are recorded in SDR, so very bright highlights may clip."
+            : !d.OnNvidia ? "This screen is driven by {0}, not the RTX GPU (hybrid/Optimus mode). Replay Recorder will use Intel Quick Sync; for best results switch the MUX to discrete-GPU mode.".T(d.AdapterName)
+            : d.HdrEnabled ? "HDR is on for this screen. Clips are recorded in SDR, so very bright highlights may clip.".T()
             : null;
         MonitorWarning.Text = warn ?? "";
         MonitorWarning.Visibility = warn == null ? Visibility.Collapsed : Visibility.Visible;
@@ -192,18 +195,18 @@ public partial class SettingsWindow : Window
 
     void Save_Click(object sender, RoutedEventArgs e)
     {
-        if (!TryNumber(LimitBox.Text, 0, 100000, out var limit)) { Error("Storage warning must be a number of GB (0 = off)."); return; }
-        if (!TryNumber(TargetBox.Text, 1, 500, out var target)) { Error("Maximum file size must be between 1 and 500 MB."); return; }
-        if (string.IsNullOrWhiteSpace(SaveHotkey.Value)) { Error("Set a save-clip hotkey."); return; }
-        if (SaveHotkey.Value == RecordHotkey.Value) { Error("The two hotkeys must be different."); return; }
-        foreach (var (box, name) in new[] { (ClipsFolderBox, "Clips"), (ExportFolderBox, "Discord exports"), (BufferFolderBox, "Replay buffer") })
+        if (!TryNumber(LimitBox.Text, 0, 100000, out var limit)) { Error("Storage warning must be a number of GB (0 = off).".T()); return; }
+        if (!TryNumber(TargetBox.Text, 1, 500, out var target)) { Error("Maximum file size must be between 1 and 500 MB.".T()); return; }
+        if (string.IsNullOrWhiteSpace(SaveHotkey.Value)) { Error("Set a save-clip hotkey.".T()); return; }
+        if (SaveHotkey.Value == RecordHotkey.Value) { Error("The two hotkeys must be different.".T()); return; }
+        foreach (var (box, name) in new[] { (ClipsFolderBox, "Clips folder can't be created: {0}"), (ExportFolderBox, "Discord exports folder can't be created: {0}"), (BufferFolderBox, "Replay buffer folder can't be created: {0}") })
         {
             try { Directory.CreateDirectory(box.Text.Trim()); }
-            catch { Error($"{name} folder can't be created: {box.Text}"); return; }
+            catch { Error(name.T(box.Text)); return; }
         }
         if (Path.GetFullPath(ExportFolderBox.Text.Trim()).StartsWith(Path.GetFullPath(ClipsFolderBox.Text.Trim()) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            Error("Put the Discord exports folder outside the clips folder, so exports don't show up as clips."); return;
+            Error("Put the Discord exports folder outside the clips folder, so exports don't show up as clips.".T()); return;
         }
 
         _s.BufferSeconds = (int)(Math.Round(BufferSlider.Value / 5) * 5);
@@ -231,6 +234,7 @@ public partial class SettingsWindow : Window
         _s.DiscordTargetMB = target;
         _s.ShowNotifications = NotifyBox.IsChecked == true;
         _s.PlaySaveSound = SoundBox.IsChecked == true;
+        _s.Language = Get(LanguageBox, "en");
         _s.Theme = Get(ThemeBox, "windows");
         _s.AccentColor = _accent;
         _s.BufferInRam = RamBox.IsChecked == true;
@@ -244,7 +248,7 @@ public partial class SettingsWindow : Window
             Log.Info("Settings saved from the settings window");
             DialogResult = true;
         }
-        catch (Exception ex) { Error($"Couldn't save settings: {ex.Message}"); }
+        catch (Exception ex) { Error("Couldn't save settings: {0}".T(ex.Message)); }
     }
 
     static Dictionary<string, string> ParseGames(string text)
