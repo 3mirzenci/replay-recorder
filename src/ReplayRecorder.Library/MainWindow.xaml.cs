@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     ClipEdit _edit = new();
     bool _loadingClip;
     readonly DispatcherTimer _mixDebounce = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    readonly DispatcherTimer _exportCleanup = new() { Interval = TimeSpan.FromMinutes(1) };
 
     readonly string? _openOnStart;
 
@@ -40,6 +41,10 @@ public partial class MainWindow : Window
     {
         _openOnStart = openOnStart;
         InitializeComponent();
+        // Exports are temporary: each one is removed once it's had time to be sent to Discord.
+        DiscordExporter.CleanupExports(_settings, DiscordExporter.ExportLifetime);
+        _exportCleanup.Tick += (_, _) => DiscordExporter.CleanupExports(_settings, DiscordExporter.ExportLifetime);
+        _exportCleanup.Start();
         _index = new ClipIndex(_settings.ClipsFolder);
         _view = CollectionViewSource.GetDefaultView(_items);
         _view.Filter = o => o is ClipItem c
@@ -271,7 +276,7 @@ public partial class MainWindow : Window
         bool allFav = ClipGrid.SelectedItems.Cast<ClipItem>().All(c => c.IsFavorite);
         CtxFav.Header = allFav ? "Remove from favorites" : "Add to favorites";
         CtxExport.Header = n == 1 ? "Export for Discord" : $"Export {n} clips for Discord";
-        CtxDelete.Header = n == 1 ? "Delete (Recycle Bin)" : $"Delete {n} clips (Recycle Bin)";
+        CtxDelete.Header = n == 1 ? "Delete" : $"Delete {n} clips";
     }
 
     void CtxOpen_Click(object sender, RoutedEventArgs e) { if (Selected() is [var c]) OpenClip(c); }
@@ -532,23 +537,25 @@ public partial class MainWindow : Window
             $"{clips.Count} clips ({ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))})";
         int favs = clips.Count(c => c.IsFavorite);
         string favNote = favs == 0 ? "" : clips.Count == 1 ? "\n\nThis clip is a favorite." : $"\n\n{favs} of them are favorites.";
-        var r = MessageBox.Show(this, $"Move {what} to the Recycle Bin?{favNote}\n\nYou can restore {(clips.Count == 1 ? "it" : "them")} from the Recycle Bin.",
-            clips.Count == 1 ? "Delete clip" : "Delete clips", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
+        var r = MessageBox.Show(this, $"Delete {what}?{favNote}\n\n{(clips.Count == 1 ? "It's" : "They're")} deleted for good, not moved to the Recycle Bin.",
+            clips.Count == 1 ? "Delete clip" : "Delete clips", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
         if (r != MessageBoxResult.OK) return;
 
         var open = _current != null && clips.Contains(_current) ? _current : null;
         if (open != null) CloseClip(); // mpv must release the file first
-        var failed = RecycleBin.SendMany(clips.Select(c => c.Path).ToList()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var c in clips.Where(c => !failed.Contains(c.Path)))
+        var failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in clips)
         {
+            try { File.Delete(c.Path); }
+            catch (Exception ex) { failed.Add(c.Path); Log.Warn($"Delete failed for {c.Path}: {ex.Message}"); continue; }
             _items.Remove(c);
             ClipEdits.Remove(c.Path);
-            Log.Info($"Moved to Recycle Bin: {c.Path}");
+            Log.Info($"Deleted: {c.Path}");
         }
         RefreshSidebar();
         if (failed.Count > 0)
         {
-            MessageBox.Show(this, $"Couldn't move {failed.Count} clip{(failed.Count == 1 ? "" : "s")} to the Recycle Bin (open in another app?).",
+            MessageBox.Show(this, $"Couldn't delete {failed.Count} clip{(failed.Count == 1 ? "" : "s")} (open in another app?).",
                 "Delete clips", MessageBoxButton.OK, MessageBoxImage.Warning);
             if (open != null && failed.Contains(open.Path)) OpenClip(open);
         }
@@ -621,7 +628,12 @@ public partial class MainWindow : Window
     void OnPlayerState()
     {
         if (_mpv == null) return;
-        if (_mpv.Duration > 0 && Timeline.Duration <= 0) Timeline.SetClip(_mpv.Duration, _edit.In, _edit.EffectiveOut(_mpv.Duration));
+        // mpv may report the length after "file-loaded"; whenever it does, it wins over the probe.
+        if (_current != null && _mpv.Duration > 0 && Math.Abs(_mpv.Duration - Timeline.Duration) > 0.05)
+        {
+            Timeline.SetClip(_mpv.Duration, _edit.In, _edit.EffectiveOut(_mpv.Duration));
+            UpdateTrimText();
+        }
         Timeline.Position = _mpv.Position;
         UpdateTimeText(_mpv.Position);
         PlayIcon.Text = _mpv.Paused ? "" : "";
@@ -1065,12 +1077,6 @@ public partial class MainWindow : Window
     }
 
     void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings();
-
-    void OpenExportsFolder_Click(object sender, RoutedEventArgs e)
-    {
-        Directory.CreateDirectory(_settings.ExportFolder);
-        Process.Start(new ProcessStartInfo(_settings.ExportFolder) { UseShellExecute = true });
-    }
 
     void Shutdown()
     {

@@ -68,7 +68,6 @@
                         </Border>
                         <TextBlock x:Name="StorageText" Foreground="{StaticResource Subtle}" FontSize="12" TextWrapping="Wrap"/>
                         <Button x:Name="OpenFolderBtn" Content="Open clips folder" Margin="0,10,0,0" HorizontalAlignment="Left" Click="OpenFolder_Click"/>
-                        <Button Content="Open Discord exports" Margin="0,6,0,0" HorizontalAlignment="Left" Click="OpenExportsFolder_Click"/>
                         <Button Margin="0,6,0,0" HorizontalAlignment="Left" Click="Settings_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center"/>
@@ -191,7 +190,7 @@
                                     <TextBlock Text="Export for Discord" Margin="8,0,0,0" Foreground="White" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-                            <Button Click="SelDelete_Click" ToolTip="Move to the Recycle Bin (Del)">
+                            <Button Click="SelDelete_Click" ToolTip="Delete for good (Del)">
                                 <TextBlock Text="Delete" Foreground="{StaticResource Danger}"/>
                             </Button>
                         </StackPanel>
@@ -245,7 +244,7 @@
                                 <MenuItem x:Name="CtxExport" Header="Export for Discord" Click="SelExport_Click"/>
                                 <MenuItem Header="Select whole day" Click="CtxSelectDay_Click"/>
                                 <Separator/>
-                                <MenuItem x:Name="CtxDelete" Header="Delete (Recycle Bin)" Click="SelDelete_Click"/>
+                                <MenuItem x:Name="CtxDelete" Header="Delete" Click="SelDelete_Click"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
@@ -348,7 +347,7 @@
                 </Button>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Content="Show in folder" Click="PlayerShow_Click" Margin="0,0,8,0"/>
-                    <Button Click="PlayerDelete_Click" ToolTip="Move to Recycle Bin (Del)">
+                    <Button Click="PlayerDelete_Click" ToolTip="Delete for good (Del)">
                         <TextBlock Text="Delete" Foreground="{StaticResource Danger}"/>
                     </Button>
                 </StackPanel>

@@ -64,6 +64,30 @@ public static class DiscordExporter
         return new ExportPlan(w, h, fps, videoKbps, audioKbps, encoder);
     }
 
+    /// <summary>How long an export stays: long enough to paste or drag it into Discord and send it.</summary>
+    public static readonly TimeSpan ExportLifetime = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Deletes exports older than <paramref name="olderThan"/> from the app's own export folder. A folder
+    /// the user picked in Settings is left alone: exports there are meant to stay.
+    /// </summary>
+    public static void CleanupExports(Settings s, TimeSpan olderThan)
+    {
+        var dir = Paths.DefaultExportFolder;
+        if (!string.Equals(Path.TrimEndingDirectorySeparator(s.ExportFolder), dir, StringComparison.OrdinalIgnoreCase)) return;
+        if (!Directory.Exists(dir)) return;
+        foreach (var f in Directory.EnumerateFiles(dir))
+        {
+            try
+            {
+                if (DateTime.Now - File.GetLastWriteTime(f) < olderThan) continue;
+                File.Delete(f);
+                Log.Info($"Removed old export {Path.GetFileName(f)}");
+            }
+            catch { } // still uploading/open somewhere: try again next time
+        }
+    }
+
     public static async Task<ExportResult> ExportAsync(ClipInfo clip, ClipEdit edit, Settings s,
         IProgress<(double Fraction, string Status)>? progress = null, CancellationToken ct = default)
     {

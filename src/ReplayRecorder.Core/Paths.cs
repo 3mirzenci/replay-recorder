@@ -20,8 +20,14 @@ public static class Paths
     public static string DefaultClipsFolder { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Replay Recorder");
 
-    /// <summary>Discord exports live outside the clips folder so they never show up as clips.</summary>
-    public static string DefaultExportFolder { get; } =
+    /// <summary>
+    /// Discord exports are temporary: they live in the app's own data folder (never among the clips)
+    /// and are deleted a few minutes after they're made, see <see cref="DiscordExporter.CleanupExports"/>.
+    /// </summary>
+    public static string DefaultExportFolder => Path.Combine(LocalData, "exports");
+
+    /// <summary>Where exports went up to 1.0.1; a setting still pointing here moves to the default.</summary>
+    public static string LegacyExportFolder { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Replay Recorder Discord");
 
     public static string DefaultBufferFolder => Path.Combine(LocalData, "buffer");

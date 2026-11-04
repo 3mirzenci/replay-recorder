@@ -28,7 +28,7 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 - **Selecting:**
   - Click a clip's corner circle, or a day header to select that whole day. Ctrl+click and Shift+click also work.
   - While anything is selected, a click selects or unselects a clip instead of opening it.
-  - The bar at the bottom can open, show in folder, copy files, export everything for Discord (each clip keeps its saved trim and volumes) or delete (to the Recycle Bin).
+  - The bar at the bottom can open, show in folder, copy files, export everything for Discord (each clip keeps its saved trim and volumes) or delete.
 - **Right-click** gives the same actions, plus Rename (F2) and favorites.
 - **Large libraries stay light:** thumbnails are only loaded for clips on or near the screen. With 1000 clips the library opens in about 2 s and uses about 250 MB.
 
@@ -43,7 +43,7 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 | I / O | Set trim start / end at the playhead |
 | P | Preview the trimmed range on a loop |
 | Home / End | Jump to trim start / end |
-| Del | Move the clip to the Recycle Bin (asks first) |
+| Del | Delete the clip for good (asks first) |
 | Esc | Back to the library |
 
 ### Export for Discord
@@ -52,7 +52,9 @@ In the player, click **Export for Discord** or press **E**. Replay Recorder enco
 
 - **drag the tile** into a Discord chat (a real Windows file drag), or
 - click **Copy file** and press **Ctrl+V** in Discord, or
-- click **Open folder**. Exports go to `Videos\Replay Recorder Discord`. The original clip is never changed.
+- click **Open folder**.
+
+Exports are temporary, so they don't fill up your drive: they're kept in `%LOCALAPPDATA%\Replay Recorder\exports` and deleted 5 minutes after they're made (enough time for Discord to upload), whether the library is still open or not. The original clip is never changed. To keep exports, pick your own Discord exports folder in Settings; files there are never deleted.
 
 How it fits the file under the limit:
 - **Bitrate:** video bitrate = target bits ÷ duration − 128 kbps audio − 2% container overhead.
@@ -183,4 +185,4 @@ powershell -ExecutionPolicy Bypass -File tools\measure.ps1 -Seconds 300 -Names S
 - **Hotkey does nothing:** another app has it (the NVIDIA overlay takes Alt+F9 and Alt+F10). The tray warns you when this happens. Pick another hotkey in settings.
 - **Washed-out clips:** Windows HDR is on for that monitor. Clips are recorded in SDR, and the settings window warns about this.
 - **Library says ffmpeg or mpv is missing:** run `winget install Gyan.FFmpeg` and `winget install shinchiro.mpv`, then reopen Replay Recorder.
-- **Storage:** the tray warns once when the clips folder passes its limit (default 50 GB). Deleting a clip from the library moves it to the Recycle Bin.
+- **Storage:** the tray warns once when the clips folder passes its limit (default 50 GB). Deleting a clip from the library deletes it for good (it asks first).

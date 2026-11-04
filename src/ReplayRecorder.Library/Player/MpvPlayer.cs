@@ -79,6 +79,10 @@ sealed class MpvPlayer : IDisposable
 
     public void Load(string path, string? lavfiComplex)
     {
+        // Forget the previous file's numbers: until mpv reports the new ones, a stale duration
+        // would stretch the new clip's timeline to the old clip's length.
+        Position = 0;
+        Duration = 0;
         SetProperty("lavfi-complex", lavfiComplex ?? "");
         Command("loadfile", path, "replace");
     }
@@ -166,7 +170,7 @@ sealed class MpvPlayer : IDisposable
         switch (name)
         {
             case "time-pos": if (data is JsonValue v && v.TryGetValue<double>(out var p)) Position = p; break;
-            case "duration": if (data is JsonValue d && d.TryGetValue<double>(out var du)) Duration = du; break;
+            case "duration": Duration = data is JsonValue d && d.TryGetValue<double>(out var du) ? du : 0; break;
             case "pause": if (data is JsonValue b && b.TryGetValue<bool>(out var pa)) Paused = pa; break;
             default: return;
         }

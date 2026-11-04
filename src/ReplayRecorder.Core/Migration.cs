@@ -42,7 +42,8 @@ public static class Migration
                 RemapKeys(Path.Combine(Paths.CacheFolder, "index.json"), oldClips, Paths.DefaultClipsFolder);
                 dirty = true;
             }
-            if (Same(s.ExportFolder, oldExports) && MoveDir(oldExports, Paths.DefaultExportFolder))
+            // Old exports keep living in a normal folder: the default export folder is now temporary.
+            if (Same(s.ExportFolder, oldExports) && MoveDir(oldExports, Paths.LegacyExportFolder))
             {
                 s.ExportFolder = Paths.DefaultExportFolder;
                 dirty = true;

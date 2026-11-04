@@ -36,6 +36,7 @@ public partial class App : Application
             ex.Handled = true;
         };
 
+        StartRecorderIfNeeded();
         base.OnStartup(e);
         // "ReplayRecorder.exe --open <clip>" opens that clip straight in the player.
         int oi = Array.IndexOf(e.Args, "--open");
@@ -60,6 +61,24 @@ public partial class App : Application
     {
         _single?.Dispose();
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// Opening the library also starts the tray recorder when it isn't running, so one shortcut is
+    /// enough. The recorder's single-instance mutex tells whether it runs; a duplicate start just exits.
+    /// </summary>
+    static void StartRecorderIfNeeded()
+    {
+        if (Environment.GetEnvironmentVariable("REPLAYRECORDER_PROFILE") != null) return; // test runs
+        if (Mutex.TryOpenExisting(@"Local\ReplayRecorder.Recorder", out var m)) { m.Dispose(); return; }
+        var exe = System.IO.Path.Combine(AppContext.BaseDirectory, "ReplayRecorder.Recorder.exe");
+        if (!System.IO.File.Exists(exe)) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = AppContext.BaseDirectory });
+            Log.Info("Recorder wasn't running; started it");
+        }
+        catch (Exception ex) { Log.Error("Couldn't start the recorder", ex); }
     }
 
     /// <summary>Starts a fresh copy of the library and closes this one.</summary>

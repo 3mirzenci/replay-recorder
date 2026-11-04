@@ -20,6 +20,7 @@ sealed class TrayApp : ApplicationContext
     readonly ToolStripMenuItem _saveItem, _recordItem, _pauseItem, _startupItem, _statusItem, _updateItem;
     UpdateInfo? _update;
     System.Threading.Timer? _updateTimer;
+    readonly System.Threading.Timer _exportCleanup;
     readonly Icon _iconLive, _iconRec, _iconPaused;
     FileSystemWatcher? _settingsWatcher;
     System.Threading.Timer? _reloadDebounce;
@@ -29,6 +30,10 @@ sealed class TrayApp : ApplicationContext
     {
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _settings = Settings.Load();
+        // Discord exports are temporary. The recorder is always running, so it removes them on time
+        // even when the library was closed right after exporting.
+        _exportCleanup = new System.Threading.Timer(_ => DiscordExporter.CleanupExports(_settings, DiscordExporter.ExportLifetime),
+            null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
         _iconLive = MakeIcon(Green); _iconRec = MakeIcon(Red); _iconPaused = MakeIcon(Grey);
 
         _statusItem = new ToolStripMenuItem("Starting…") { Enabled = false };
@@ -360,6 +365,7 @@ sealed class TrayApp : ApplicationContext
     {
         if (disposing)
         {
+            _exportCleanup.Dispose();
             _settingsWatcher?.Dispose();
             _hotkeys.Dispose();
             _engine.Dispose();

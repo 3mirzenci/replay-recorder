@@ -115,7 +115,9 @@ public sealed class Settings
         DiscordTargetMB = Math.Clamp(DiscordTargetMB, 1, 500);
         if (string.IsNullOrWhiteSpace(ClipsFolder)) ClipsFolder = Paths.DefaultClipsFolder;
         if (string.IsNullOrWhiteSpace(BufferFolder)) BufferFolder = Paths.DefaultBufferFolder;
-        if (string.IsNullOrWhiteSpace(ExportFolder)) ExportFolder = Paths.DefaultExportFolder;
+        if (string.IsNullOrWhiteSpace(ExportFolder) ||
+            string.Equals(Path.TrimEndingDirectorySeparator(ExportFolder), Paths.LegacyExportFolder, StringComparison.OrdinalIgnoreCase))
+            ExportFolder = Paths.DefaultExportFolder;
         GameNames = new Dictionary<string, string>(GameNames ?? GameDetector.DefaultNames(), StringComparer.OrdinalIgnoreCase);
         return this;
     }
