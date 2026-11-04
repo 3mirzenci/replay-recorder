@@ -34,9 +34,17 @@ if ($NotesTr) { $Notes = "$Notes`n`n<!-- tr -->`n$NotesTr" }
 # The tag message carries the notes to the GitHub build (a file keeps multi-line notes intact).
 $notesFile = [IO.Path]::GetTempFileName()
 [IO.File]::WriteAllText($notesFile, $Notes)
+# git prints warnings (e.g. line endings) on stderr; Windows PowerShell would treat them as fatal under "Stop".
+$ErrorActionPreference = "Continue"
 git add -A
-git commit -m "Release v$Version" -m $Notes
+# Messages go through files: Windows PowerShell mangles quotes inside arguments to git.
+$commitFile = [IO.Path]::GetTempFileName()
+[IO.File]::WriteAllText($commitFile, "Release v$Version`n`n$Notes")
+git commit -F $commitFile
+Remove-Item $commitFile
+if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
 git tag -a "v$Version" -F $notesFile
+if ($LASTEXITCODE -ne 0) { throw "git tag failed" }
 Remove-Item $notesFile
 git push origin HEAD --follow-tags
 if ($LASTEXITCODE -ne 0) { throw "git push failed" }
