@@ -85,7 +85,18 @@ sealed class ReplayEngine : IDisposable
 
     // ------------------------------------------------------------------ start / stop
 
-    public void Start()
+    // Bumped by every outside Start/Stop, so a crash restart still waiting can tell it's been overtaken.
+    int _generation;
+    int _savesInFlight;
+
+    /// <summary>True while a clip or recording is being written; replacing the engine then would cut it short.</summary>
+    public bool Saving => Volatile.Read(ref _savesInFlight) > 0;
+
+    public void Start() { Interlocked.Increment(ref _generation); StartCore(); }
+
+    public void Stop() { Interlocked.Increment(ref _generation); StopCore(); }
+
+    void StartCore()
     {
         _stopping = false;
         if (Ffmpeg.FfmpegPath == null) { Fail(Ffmpeg.InstallHint.T()); return; }
@@ -168,7 +179,7 @@ sealed class ReplayEngine : IDisposable
 
     string StatusLine() => "Recording {0} · buffer {1}s".T(Display?.DeviceName.TrimStart('\\', '.'), _s.BufferSeconds);
 
-    public void Stop()
+    void StopCore()
     {
         _stopping = true;
         _housekeeping?.Dispose();
@@ -208,17 +219,19 @@ sealed class ReplayEngine : IDisposable
         // Restart with backoff; give up after repeated immediate failures (bad settings).
         bool quickFail = DateTime.UtcNow - _lastStart < TimeSpan.FromSeconds(10);
         _restartCount = quickFail ? _restartCount + 1 : 0;
+        int gen = Volatile.Read(ref _generation);
         ThreadPool.QueueUserWorkItem(_ =>
         {
-            Stop();
+            StopCore();
             if (_restartCount >= 3)
             {
                 Fail("Capture keeps failing. Check the log (tray menu > Open log).".T());
                 return;
             }
             Thread.Sleep(1000 * _restartCount);
-            _stopping = false;
-            Start();
+            // Paused, resumed, or replaced (settings change) meanwhile: that call owns capture now.
+            if (gen != Volatile.Read(ref _generation)) { Log.Info("ffmpeg restart skipped: capture was stopped or restarted meanwhile"); return; }
+            StartCore();
         });
     }
 
@@ -499,7 +512,7 @@ sealed class ReplayEngine : IDisposable
                     else if (pid == PmtPid && pmt == null) pmt = pkt.ToArray();
                     if (_tsHeader == null && pat != null && pmt != null) _tsHeader = [.. pat, .. pmt];
 
-                    if (pid == VideoPid && KeyframePts(pkt) is double t)
+                    if (pid == VideoPid && TsPacket.KeyframePts(pkt) is double t)
                     {
                         if (cur != null) { lastSize = (int)cur.Length; CloseSegment(cur, curStart, t); }
                         // Sized like the previous piece (+25 %) so it rarely has to grow and copy itself.
@@ -514,25 +527,6 @@ sealed class ReplayEngine : IDisposable
         }
         catch (Exception ex) when (!_stopping) { Log.Warn($"RAM buffer reader stopped: {ex.Message}"); }
         catch { }
-    }
-
-    /// <summary>PTS in seconds if this packet starts a keyframe's PES, else null.</summary>
-    static double? KeyframePts(ReadOnlySpan<byte> pkt)
-    {
-        if ((pkt[1] & 0x40) == 0) return null;          // payload_unit_start
-        int afc = (pkt[3] >> 4) & 3, off = 4;
-        bool rai = false;
-        if ((afc & 2) != 0)
-        {
-            int len = pkt[4];
-            if (len > 0) rai = (pkt[5] & 0x40) != 0;    // random_access_indicator
-            off = 5 + len;
-        }
-        if (!rai || (afc & 1) == 0 || off + 14 > 188) return null;
-        if (pkt[off] != 0 || pkt[off + 1] != 0 || pkt[off + 2] != 1 || (pkt[off + 7] & 0x80) == 0) return null;
-        long pts = ((long)(pkt[off + 9] >> 1) & 7) << 30 | (long)pkt[off + 10] << 22 |
-                   (long)(pkt[off + 11] >> 1) << 15 | (long)pkt[off + 12] << 7 | (long)(pkt[off + 13] >> 1);
-        return pts / 90000.0; // the timeline starts at 0, so the 33-bit wrap (26.5 h) never comes up in practice
     }
 
     void CloseSegment(MemoryStream data, double start, double end)
@@ -559,9 +553,14 @@ sealed class ReplayEngine : IDisposable
     {
         if (!Running) return null;
         double hit = Now;
-        var segs = await WaitForSegmentsAsync(hit, s => s.End > hit - _s.BufferSeconds);
-        if (segs.Count == 0) return null;
-        return await JoinAsync(segs, game, "", trimToSeconds: _s.BufferSeconds, endAt: hit);
+        Interlocked.Increment(ref _savesInFlight);
+        try
+        {
+            var segs = await WaitForSegmentsAsync(hit, s => s.End > hit - _s.BufferSeconds);
+            if (segs.Count == 0) return null;
+            return await JoinAsync(segs, game, "", trimToSeconds: _s.BufferSeconds, endAt: hit);
+        }
+        finally { Interlocked.Decrement(ref _savesInFlight); }
     }
 
     public void StartRecording(string game)
@@ -577,11 +576,16 @@ sealed class ReplayEngine : IDisposable
     {
         if (_recordingStart is not double start) return null;
         double stop = Now;
-        var segs = await WaitForSegmentsAsync(stop, s => s.End > start);
-        _recordingStart = null;
-        StatusChanged?.Invoke();
-        if (segs.Count == 0) return null;
-        return (await JoinAsync(segs, _recordingGame, " (recording)", trimToSeconds: stop - start, endAt: stop))?.Path;
+        Interlocked.Increment(ref _savesInFlight);
+        try
+        {
+            var segs = await WaitForSegmentsAsync(stop, s => s.End > start);
+            _recordingStart = null;
+            StatusChanged?.Invoke();
+            if (segs.Count == 0) return null;
+            return (await JoinAsync(segs, _recordingGame, " (recording)", trimToSeconds: stop - start, endAt: stop))?.Path;
+        }
+        finally { Interlocked.Decrement(ref _savesInFlight); }
     }
 
     /// <summary>Waits until the segment containing <paramref name="t"/> is closed, then returns matching segments.</summary>

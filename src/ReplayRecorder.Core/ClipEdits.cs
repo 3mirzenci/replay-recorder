@@ -78,7 +78,12 @@ public static class ClipEdits
             if (File.Exists(File_))
                 _all = JsonSerializer.Deserialize<Dictionary<string, ClipEdit>>(File.ReadAllText(File_));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Keep the unreadable file: starting fresh would overwrite every favorite and trim on the next save.
+            Log.Warn($"Edits file unreadable, kept as edits.json.bad: {ex.Message}");
+            try { File.Move(File_, File_ + ".bad", true); } catch { }
+        }
         _all = new Dictionary<string, ClipEdit>(_all ?? new(), StringComparer.OrdinalIgnoreCase);
     }
 

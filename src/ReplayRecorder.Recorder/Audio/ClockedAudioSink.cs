@@ -17,7 +17,7 @@ namespace ReplayRecorder.Recorder.Audio;
 /// </summary>
 sealed class ClockedAudioSink : IDisposable
 {
-    public const int Rate = 48000;
+    public const int Rate = PcmConverter.Rate;
 
     // Audio is written this far behind real time. KeepMs of it sits in the buffer as
     // jitter headroom; the rest covers WASAPI's own capture latency (~10-20 ms).

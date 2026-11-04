@@ -14,6 +14,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ReplayRecorder.Core\ReplayRecorder.Core.csproj" />
+    <!-- The recorder is a self-contained Windows app, so its pure parts are compiled in here instead of referenced. -->
+    <Compile Include="..\..\src\ReplayRecorder.Recorder\Audio\PcmConverter.cs" Link="Recorder\PcmConverter.cs" />
+    <Compile Include="..\..\src\ReplayRecorder.Recorder\TsPacket.cs" Link="Recorder\TsPacket.cs" />
+    <PackageReference Include="NAudio.Core" Version="2.2.1" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

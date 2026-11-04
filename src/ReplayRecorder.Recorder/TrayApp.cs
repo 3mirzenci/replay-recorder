@@ -188,6 +188,7 @@ sealed class TrayApp : ApplicationContext
             if (_settings.PlaySaveSound) SaveSound.Failed();
             Notify("Clip not saved".T(), ex.Message, Red, screen);
         }
+        ApplyPendingSettings();
     }
 
     async void ToggleRecording()
@@ -209,6 +210,7 @@ sealed class TrayApp : ApplicationContext
             else Notify("Recording not saved".T(), "See the log for details".T(), Red, screen);
         }
         RefreshUi();
+        ApplyPendingSettings();
     }
 
     void TogglePause()
@@ -280,6 +282,13 @@ sealed class TrayApp : ApplicationContext
         try { _settings.Save(); } finally { Task.Delay(1500).ContinueWith(_ => _ignoreSettingsChange = false); }
     }
 
+    bool _reloadPending;
+
+    void ApplyPendingSettings()
+    {
+        if (_reloadPending && !_engine.IsRecording && !_engine.Saving) ReloadSettings();
+    }
+
     void ReloadSettings()
     {
         var next = Settings.Load();
@@ -300,11 +309,15 @@ sealed class TrayApp : ApplicationContext
             RefreshUi();
             return;
         }
-        if (_engine.IsRecording)
+        if (_engine.IsRecording || _engine.Saving)
         {
-            _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.".T(), ToolTipIcon.Info);
+            // Replacing the engine now would cut the recording or the clip being written; ApplyPendingSettings runs it after.
+            _reloadPending = true;
+            if (_engine.IsRecording)
+                _tray.ShowBalloonTip(4000, "Replay Recorder", "Settings will apply after the current recording stops.".T(), ToolTipIcon.Info);
             return;
         }
+        _reloadPending = false;
         Log.Info("Settings changed, restarting capture");
         _settings = next;
         _engine.Dispose();
