@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
@@ -149,6 +149,7 @@ sealed class ClipItem : INotifyPropertyChanged
 sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false)
 {
     public string Label => IsAll ? "All clips" : IsFavorites ? "Favorites" : Name;
+    public string Detail => Count == 1 ? "1 clip" : $"{Count} clips";
 }
 
 /// <summary>

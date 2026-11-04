@@ -565,6 +565,7 @@ public partial class MainWindow : Window
     async Task CheckForUpdateAsync()
     {
         VersionText.Text = $"Version {Updater.Current}";
+        SettingsBtn.ToolTip = $"Settings (version {Updater.Current})";
         if (Updater.JustUpdatedFrom("library") is { } from)
         {
             UpdateTitle.Text = "Updated ✓";

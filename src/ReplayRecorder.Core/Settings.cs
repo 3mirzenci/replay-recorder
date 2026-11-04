@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ReplayRecorder.Core;
@@ -71,6 +71,10 @@ public sealed class Settings
     public bool ShowNotifications { get; set; } = true;
     /// <summary>Short chime when a clip is saved (the popup can't show over exclusive-fullscreen games).</summary>
     public bool PlaySaveSound { get; set; } = true;
+    /// <summary>Library look: "windows" (neutral greys, Windows blue) or "amber".</summary>
+    public string Theme { get; set; } = "windows";
+    /// <summary>Accent colour as "#RRGGBB"; empty = the look's own.</summary>
+    public string AccentColor { get; set; } = "";
     public Dictionary<string, string> GameNames { get; set; } = GameDetector.DefaultNames();
 
     /// <summary>
