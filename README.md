@@ -85,7 +85,7 @@ You can also drag the blue handles on the timeline. Trim and game/mic volume are
 - Clips have three audio tracks:
   1. **Everything**: game, voice chat and mic mixed together. Every normal player (Media Player, Discord, browsers) plays this one.
   2. **Game + voice chat**: what you hear, Discord included.
-  3. **Microphone**.
+  3. **Microphone**. **Mic leveling** (Settings → Audio) evens out quiet talk and shouting and cuts background noise between words. **Light** only tames shouting, **Medium** (default) keeps whispers quiet, **Strong** makes everything about as loud.
 
   Tracks 2 and 3 let the library rebalance game and mic later.
 - Virtual audio devices (HyperX NGENUITY, SteelSeries Sonar, VB-Cable) are detected automatically. Replay Recorder records the real headset behind them, because loopback of a virtual device is silent.
@@ -163,6 +163,7 @@ Open them from the tray menu (*Settings…*) or the library sidebar. The setting
 | `SystemAudioDeviceId` / `MicDeviceId` | Endpoint ids from `--diag-audio`, or empty for automatic |
 | `SystemVolumeDb` / `MicVolumeDb` | Gain per track (-30 to +20 dB) |
 | `MicEnabled` | `false` keeps a silent mic track |
+| `MicLevelingStrength` | `Off`, `Light`, `Medium` (default) or `Strong`: evens out mic loudness and cuts background noise (Settings → Audio). Applies to tracks 1 and 3 |
 | `ClipsFolder` / `BufferFolder` | Where clips and the rolling buffer go |
 | `GameNames` | Map of exe name to folder name (e.g. `"cs2.exe": "CS2"`) |
 

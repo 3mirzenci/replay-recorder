@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 namespace ReplayRecorder.Core;
 
 public enum CaptureMethod { Wgc, Dda }
+public enum MicLeveling { Off, Light, Medium, Strong }
 public enum VideoCodec { H264, Hevc }
 public enum EncoderBackend { Auto, Nvenc, Qsv, X264 }
 
@@ -49,6 +50,9 @@ public sealed class Settings
     /// <summary>WASAPI endpoint id, or empty for the Windows default communications microphone.</summary>
     public string MicDeviceId { get; set; } = "";
     public double MicVolumeDb { get; set; } = 0;
+    /// <summary>Evens out the mic (quiet talk vs shouting) and gates background noise. Medium by default:
+    /// raw headset mics are quiet and uneven without vendor software doing this.</summary>
+    public MicLeveling MicLevelingStrength { get; set; } = MicLeveling.Medium;
 
     // --- Folders ---
     public string ClipsFolder { get; set; } = Paths.DefaultClipsFolder;
@@ -71,7 +75,7 @@ public sealed class Settings
 
     /// <summary>
     /// True when <paramref name="other"/> needs capture restarted (which empties the replay buffer):
-    /// the screen, encoding, buffer storage or an audio device changed. Everything else, volumes
+    /// the screen, encoding, buffer storage, an audio device or mic leveling changed. Everything else, volumes
     /// included, applies to the running capture.
     /// </summary>
     public bool CaptureDiffers(Settings other) =>
@@ -80,7 +84,8 @@ public sealed class Settings
         Encoder != other.Encoder || Quality != other.Quality || MaxBitrateMbps != other.MaxBitrateMbps ||
         CaptureCursor != other.CaptureCursor || BufferInRam != other.BufferInRam ||
         !string.Equals(BufferFolder, other.BufferFolder, StringComparison.OrdinalIgnoreCase) ||
-        SystemAudioDeviceId != other.SystemAudioDeviceId || MicDeviceId != other.MicDeviceId;
+        SystemAudioDeviceId != other.SystemAudioDeviceId || MicDeviceId != other.MicDeviceId ||
+        MicLevelingStrength != other.MicLevelingStrength;
 
     static readonly JsonSerializerOptions Json = new()
     {
