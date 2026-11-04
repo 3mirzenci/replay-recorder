@@ -22,39 +22,21 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 
 > **Still in development.** Replay Recorder is a pretty new app and gets better with each update. Clips are smooth in testing, but you may still run into the odd stutter or bug here and there. Updates arrive inside the app, so you get the fixes automatically.
 
-## Performance
-
-Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment). Five matches: one with no recorder, two with only Replay Recorder, two with only Moments, Discord closed. Clips saved per match: 14 and 14 with Replay Recorder, 13 and 24 with Moments (16 on average). Both apps record **1080p60** with a 60-second replay on their own default quality (Replay Recorder "Balanced", Moments "High"); the clips came out at a similar bitrate (29–37 vs 24–41 Mbps). Everything else is each app's default, including Replay Recorder's replay buffer on disk ("Keep the replay buffer in RAM" adds about 250 MB of RAM). The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon).
-
-| | No recorder | Replay Recorder 1.0.8 | SteelSeries Moments + GG |
-|---|---|---|---|
-| Game FPS, average | 69 | **68 / 71** | 58 / 56 |
-| Game FPS, 1 % low | 24 | **18 / 24** | 5 / 5 |
-| Recorder CPU (share of the whole CPU) | – | 1.8 % | 2.4 % (1.7 % capture + 0.7 % GG app) |
-| Recorder RAM | – | **~270 MB** | ~1 GB (~690 MB capture + ~315 MB GG app) |
-| GPU video encoder | – | 10.6 % | 8.6 % |
-| GPU | – | 4.1–4.6 % | 1.0 % |
-
-The two numbers in a cell are the two matches. Matches vary by a few FPS on their own, so 71 with Replay Recorder vs 69 without doesn't mean recording made the game faster.
-
-- **Game FPS:** with Replay Recorder the average was unchanged; the 1 % low matched the no-recorder match in one run and was lower in the other. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12, even in the match with only 13 saves. That many saves per match is more than most people make, so in everyday play Moments' penalty from its save spikes would be smaller.
-- **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
-- **CPU and encoder:** about the same.
-- **GPU:** Moments is lighter here. Replay Recorder captures the 144 Hz screen and scales 1440p down to 1080p on the GPU; making that cheaper is the next thing being worked on.
-
-This is one game on one PC, so your numbers will differ. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
+## Features
 
 ### The library
 
 - **Clips are grouped by day**, newest first. While you scroll, the current day's header stays at the top.
 - **Click a clip to open it.** Hover over a thumbnail and move the mouse across it to preview the clip.
-- **The ☆ in the corner** stars a clip. Starred clips are listed under **Favorites** in the sidebar.
+- **The ☆ in the corner** stars a clip. Pick **Favorites** in the game dropdown at the top to see only starred clips.
 - **Selecting:**
   - Click a clip's corner circle, or a day header to select that whole day. Ctrl+click and Shift+click also work.
   - While anything is selected, a click selects or unselects a clip instead of opening it.
   - The bar at the bottom can open, show in folder, copy files, export everything for Discord (each clip keeps its saved trim and volumes) or delete.
 - **Right-click** gives the same actions, plus Rename (F2) and favorites.
+- **Fullscreen:** the button next to the frame steps, or **F**, shows just the video with a see-through bar for play/pause, seeking and the game/mic volume. Esc or F comes back.
 - **Large libraries stay light:** thumbnails are only loaded for clips on or near the screen. With 1000 clips the library opens in about 2 s and uses about 250 MB.
+- **English and Turkish**, switchable live in Settings without a restart.
 
 ### Library shortcuts
 
@@ -67,8 +49,10 @@ This is one game on one PC, so your numbers will differ. To measure on your own 
 | I / O | Set trim start / end at the playhead |
 | P | Preview the trimmed range on a loop |
 | Home / End | Jump to trim start / end |
+| F | Fullscreen on / off |
+| E | Export for Discord |
 | Del | Delete the clip for good (asks first) |
-| Esc | Back to the library |
+| Esc | Leave fullscreen, or back to the library |
 
 ### Export for Discord
 
@@ -98,12 +82,34 @@ Measured on a 1440p60 clip with a 19.5 MB target:
 | 3 min | 480p30, 0.7 Mbps | 18.8 MB |
 | 6 min | 360p30, 0.3 Mbps (2 passes) | 18.4 MB |
 
-You can also drag the blue handles on the timeline. Trim and game/mic volume are saved per clip in `%LOCALAPPDATA%\Replay Recorder\cache\edits.json`. The original clip file is never changed.
+You can also drag the handles at both ends of the timeline. Trim and game/mic volume are saved per clip in `%LOCALAPPDATA%\Replay Recorder\cache\edits.json`. The original clip file is never changed.
+
+## Performance
+
+Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment). Five matches: one with no recorder, two with only Replay Recorder, two with only Moments, Discord closed. Clips saved per match: 14 and 14 with Replay Recorder, 13 and 24 with Moments (16 on average). Both apps record **1080p60** with a 60-second replay on their own default quality (Replay Recorder "Balanced", Moments "High"); the clips came out at a similar bitrate (29–37 vs 24–41 Mbps). 1080p is the one setting changed for a like-for-like comparison: Replay Recorder's default is your screen's resolution up to 1440p, which roughly doubles the encoder load (19 % instead of 10.6 % in the same game). Everything else is each app's default, including Replay Recorder's replay buffer on disk ("Keep the replay buffer in RAM" adds about 250 MB of RAM). The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon).
+
+| | No recorder | Replay Recorder 1.0.8 | SteelSeries Moments + GG |
+|---|---|---|---|
+| Game FPS, average | 69 | **68 / 71** | 58 / 56 |
+| Game FPS, 1 % low | 24 | **18 / 24** | 5 / 5 |
+| Recorder CPU (share of the whole CPU) | – | 1.8 % | 2.4 % (1.7 % capture + 0.7 % GG app) |
+| Recorder RAM | – | **~270 MB** | ~1 GB (~690 MB capture + ~315 MB GG app) |
+| GPU video encoder | – | 10.6 % | 8.6 % |
+| GPU | – | 4.1–4.6 % | 1.0 % |
+
+The two numbers in a cell are the two matches. Matches vary by a few FPS on their own, so 71 with Replay Recorder vs 69 without doesn't mean recording made the game faster.
+
+- **Game FPS:** with Replay Recorder the average was unchanged; the 1 % low matched the no-recorder match in one run and was lower in the other. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12, even in the match with only 13 saves. That many saves per match is more than most people make, so in everyday play Moments' penalty from its save spikes would be smaller.
+- **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
+- **CPU and encoder:** about the same.
+- **GPU:** Moments is lighter here. Replay Recorder captures the 144 Hz screen and scales 1440p down to 1080p on the GPU; making that cheaper is the next thing being worked on.
+
+This is one game on one PC, so your numbers will differ. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
 
 ## How recording works
 
 - Screen capture uses Windows Graphics Capture (or Desktop Duplication). The frames go straight into NVENC on the GPU. Nothing is injected into games, so it's safe with Vanguard and FACEIT.
-- The replay buffer is 2-second segments on disk. Old segments are deleted automatically. Saving joins them without re-encoding, which takes about 0.2 s.
+- The replay buffer is 2-second segments on disk. Old segments are deleted automatically. Saving joins them without re-encoding, which takes 1–2 s during a game; recording carries on meanwhile.
 - **RAM buffer** (Settings → Instant replay): the segments are kept in memory instead, so nothing is written to the SSD until you save. It costs about 250 MB of RAM for a 60-second buffer. Full recordings still go to disk, because they can be long.
 - **A short chime** plays when a clip is saved, and a lower one if saving failed, because the pop-up can't show over exclusive-fullscreen games. You can turn it off in Settings → General. The chime is quiet, but the recorder hears it, so it ends up faintly in the buffer after a save.
 - Clips have three audio tracks:
@@ -112,7 +118,7 @@ You can also drag the blue handles on the timeline. Trim and game/mic volume are
   3. **Microphone**. **Mic leveling** (Settings → Audio) evens out quiet talk and shouting and cuts background noise between words. **Light** only tames shouting, **Medium** (default) keeps whispers quiet, **Strong** makes everything about as loud.
 
   Tracks 2 and 3 let the library rebalance game and mic later.
-- Virtual audio devices (HyperX NGENUITY, SteelSeries Sonar, VB-Cable) are detected automatically. Replay Recorder records the real headset behind them, because loopback of a virtual device is silent.
+- Virtual audio devices (HyperX NGENUITY, SteelSeries Sonar, VB-Cable) are detected automatically. Replay Recorder records the real headset behind them, so you get everything you hear, not just one virtual channel.
 - Clips are saved as `Videos\Replay Recorder\<Game>\<Game> yyyy-MM-dd HH-mm-ss.mp4`.
 
 ## Install details
@@ -124,7 +130,7 @@ Setup needs no admin rights and installs to `%LOCALAPPDATA%\Programs\Replay Reco
 
 Uninstalling stops both apps and removes the autostart entry. Your clips and settings stay.
 
-Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC (Intel Quick Sync and x264 are fallbacks). The .NET runtime is bundled.
+Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer for Windows Graphics Capture (setup installs a current one). The .NET runtime is bundled.
 
 ## Build from source
 
@@ -173,7 +179,7 @@ You can change the hotkeys in settings, e.g. `"SaveClipHotkey": "Ctrl+Shift+F10"
 
 ## Settings
 
-Open them from the tray menu (*Settings…*) or the library sidebar. The settings window covers replay length, hotkeys, monitor, resolution and fps, quality, audio devices with live level meters, folders and the storage limit, the Discord size target, startup and game names. Saving applies the new settings right away. Only screen, quality, buffer storage or audio-device changes restart capture, which empties the replay buffer. Everything is stored in `%APPDATA%\Replay Recorder\settings.json`, which you can also edit by hand:
+Open them from the tray menu (*Settings…*) or the ⚙ button at the top right of the library. The settings window covers replay length, hotkeys, monitor, resolution and fps, quality, audio devices with live level meters, folders and the storage limit, the Discord size target, startup and game names. Saving applies the new settings right away. Only screen, quality, buffer storage or audio-device changes restart capture, which empties the replay buffer. Everything is stored in `%APPDATA%\Replay Recorder\settings.json`, which you can also edit by hand:
 
 | Key | Meaning |
 |---|---|
@@ -219,4 +225,5 @@ To log the game's FPS, run [PresentMon](https://github.com/GameTechDev/PresentMo
 - **Hotkey does nothing:** another app has it (the NVIDIA overlay takes Alt+F9 and Alt+F10). The tray warns you when this happens. Pick another hotkey in settings.
 - **Washed-out clips:** Windows HDR is on for that monitor. Clips are recorded in SDR, and the settings window warns about this.
 - **Library says ffmpeg or mpv is missing:** run `winget install Gyan.FFmpeg` and `winget install shinchiro.mpv`, then reopen Replay Recorder.
+- **"Your ffmpeg is too old for Windows Graphics Capture":** clips then record at your screen's full resolution with Desktop Duplication. Run `winget upgrade Gyan.FFmpeg` and restart Replay Recorder.
 - **Storage:** the tray warns once when the clips folder passes its limit (default 50 GB). Deleting a clip from the library deletes it for good (it asks first).
