@@ -154,7 +154,6 @@ public partial class MainWindow : Window
     void UpdateHeader()
     {
         HeaderText.Text = _gameFilter.Length == 0 ? "All clips" : _gameFilter == FavKey ? "Favorites" : _gameFilter;
-        HeaderKind.Text = _gameFilter.Length == 0 ? "Library" : _gameFilter == FavKey ? "Collection" : "Game";
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
         CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
@@ -169,17 +168,14 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>The header's cover and big play button belong to the newest clip in view.</summary>
+    /// <summary>The header's folder button belongs to the newest clip in view.</summary>
     void UpdateHero(List<ClipItem> visible)
     {
         Hero.DataContext = visible.MaxBy(c => c.Created);
         HeroActions.IsEnabled = Hero.DataContext != null;
     }
 
-    // The header's buttons act on its clip through the normal selection actions.
-    void SelectOnly(ClipItem c) { ClipGrid.SelectedItems.Clear(); ClipGrid.SelectedItem = c; }
-    void HeroPlay_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) OpenClip(c); }
-    void HeroExport_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) { SelectOnly(c); SelExport_Click(sender, e); } }
+    // The header's folder button shows the newest clip.
     void HeroShow_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) ShowInFolder(c.Path); }
 
     void ApplySort(string key)

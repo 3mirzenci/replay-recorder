@@ -284,13 +284,76 @@
 
         <!-- Context menu -->
         <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{DynamicResource Panel}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
             <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                                CornerRadius="8" Padding="4" MinWidth="200">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+        <!-- Flat menu row: label left, shortcut right in grey (menus here have no submenus) -->
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="{DynamicResource Text}"/>
-            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="5" Padding="12,8">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{TemplateBinding InputGestureText}" Foreground="{DynamicResource Subtle}" Margin="24,0,0,0"/>
+                                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="b" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1" Margin="8,4" Background="{DynamicResource Line}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Hover text: dark, to match (the Windows default is a white box) -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                                CornerRadius="6" Padding="10,6" MaxWidth="380">
+                            <ContentPresenter>
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                        <Setter Property="FontSize" Value="12.5"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                                        <Setter Property="FontFamily" Value="{DynamicResource BodyFont}"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         </ResourceDictionary>
     </Application.Resources>

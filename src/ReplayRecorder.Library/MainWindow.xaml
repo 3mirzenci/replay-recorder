@@ -159,31 +159,19 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
                     </Border>
-                    <Grid x:Name="Hero" Margin="24,22,24,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Bottom">
-                            <TextBlock x:Name="HeaderKind" Text="Library" FontSize="12.5" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="40" FontWeight="Bold"
-                                       TextTrimming="CharacterEllipsis" Margin="-1,0,0,2"/>
-                            <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5"/>
-                        </StackPanel>
-                        <StackPanel x:Name="HeroActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,4">
+                    <!-- One slim row: title and count, plus the newest clip's folder -->
+                    <DockPanel x:Name="Hero" Margin="24,16,20,8">
+                        <StackPanel x:Name="HeroActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Style="{StaticResource RoundBtn}" Click="HeroShow_Click" ToolTip="Show the newest clip in its folder">
-                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
-                            </Button>
-                            <Button Style="{StaticResource RoundBtn}" Margin="4,0,14,0" Click="HeroExport_Click"
-                                    ToolTip="Export the newest clip for Discord, with its saved trim and volumes">
-                                <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
-                            </Button>
-                            <Button Style="{StaticResource PlayCircle}" Click="HeroPlay_Click" ToolTip="Play the newest clip">
-                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20"
-                                           Foreground="{DynamicResource OnAccent}" Margin="3,0,0,0"/>
+                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
                             </Button>
                         </StackPanel>
-                    </Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="26" FontWeight="Bold"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5" Margin="14,4,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
                 </Grid>
 
                 <!-- Shown when GitHub has a newer release -->
@@ -308,7 +296,7 @@
                                 <MenuItem x:Name="CtxExport" Header="Export for Discord" Click="SelExport_Click"/>
                                 <MenuItem Header="Select whole day" Click="CtxSelectDay_Click"/>
                                 <Separator/>
-                                <MenuItem x:Name="CtxDelete" Header="Delete" Click="SelDelete_Click"/>
+                                <MenuItem x:Name="CtxDelete" Header="Delete" InputGestureText="Del" Foreground="{DynamicResource Danger}" Click="SelDelete_Click"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
