@@ -136,9 +136,10 @@ public partial class MainWindow : Window
     void RefreshSidebar()
     {
         var selected = _gameFilter;
+        // Each game's cover is its newest clip's thumbnail.
         var games = _items.GroupBy(i => i.Game).OrderBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase)
-            .Select(g => new GameEntry(g.Key, g.Count())).ToList();
-        games.Insert(0, new GameEntry("", _items.Count, IsAll: true));
+            .Select(g => new GameEntry(g.Key, g.Count(), Cover: g.MaxBy(c => c.Created)!.Cover)).ToList();
+        games.Insert(0, new GameEntry("", _items.Count, IsAll: true, Cover: _items.MaxBy(c => c.Created)?.Cover));
         games.Insert(1, new GameEntry(FavKey, _items.Count(i => i.IsFavorite), IsFavorites: true));
         GameList.SelectionChanged -= GameList_SelectionChanged;
         GameList.ItemsSource = games;
@@ -154,10 +155,12 @@ public partial class MainWindow : Window
     void UpdateHeader()
     {
         HeaderText.Text = _gameFilter.Length == 0 ? "All clips" : _gameFilter == FavKey ? "Favorites" : _gameFilter;
+        HeaderKind.Text = _gameFilter.Length == 0 ? "Library" : _gameFilter == FavKey ? "Collection" : "Game";
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
         CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
         UpdateDayGroups();
+        UpdateHero(visible);
         ScheduleViewUpdate();
         EmptyState.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_items.Count > 0 && shown == 0)
@@ -166,6 +169,19 @@ public partial class MainWindow : Window
             ((TextBlock)EmptyState.Children[0]).Text = "Nothing here";
         }
     }
+
+    /// <summary>The header's cover and big play button belong to the newest clip in view.</summary>
+    void UpdateHero(List<ClipItem> visible)
+    {
+        Hero.DataContext = visible.MaxBy(c => c.Created);
+        HeroActions.IsEnabled = Hero.DataContext != null;
+    }
+
+    // The header's buttons act on its clip through the normal selection actions.
+    void SelectOnly(ClipItem c) { ClipGrid.SelectedItems.Clear(); ClipGrid.SelectedItem = c; }
+    void HeroPlay_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) OpenClip(c); }
+    void HeroExport_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) { SelectOnly(c); SelExport_Click(sender, e); } }
+    void HeroShow_Click(object sender, RoutedEventArgs e) { if (Hero.DataContext is ClipItem c) ShowInFolder(c.Path); }
 
     void ApplySort(string key)
     {

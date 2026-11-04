@@ -23,7 +23,11 @@ public partial class SettingsWindow : Window
         Load();
         _meterTimer.Tick += (_, _) => UpdateMeters();
         Loaded += async (_, _) => { _meterTimer.Start(); await LoadDevicesAsync(); };
-        Closed += (_, _) => { _meterTimer.Stop(); OnMeterThread(() => { _sysMeter.Dispose(); _micMeter.Dispose(); }); };
+        Closed += (_, _) =>
+        {
+            _meterTimer.Stop(); OnMeterThread(() => { _sysMeter.Dispose(); _micMeter.Dispose(); });
+            if (DialogResult != true) App.ApplyTheme(_s.Theme); // undo the live preview
+        };
     }
 
     void Load()
@@ -72,6 +76,8 @@ public partial class SettingsWindow : Window
         StartupBox.IsChecked = Autostart.IsEnabled;
         NotifyBox.IsChecked = _s.ShowNotifications;
         SoundBox.IsChecked = _s.PlaySaveSound;
+        Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("windows", "Windows (blue)"), ("amber", "Amber"));
+        ThemeBox.SelectionChanged += (_, _) => App.ApplyTheme(Get(ThemeBox, "windows")); // live preview
         RamBox.IsChecked = _s.BufferInRam;
         GamesBox.Text = string.Join(Environment.NewLine, _s.GameNames.OrderBy(k => k.Value).Select(kv => $"{kv.Key} = {kv.Value}"));
         UpdateLabels();
@@ -218,6 +224,7 @@ public partial class SettingsWindow : Window
         _s.DiscordTargetMB = target;
         _s.ShowNotifications = NotifyBox.IsChecked == true;
         _s.PlaySaveSound = SoundBox.IsChecked == true;
+        _s.Theme = Get(ThemeBox, "windows");
         _s.BufferInRam = RamBox.IsChecked == true;
         _s.StartWithWindows = StartupBox.IsChecked == true;
         _s.GameNames = ParseGames(GamesBox.Text);

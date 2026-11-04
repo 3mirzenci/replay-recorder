@@ -1,0 +1,19 @@
+<!-- "Windows": Windows 11 dark greys and accent blue, Segoe UI Variable. Default look. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Bg" Color="#0E0E10"/>
+    <SolidColorBrush x:Key="Panel" Color="#1A1A1C"/>
+    <SolidColorBrush x:Key="Card" Color="#252527"/>
+    <SolidColorBrush x:Key="CardHover" Color="#2F2F32"/>
+    <SolidColorBrush x:Key="Line" Color="#343437"/>
+    <SolidColorBrush x:Key="Text" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="Subtle" Color="#A2A2A7"/>
+    <SolidColorBrush x:Key="Accent" Color="#4CC2FF"/>
+    <SolidColorBrush x:Key="OnAccent" Color="#00131F"/>
+    <SolidColorBrush x:Key="AccentSoft" Color="#2E4CC2FF"/>
+    <SolidColorBrush x:Key="Danger" Color="#FF6B63"/>
+    <SolidColorBrush x:Key="ScrollThumb" Color="#4A4A4E"/>
+    <FontFamily x:Key="BodyFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="NumFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+</ResourceDictionary>

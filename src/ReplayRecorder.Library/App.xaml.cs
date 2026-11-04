@@ -36,6 +36,7 @@ public partial class App : Application
             ex.Handled = true;
         };
 
+        ApplyTheme(Settings.Load().Theme);
         StartRecorderIfNeeded();
         base.OnStartup(e);
         // "ReplayRecorder.exe --open <clip>" opens that clip straight in the player.
@@ -91,13 +92,22 @@ public partial class App : Application
         Shutdown();
     }
 
+    /// <summary>Swaps the colour/font dictionary; every DynamicResource updates live.</summary>
+    public static void ApplyTheme(string theme)
+    {
+        var file = theme is "amber" or "booth" ? "Amber" : "Windows"; // "booth" = older name for amber
+        Current.Resources.MergedDictionaries[0] = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{file}.xaml") };
+        foreach (Window w in Current.Windows) UseDarkTitleBar(w);
+    }
+
     /// <summary>Gives a window the Windows 11 dark title bar.</summary>
     public static void UseDarkTitleBar(Window w)
     {
         var hwnd = new WindowInteropHelper(w).EnsureHandle();
         int on = 1;
         DwmSetWindowAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
-        int caption = 0x00110E0D; // COLORREF (BGR) of #0D0E11
+        var bg = ((System.Windows.Media.SolidColorBrush)Current.Resources["Bg"]).Color;
+        int caption = bg.R | bg.G << 8 | bg.B << 16; // COLORREF is BGR
         DwmSetWindowAttribute(hwnd, 35 /* DWMWA_CAPTION_COLOR */, ref caption, sizeof(int));
     }
 

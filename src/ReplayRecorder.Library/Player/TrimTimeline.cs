@@ -45,13 +45,10 @@ sealed class TrimTimeline : FrameworkElement
     bool IsTrimmed => _in > 0.01 || _out < _duration - 0.01;
     bool InsideRange(double x) => IsTrimmed && x > X(_in) + 8 && x < X(_out) - 8;
 
-    static readonly Brush BarBg = Frozen(Color.FromRgb(0x23, 0x25, 0x2c));
-    static readonly Brush Range = Frozen(Color.FromRgb(0x2e, 0x3a, 0x55));
-    static readonly Brush Dim = Frozen(Color.FromArgb(0xb0, 0x0d, 0x0e, 0x11));
-    static readonly Brush Accent = Frozen(Color.FromRgb(0x5b, 0x8c, 0xff));
     static readonly Brush Head = Frozen(Colors.White);
     static readonly Brush Tick = Frozen(Color.FromRgb(0x6b, 0x6f, 0x7a));
-    static readonly Pen HandlePen = FrozenPen(Color.FromRgb(0x5b, 0x8c, 0xff), 3);
+    // Theme colours, looked up on each render so a theme switch shows on the next frame.
+    Color Res(string key) => ((SolidColorBrush)FindResource(key)).Color;
     static readonly Typeface Face = new("Segoe UI");
 
     public TrimTimeline()
@@ -68,9 +65,14 @@ sealed class TrimTimeline : FrameworkElement
     {
         double w = ActualWidth, top = 0;
         var bar = new Rect(Pad, top, Math.Max(0, w - 2 * Pad), BarH);
-        dc.DrawRoundedRectangle(BarBg, null, bar, 6, 6);
+        dc.DrawRoundedRectangle(Frozen(Res("CardHover")), null, bar, 6, 6);
         if (_duration <= 0) return;
 
+        var accent = Res("Accent");
+        var bg = Res("Bg");
+        var Range = Frozen(Color.FromArgb(0x50, accent.R, accent.G, accent.B));
+        var Dim = Frozen(Color.FromArgb(0xb0, bg.R, bg.G, bg.B));
+        var handlePen = FrozenPen(accent, 3);
         double xi = X(_in), xo = X(_out);
         dc.DrawRectangle(Range, null, new Rect(xi, top, Math.Max(0, xo - xi), BarH));
         dc.DrawRectangle(Dim, null, new Rect(Pad, top, Math.Max(0, xi - Pad), BarH));
@@ -88,20 +90,20 @@ sealed class TrimTimeline : FrameworkElement
         }
 
         // Trim handles: brackets.
-        DrawHandle(dc, xi, true);
-        DrawHandle(dc, xo, false);
+        DrawHandle(dc, handlePen, xi, true);
+        DrawHandle(dc, handlePen, xo, false);
 
         // Playhead.
         double xp = X(Math.Clamp(_position, 0, _duration));
         dc.DrawRectangle(Head, null, new Rect(xp - 1, top - 3, 2, BarH + 6));
     }
 
-    static void DrawHandle(DrawingContext dc, double x, bool left)
+    static void DrawHandle(DrawingContext dc, Pen pen, double x, bool left)
     {
         double d = left ? 1 : -1;
-        dc.DrawLine(HandlePen, new Point(x, 0), new Point(x, BarH));
-        dc.DrawLine(HandlePen, new Point(x, 1.5), new Point(x + 7 * d, 1.5));
-        dc.DrawLine(HandlePen, new Point(x, BarH - 1.5), new Point(x + 7 * d, BarH - 1.5));
+        dc.DrawLine(pen, new Point(x, 0), new Point(x, BarH));
+        dc.DrawLine(pen, new Point(x, 1.5), new Point(x + 7 * d, 1.5));
+        dc.DrawLine(pen, new Point(x, BarH - 1.5), new Point(x + 7 * d, BarH - 1.5));
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)

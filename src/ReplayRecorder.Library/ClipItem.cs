@@ -76,6 +76,10 @@ sealed class ClipItem : INotifyPropertyChanged
         }
     }
 
+    ImageSource? _cover;
+    /// <summary>Small thumbnail that ignores <see cref="InView"/>: for the header and the sidebar's game covers.</summary>
+    public ImageSource? Cover => _cover ??= Clip.ThumbPath != null ? LoadImage(Clip.ThumbPath, 240) : null;
+
     static ImageSource? LoadImage(string path, int decodeWidth)
     {
         try
@@ -128,7 +132,7 @@ sealed class ClipItem : INotifyPropertyChanged
     public void Refresh()
     {
         _thumb = null;
-        OnChanged(nameof(Thumb)); OnChanged(nameof(DurationText)); OnChanged(nameof(Subtitle));
+        OnChanged(nameof(Thumb)); OnChanged(nameof(Cover)); OnChanged(nameof(DurationText)); OnChanged(nameof(Subtitle));
         OnChanged(nameof(QualityText)); OnChanged(nameof(Duration));
     }
 
@@ -146,9 +150,10 @@ sealed class ClipItem : INotifyPropertyChanged
 }
 
 /// <summary>A row in the game filter sidebar.</summary>
-sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false)
+sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false, ImageSource? Cover = null)
 {
     public string Label => IsAll ? "All clips" : IsFavorites ? "Favorites" : Name;
+    public string Detail => Count == 1 ? "1 clip" : $"{Count} clips";
 }
 
 /// <summary>

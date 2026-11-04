@@ -35,8 +35,8 @@ sealed class HotkeyBox : Border
         Padding = new Thickness(11, 0, 11, 0);
         CornerRadius = new CornerRadius(6);
         BorderThickness = new Thickness(1);
-        Background = (Brush)Application.Current.FindResource("Card");
-        BorderBrush = (Brush)Application.Current.FindResource("Line");
+        SetResourceReference(BackgroundProperty, "Card");
+        SetResourceReference(BorderBrushProperty, "Line");
         MouseLeftButtonDown += (_, e) => { Focus(); _listening = true; Render(); e.Handled = true; };
         LostKeyboardFocus += (_, _) => { _listening = false; Render(); };
         Render();

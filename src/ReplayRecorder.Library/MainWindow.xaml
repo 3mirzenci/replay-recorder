@@ -4,9 +4,78 @@
         xmlns:local="clr-namespace:ReplayRecorder.Library"
         xmlns:player="clr-namespace:ReplayRecorder.Library.Player"
         Title="Replay Recorder" Width="1320" Height="840" MinWidth="900" MinHeight="560"
-        Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Bg}" WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
     <Window.Resources>
+        <!-- Round buttons for the header's action row -->
+        <Style x:Key="RoundBtn" TargetType="Button">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="100">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="b" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PlayCircle" TargetType="Button" BasedOn="{StaticResource RoundBtn}">
+            <Setter Property="Width" Value="56"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Background" Value="{DynamicResource Accent}"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="100">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="1.05" ScaleY="1.05"/></Setter.Value></Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="b" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Full-width row button in the sidebar's top panel -->
+        <Style x:Key="NavBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
@@ -14,23 +83,23 @@
                                 MouseLeftButtonDown="DayHeader_Click" ToolTip="Select every clip from this day">
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="chk" Width="20" Height="20" CornerRadius="10" BorderThickness="1.5"
-                                        BorderBrush="{StaticResource Subtle}" Background="Transparent" VerticalAlignment="Center">
+                                        BorderBrush="{DynamicResource Subtle}" Background="Transparent" VerticalAlignment="Center">
                                     <TextBlock x:Name="mark" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
-                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                               Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="{Binding Name.Label}" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Name.Summary}" Foreground="{StaticResource Subtle}" FontSize="12.5" Margin="10,2,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name.Label}" FontFamily="{DynamicResource DisplayFont}" FontSize="19" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name.Summary}" Foreground="{DynamicResource Subtle}" FontSize="12.5" Margin="10,2,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <DataTemplate.Triggers>
                             <DataTrigger Binding="{Binding Name.State}" Value="1">
-                                <Setter TargetName="chk" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="chk" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                 <Setter TargetName="mark" Property="Text" Value="&#xE738;"/>
-                                <Setter TargetName="mark" Property="Foreground" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="mark" Property="Foreground" Value="{DynamicResource Accent}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name.State}" Value="2">
-                                <Setter TargetName="chk" Property="BorderBrush" Value="{StaticResource Accent}"/>
-                                <Setter TargetName="chk" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="chk" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="chk" Property="Background" Value="{DynamicResource Accent}"/>
                                 <Setter TargetName="mark" Property="Text" Value="&#xE73E;"/>
                             </DataTrigger>
                         </DataTemplate.Triggers>
@@ -38,108 +107,200 @@
     </Window.Resources>
     <Grid>
         <!-- ================= Library ================= -->
-        <Grid x:Name="LibraryView">
+        <Grid x:Name="LibraryView" Margin="8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="272"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Sidebar -->
-            <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
-                <DockPanel Margin="14,18,14,14">
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,0,0,22">
-                        <Border Width="26" Height="26" CornerRadius="7" Background="{StaticResource Accent}">
-                            <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
-                        </Border>
-                        <TextBlock Text="Replay Recorder" FontSize="18" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel DockPanel.Dock="Bottom" Margin="6,10,0,0">
-                        <!-- Shown when GitHub has a newer release -->
-                        <Border x:Name="UpdatePanel" Visibility="Collapsed" Margin="-6,0,0,14" Padding="12,10" CornerRadius="8"
-                                Background="{StaticResource Card}" BorderBrush="{StaticResource Accent}" BorderThickness="1">
-                            <StackPanel>
-                                <TextBlock x:Name="UpdateTitle" Text="Update available" FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock x:Name="UpdateText" Foreground="{StaticResource Subtle}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                                <Button x:Name="UpdateBtn" Style="{StaticResource AccentBtn}" HorizontalAlignment="Left" Click="Update_Click">
-                                    <TextBlock x:Name="UpdateBtnText" Text="Update now" Foreground="White"/>
-                                </Button>
-                            </StackPanel>
-                        </Border>
-                        <TextBlock x:Name="StorageText" Foreground="{StaticResource Subtle}" FontSize="12" TextWrapping="Wrap"/>
-                        <Button x:Name="OpenFolderBtn" Content="Open clips folder" Margin="0,10,0,0" HorizontalAlignment="Left" Click="OpenFolder_Click"/>
-                        <Button Margin="0,6,0,0" HorizontalAlignment="Left" Click="Settings_Click">
+            <!-- Sidebar: two panels, app and actions on top, your games below -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="8">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="12,8,0,10">
+                            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Accent}">
+                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource OnAccent}"/>
+                            </Border>
+                            <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="17" FontWeight="Bold" Margin="11,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button x:Name="OpenFolderBtn" Style="{StaticResource NavBtn}" Click="OpenFolder_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBlock Text="Settings" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Open clips folder" Margin="14,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <TextBlock x:Name="VersionText" Foreground="{StaticResource Subtle}" FontSize="11" Margin="0,10,0,0" Opacity="0.7"/>
-                    </StackPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="GAMES" Foreground="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,8"/>
-                    <ListBox x:Name="GameList" Background="Transparent" BorderThickness="0" SelectionChanged="GameList_SelectionChanged"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border x:Name="b" CornerRadius="6" Padding="10,7" Margin="0,1" Background="Transparent">
-                                                <ContentPresenter/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="b" Property="Background" Value="{StaticResource Card}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type local:GameEntry}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Foreground="{StaticResource Subtle}" FontSize="12"/>
-                                    <TextBlock Text="{Binding Label}" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <!-- Main area -->
-            <DockPanel Grid.Column="1">
-                <Grid DockPanel.Dock="Top" Margin="24,16,24,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock x:Name="HeaderText" Text="All clips" FontSize="22" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="CountText" Foreground="{StaticResource Subtle}" FontSize="12.5" Margin="0,2,0,0"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource Card}" CornerRadius="7" Padding="3" Margin="0,0,12,0">
+                        <Button Style="{StaticResource NavBtn}" Click="Settings_Click">
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
-                                <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
-                                <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
-                                <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Settings" Margin="14,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             </StackPanel>
-                        </Border>
-                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="240" TextChanged="SearchBox_TextChanged"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" CornerRadius="8" Background="{DynamicResource Panel}" Padding="8,14,8,10">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Your games" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Margin="12,0,0,10"/>
+                        <StackPanel DockPanel.Dock="Bottom" Margin="12,10,8,0">
+                            <TextBlock x:Name="StorageText" Foreground="{DynamicResource Subtle}" FontSize="11.5" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="VersionText" Foreground="{DynamicResource Subtle}" FontSize="11" Margin="0,6,0,0" Opacity="0.7"/>
+                        </StackPanel>
+                        <ListBox x:Name="GameList" Background="Transparent" BorderThickness="0" SelectionChanged="GameList_SelectionChanged"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="b" CornerRadius="6" Padding="8,6" Background="Transparent">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:GameEntry}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Cover: the game's newest clip; Favorites gets a star -->
+                                        <Border Width="48" Height="48" CornerRadius="5" Background="{DynamicResource Card}">
+                                            <Grid>
+                                                <TextBlock x:Name="glyph" Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18"
+                                                           Foreground="{DynamicResource Subtle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border CornerRadius="5">
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/>
+                                                    </Border.Background>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock x:Name="label" Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsFavorites}" Value="True">
+                                            <Setter TargetName="glyph" Property="Text" Value="&#xE735;"/>
+                                            <Setter TargetName="glyph" Property="Foreground" Value="#FFC83D"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                            <Setter TargetName="label" Property="Foreground" Value="{DynamicResource Accent}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Main panel -->
+            <Border Grid.Column="2" CornerRadius="8" Background="{DynamicResource Panel}">
+            <DockPanel>
+                <!-- Header: accent wash, the newest clip's cover, a big title, then the action row -->
+                <Grid DockPanel.Dock="Top">
+                    <Border CornerRadius="8,8,0,0" Background="{DynamicResource AccentSoft}">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="Black" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                    </Border>
+                    <StackPanel Margin="24,24,24,6">
+                        <Grid x:Name="Hero">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="256" Height="144" CornerRadius="6" Background="{DynamicResource Card}" Cursor="Hand"
+                                    MouseLeftButtonUp="HeroPlay_Click" ToolTip="Play the newest clip">
+                                <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.5" Color="Black"/></Border.Effect>
+                                <Border CornerRadius="6">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/>
+                                    </Border.Background>
+                                </Border>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="24,0,0,2" VerticalAlignment="Bottom">
+                                <TextBlock x:Name="HeaderKind" Text="Library" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="56" FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis" Margin="-2,0,0,2"/>
+                                <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,22,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel x:Name="HeroActions" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource PlayCircle}" Click="HeroPlay_Click" ToolTip="Play the newest clip">
+                                    <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20"
+                                               Foreground="{DynamicResource OnAccent}" Margin="3,0,0,0"/>
+                                </Button>
+                                <Button Style="{StaticResource RoundBtn}" Margin="14,0,0,0" Click="HeroExport_Click"
+                                        ToolTip="Export the newest clip for Discord, with its saved trim and volumes">
+                                    <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
+                                </Button>
+                                <Button Style="{StaticResource RoundBtn}" Margin="4,0,0,0" Click="HeroShow_Click" ToolTip="Show the newest clip in its folder">
+                                    <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                    <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
+                                    <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
+                                    <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
+                                    <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
+                                </StackPanel>
+                                <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" TextChanged="SearchBox_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Grid>
 
+                <!-- Shown when GitHub has a newer release -->
+                <Border x:Name="UpdatePanel" DockPanel.Dock="Top" Visibility="Collapsed" Margin="24,8,24,4" Padding="14,10" CornerRadius="8"
+                        HorizontalAlignment="Left" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Accent}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel VerticalAlignment="Center" MaxWidth="420">
+                            <TextBlock x:Name="UpdateTitle" Text="Update available" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock x:Name="UpdateText" Foreground="{DynamicResource Subtle}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <Button x:Name="UpdateBtn" Style="{StaticResource AccentBtn}" VerticalAlignment="Center" Margin="16,0,0,0" Click="Update_Click">
+                            <TextBlock x:Name="UpdateBtnText" Text="Update now" Foreground="{DynamicResource OnAccent}"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
                 <!-- Selection bar: actions for every selected clip -->
                 <Border x:Name="SelectionBar" DockPanel.Dock="Bottom" Visibility="Collapsed" Margin="24,0,24,16" Padding="14,10"
-                        Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10">
+                        Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -152,25 +313,25 @@
                             </Button>
                             <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="SelectionText" FontSize="13.5" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="SelectionDetail" Foreground="{StaticResource Subtle}" FontSize="11.5"/>
+                                <TextBlock x:Name="SelectionDetail" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Batch export progress / result -->
                         <StackPanel x:Name="BatchPanel" Grid.Column="1" Orientation="Horizontal" Margin="20,0" VerticalAlignment="Center" Visibility="Collapsed">
-                            <Border x:Name="BatchDragTile" Padding="10,6" CornerRadius="8" Background="{StaticResource Card}"
-                                    BorderBrush="{StaticResource Accent}" BorderThickness="1" Cursor="Hand" Visibility="Collapsed"
+                            <Border x:Name="BatchDragTile" Padding="10,6" CornerRadius="8" Background="{DynamicResource Card}"
+                                    BorderBrush="{DynamicResource Accent}" BorderThickness="1" Cursor="Hand" Visibility="Collapsed"
                                     PreviewMouseLeftButtonDown="BatchDrag_Down" PreviewMouseMove="BatchDrag_Move"
                                     ToolTip="Drag into a Discord chat (Discord takes up to 10 files per message)">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="BatchDragText" Margin="8,0,0,0" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                             <StackPanel x:Name="BatchProgress" Width="220" VerticalAlignment="Center">
                                 <TextBlock x:Name="BatchStatus" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                <Border Height="4" CornerRadius="2" Background="{StaticResource Line}" Margin="0,5,0,0" ClipToBounds="True">
-                                    <Border x:Name="BatchBar" HorizontalAlignment="Left" Width="0" CornerRadius="2" Background="{StaticResource Accent}"/>
+                                <Border Height="4" CornerRadius="2" Background="{DynamicResource Line}" Margin="0,5,0,0" ClipToBounds="True">
+                                    <Border x:Name="BatchBar" HorizontalAlignment="Left" Width="0" CornerRadius="2" Background="{DynamicResource Accent}"/>
                                 </Border>
                             </StackPanel>
                             <Button x:Name="BatchCopyBtn" Content="Copy files" Margin="10,0,0,0" Click="BatchCopy_Click" Visibility="Collapsed"
@@ -186,12 +347,12 @@
                             <Button x:Name="SelExportBtn" Style="{StaticResource AccentBtn}" Margin="0,0,6,0" Click="SelExport_Click"
                                     ToolTip="Export each selected clip under the Discord size limit, with its saved trim and volumes">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="White" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Export for Discord" Margin="8,0,0,0" Foreground="White" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource OnAccent}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Export for Discord" Margin="8,0,0,0" Foreground="{DynamicResource OnAccent}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Click="SelDelete_Click" ToolTip="Delete for good (Del)">
-                                <TextBlock Text="Delete" Foreground="{StaticResource Danger}"/>
+                                <TextBlock Text="Delete" Foreground="{DynamicResource Danger}"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -215,16 +376,17 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
-                                            <Border x:Name="b" CornerRadius="10" Margin="8" Background="{StaticResource Card}"
-                                                    BorderBrush="Transparent" BorderThickness="2">
+                                            <!-- No box at rest: the thumbnail is the card; hover/selection add one -->
+                                            <Border x:Name="b" CornerRadius="10" Margin="8" Background="Transparent"
+                                                    BorderBrush="Transparent" BorderThickness="2" Padding="2">
                                                 <ContentPresenter/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}"/>
+                                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                                    <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -251,7 +413,7 @@
                             <DataTemplate DataType="{x:Type local:ClipItem}">
                                 <StackPanel Width="296">
                                     <Grid Height="166" Background="Transparent" MouseMove="Thumb_MouseMove" MouseLeave="Thumb_MouseLeave">
-                                        <Border CornerRadius="8,8,0,0" Background="#101116" ClipToBounds="True">
+                                        <Border CornerRadius="7" Background="#0A0B0E" ClipToBounds="True">
                                             <Grid>
                                                 <Image Source="{Binding Thumb}" Stretch="UniformToFill"/>
                                                 <!-- Hover scrub: 10 frames side by side, shifted so the one under the mouse shows -->
@@ -259,7 +421,7 @@
                                                     <Image Source="{Binding Storyboard}" Width="2960" Height="166" Stretch="Fill" Canvas.Left="{Binding ScrubOffset}"/>
                                                 </Canvas>
                                                 <Border x:Name="scrubBar" Height="3" VerticalAlignment="Bottom" HorizontalAlignment="Left"
-                                                        Width="{Binding ScrubBarWidth}" Background="{StaticResource Accent}" Visibility="Collapsed"/>
+                                                        Width="{Binding ScrubBarWidth}" Background="{DynamicResource Accent}" Visibility="Collapsed"/>
                                             </Grid>
                                         </Border>
                                         <Border x:Name="star" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="26" Height="26"
@@ -268,21 +430,35 @@
                                             <TextBlock x:Name="starGlyph" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
                                                        Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
+                                        <!-- Clip wall: game and time on the picture, over a dark fade for legibility -->
+                                        <Border x:Name="overlay" VerticalAlignment="Bottom" Height="70" CornerRadius="0,0,7,7" Visibility="Collapsed" IsHitTestVisible="False">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#00000000" Offset="0"/>
+                                                    <GradientStop Color="#D9000000" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <StackPanel VerticalAlignment="Bottom" Margin="11,0,70,9">
+                                                <TextBlock Text="{Binding Game}" FontFamily="{DynamicResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
+                                                           Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Subtitle}" Foreground="#D0FFFFFF" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </Border>
                                         <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" Padding="6,2"
                                                 CornerRadius="4" Background="#CC000000">
-                                            <TextBlock Text="{Binding DurationText}" FontSize="11.5" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding DurationText}" FontFamily="{DynamicResource NumFont}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
                                         </Border>
                                         <!-- Select circle: toggles this card without touching the rest of the selection -->
                                         <Border x:Name="check" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Width="24" Height="24"
                                                 CornerRadius="12" Background="#99000000" BorderBrush="#E6FFFFFF" BorderThickness="1.5"
                                                 Cursor="Hand" Opacity="0" ToolTip="Select" PreviewMouseLeftButtonDown="CardCheck_Down">
                                             <TextBlock x:Name="checkMark" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"
-                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Hidden"/>
+                                                       Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Hidden"/>
                                         </Border>
                                     </Grid>
-                                    <StackPanel Margin="12,10,12,12">
+                                    <StackPanel x:Name="info" Margin="4,9,4,6">
                                         <TextBlock Text="{Binding Game}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource Subtle}" FontSize="12" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
@@ -295,6 +471,10 @@
                                         <Setter TargetName="starGlyph" Property="Text" Value="&#xE735;"/>
                                         <Setter TargetName="starGlyph" Property="Foreground" Value="#FFC83D"/>
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}" Value="wall">
+                                        <Setter TargetName="overlay" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="info" Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding IsScrubbing}" Value="True">
                                         <Setter TargetName="scrub" Property="Visibility" Value="Visible"/>
                                         <Setter TargetName="scrubBar" Property="Visibility" Value="Visible"/>
@@ -305,8 +485,8 @@
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                         <Setter TargetName="check" Property="Opacity" Value="1"/>
-                                        <Setter TargetName="check" Property="Background" Value="{StaticResource Accent}"/>
-                                        <Setter TargetName="check" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter TargetName="check" Property="Background" Value="{DynamicResource Accent}"/>
+                                        <Setter TargetName="check" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                         <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
@@ -315,20 +495,21 @@
                     </ListBox>
                     <!-- Sticky day header: shows the current day while its own header is scrolled away -->
                     <Border x:Name="StickyHeader" VerticalAlignment="Top" Margin="16,0,30,0" Visibility="Collapsed"
-                            Background="{StaticResource Bg}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                            Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
                         <ContentControl x:Name="StickyContent" ContentTemplate="{StaticResource DayHeaderTemplate}" Margin="0,-10,0,8"/>
                     </Border>
                     <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="No clips yet" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="EmptyHint" Foreground="{StaticResource Subtle}" Margin="0,6,0,0" HorizontalAlignment="Center"
+                        <TextBlock x:Name="EmptyHint" Foreground="{DynamicResource Subtle}" Margin="0,6,0,0" HorizontalAlignment="Center"
                                    Text="Press your save-clip hotkey in a game and it shows up here."/>
                     </StackPanel>
                 </Grid>
             </DockPanel>
+            </Border>
         </Grid>
 
         <!-- ================= Player ================= -->
-        <Grid x:Name="PlayerView" Visibility="Collapsed" Background="{StaticResource Bg}">
+        <Grid x:Name="PlayerView" Visibility="Collapsed" Background="{DynamicResource Bg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -348,12 +529,12 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Content="Show in folder" Click="PlayerShow_Click" Margin="0,0,8,0"/>
                     <Button Click="PlayerDelete_Click" ToolTip="Delete for good (Del)">
-                        <TextBlock Text="Delete" Foreground="{StaticResource Danger}"/>
+                        <TextBlock Text="Delete" Foreground="{DynamicResource Danger}"/>
                     </Button>
                 </StackPanel>
                 <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PlayerTitle" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="PlayerSubtitle" Foreground="{StaticResource Subtle}" FontSize="12"/>
+                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12"/>
                 </StackPanel>
             </DockPanel>
 
@@ -361,7 +542,7 @@
             <Border Grid.Row="1" Background="#000" Margin="16,0">
                 <Grid>
                     <player:VideoHost x:Name="Video"/>
-                    <TextBlock x:Name="PlayerError" Visibility="Collapsed" Foreground="{StaticResource Danger}" TextWrapping="Wrap"
+                    <TextBlock x:Name="PlayerError" Visibility="Collapsed" Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
                                HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40"/>
                 </Grid>
             </Border>
@@ -387,32 +568,32 @@
                     <Button Click="StepFwd_Click" ToolTip="Next frame (→)" Margin="4,0,0,0" Padding="9,7">
                         <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"/>
                     </Button>
-                    <TextBlock x:Name="TimeText" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="13" FontFamily="Segoe UI Variable Text, Segoe UI"/>
+                    <TextBlock x:Name="TimeText" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="14" FontFamily="{DynamicResource NumFont}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Button Content="Set start  (I)" Click="SetIn_Click" Margin="0,0,6,0"/>
                     <Button Content="Set end  (O)" Click="SetOut_Click" Margin="0,0,6,0"/>
                     <ToggleButton x:Name="PreviewToggle" Style="{StaticResource Seg}" Content="Preview trim  (P)" Click="Preview_Click"
-                                  Background="{StaticResource Card}" Padding="12,7" Margin="0,0,6,0"/>
+                                  Background="{DynamicResource Card}" Padding="12,7" Margin="0,0,6,0"/>
                     <Button Content="Reset" Click="ResetTrim_Click" Style="{StaticResource GhostBtn}"/>
-                    <TextBlock x:Name="TrimText" Foreground="{StaticResource Subtle}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12.5"/>
+                    <TextBlock x:Name="TrimText" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12.5"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel x:Name="MixPanel" Orientation="Horizontal">
                         <StackPanel Margin="0,0,16,0">
                             <DockPanel Width="150">
-                                <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Foreground="{StaticResource Subtle}" FontSize="11.5"/>
-                                <TextBlock Text="Game + chat" FontSize="11.5" Foreground="{StaticResource Subtle}"/>
+                                <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
+                                <TextBlock Text="Game + chat" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
                             </DockPanel>
                             <Slider x:Name="GameVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
                                     ValueChanged="Volume_ValueChanged" MouseDoubleClick="GameVol_DoubleClick" Width="150"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,16,0">
                             <DockPanel Width="150">
-                                <TextBlock x:Name="MicVolText" DockPanel.Dock="Right" Foreground="{StaticResource Subtle}" FontSize="11.5"/>
-                                <TextBlock Text="Your mic" FontSize="11.5" Foreground="{StaticResource Subtle}"/>
+                                <TextBlock x:Name="MicVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
+                                <TextBlock Text="Your mic" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
                             </DockPanel>
                             <Slider x:Name="MicVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
                                     ValueChanged="Volume_ValueChanged" MouseDoubleClick="MicVol_DoubleClick" Width="150"/>
@@ -421,8 +602,8 @@
                     <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" Padding="14,8" Click="Export_Click"
                             ToolTip="Export the trimmed range as an MP4 under the Discord size limit (E)">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="White" VerticalAlignment="Center"/>
-                            <TextBlock Text="Export for Discord" Margin="8,0,0,0" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource OnAccent}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export for Discord" Margin="8,0,0,0" Foreground="{DynamicResource OnAccent}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -430,7 +611,7 @@
 
             <!-- Export panel (shown while exporting and afterwards) -->
             <Border x:Name="ExportPanel" Grid.Row="4" Visibility="Collapsed" Margin="16,0,16,16" Padding="14"
-                    Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10">
+                    Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -439,18 +620,18 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Drag source: a real OS file drag, drop it on a Discord chat -->
-                    <Border x:Name="DragTile" Width="250" Padding="12,10" CornerRadius="8" Background="{StaticResource Card}"
-                            BorderBrush="{StaticResource Accent}" BorderThickness="1" Cursor="Hand" Opacity="0.4"
+                    <Border x:Name="DragTile" Width="250" Padding="12,10" CornerRadius="8" Background="{DynamicResource Card}"
+                            BorderBrush="{DynamicResource Accent}" BorderThickness="1" Cursor="Hand" Opacity="0.4"
                             PreviewMouseLeftButtonDown="DragTile_Down" PreviewMouseMove="DragTile_Move"
                             ToolTip="Drag this into a Discord chat">
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource Accent}">
-                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" Foreground="White"
+                            <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource Accent}">
+                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" Foreground="{DynamicResource OnAccent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel Margin="10,0,0,0" VerticalAlignment="Center" MaxWidth="180">
                                 <TextBlock Text="Drag into Discord" FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock x:Name="ExportFileText" Foreground="{StaticResource Subtle}" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="ExportFileText" Foreground="{DynamicResource Subtle}" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -460,10 +641,10 @@
                             <TextBlock x:Name="ExportSizeText" DockPanel.Dock="Right" FontWeight="SemiBold" FontSize="13"/>
                             <TextBlock x:Name="ExportStatus" FontSize="13" TextTrimming="CharacterEllipsis"/>
                         </DockPanel>
-                        <Border Height="6" CornerRadius="3" Background="{StaticResource Line}" Margin="0,8,0,0" ClipToBounds="True">
-                            <Border x:Name="ExportBar" HorizontalAlignment="Left" Width="0" CornerRadius="3" Background="{StaticResource Accent}"/>
+                        <Border Height="6" CornerRadius="3" Background="{DynamicResource Line}" Margin="0,8,0,0" ClipToBounds="True">
+                            <Border x:Name="ExportBar" HorizontalAlignment="Left" Width="0" CornerRadius="3" Background="{DynamicResource Accent}"/>
                         </Border>
-                        <TextBlock x:Name="ExportDetail" Foreground="{StaticResource Subtle}" FontSize="11.5" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="ExportDetail" Foreground="{DynamicResource Subtle}" FontSize="11.5" Margin="0,6,0,0"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
