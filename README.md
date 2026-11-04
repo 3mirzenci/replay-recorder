@@ -20,26 +20,29 @@ Two programs:
 
 Nothing is injected into games, so it's safe with anti-cheats like Vanguard and FACEIT. The app doesn't use accounts, telemetry or the cloud. The only network request it makes is checking this page for updates.
 
-> **Still in development.** Replay Recorder is a young project and gets better with each update. Some things still have rough edges, like a short stutter in a clip right when you save in a GPU-heavy game. Updates arrive inside the app, so you get the fixes automatically.
+> **Still in development.** Replay Recorder is a pretty new app and gets better with each update. Clips are smooth in testing, but you may still run into the odd stutter or bug here and there. Updates arrive inside the app, so you get the fixes automatically.
 
 ## Performance
 
-Measured on a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment, about 60 % GPU use) with Discord open. Both apps record **1080p60** with a 60-second replay: Replay Recorder 1.0.6 with its buffer in RAM, SteelSeries Moments on its default "High" quality. Replay Recorder's numbers come from a 10-minute match with 32 clips saved; Moments' from a match earlier the same day with the same settings.
+Replay Recorder 1.0.8 vs SteelSeries Moments, measured on one PC: a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment). Five matches: one with no recorder, two with only Replay Recorder, two with only Moments, about 14 clips saved per match, Discord closed. Both apps record **1080p60** with a 60-second replay on their own default quality (Replay Recorder "Balanced", Moments "High"); the clips came out at a similar bitrate (29–37 vs 24–41 Mbps). Everything else is each app's default. The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon).
 
-| Average while playing | Replay Recorder 1.0.6 | SteelSeries Moments + GG |
-|---|---|---|
-| CPU (share of the whole CPU) | **2.3 %** | 3.2 % (2.5 % capture + 0.7 % GG app) |
-| RAM | **~595 MB**, steady | ~1.2 GB (~850 MB capture + ~330 MB GG app) |
-| GPU video encoder | 10.6 % | 8.6 % |
-| GPU | 5.5 % | 1.1 % |
-| Frames in a clip that are new (smoothness) | 56–60 % | 65–67 % |
+| | No recorder | Replay Recorder 1.0.8 | SteelSeries Moments + GG |
+|---|---|---|---|
+| Game FPS, average | 69 | **68 / 71** | 58 / 56 |
+| Game FPS, 1 % low | 24 | **18 / 24** | 5 / 5 |
+| Recorder CPU (share of the whole CPU) | – | 1.8 % | 2.4 % (1.7 % capture + 0.7 % GG app) |
+| Recorder RAM | – | **~270 MB** | ~1 GB (~690 MB capture + ~315 MB GG app) |
+| GPU video encoder | – | 10.6 % | 8.6 % |
+| GPU | – | 4.1–4.6 % | 1.0 % |
 
-- **CPU and RAM:** Replay Recorder uses less of both. RAM is about half, even with the whole replay buffer kept in memory.
-- **Encoder:** about the same.
-- **GPU:** higher, because Replay Recorder captures every refresh of the 144 Hz screen and scales 1440p down to 1080p, then keeps the 60 frames that line up best. Capturing fewer frames is being worked on.
-- **Smoothness** (measured at 1440p): this counts how many frames differ from the one before. Even a perfect recording doesn't reach 100 %, because standing still or a killcam repeats frames. Before 1.0.6, Replay Recorder's clips were at 18–42 % and froze in busy moments; 1.0.6 fixed that by giving capture priority over the game on the GPU.
+The two numbers in a cell are the two matches.
 
-**These are not the default settings.** Out of the box, Replay Recorder records at your screen's resolution up to 1440p and keeps the buffer on disk. At 1440p the encoder load roughly doubles (19 % instead of 10.6 % in the same game); a disk buffer uses less RAM but writes to your drive constantly. For numbers like the table, pick 1080p in Settings → Video and turn on "Keep the replay buffer in RAM". To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
+- **The game runs as if nothing were recording** with Replay Recorder. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12.
+- **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
+- **CPU and encoder:** about the same.
+- **GPU:** Moments is lighter here. Replay Recorder captures the 144 Hz screen and scales 1440p down to 1080p on the GPU; making that cheaper is the next thing being worked on.
+
+This is one game on one PC, so your numbers will differ. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
 
 ### The library
 
@@ -203,6 +206,8 @@ ffmpeg -i clip.mp4 -map 0:v -vf mpdecimate -f null -
 ```
 
 The last `frame=` number is the count of new frames; divide it by the clip's total frames.
+
+To log the game's FPS, run [PresentMon](https://github.com/GameTechDev/PresentMon) as administrator during the match, for example `PresentMon-2.6.0-x64.exe --process_name cod.exe --timed 600 --terminate_after_timed --output_file fps.csv`. The `MsBetweenPresents` column is the time of each frame.
 
 ## Logs
 
