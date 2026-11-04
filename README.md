@@ -2,6 +2,8 @@
 
 A lightweight instant-replay recorder for Windows, an alternative to SteelSeries Moments and NVIDIA ShadowPlay. Press **Alt+.** to save the last 60 seconds. Clips keep your game and mic audio on separate tracks, and you can export any clip for Discord in one click: it's guaranteed to fit under the upload limit.
 
+![The Replay Recorder library with CS2 clips](assets/library.png)
+
 ## ⬇️ Download
 
 **[Download Replay Recorder for Windows](https://github.com/3mirzenci/replay-recorder/releases/latest/download/ReplayRecorder-Setup.exe)**
