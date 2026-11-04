@@ -14,8 +14,7 @@ sealed class Toast : Form
     static Toast? _current;
     readonly string _title, _detail;
     readonly Color _accent;
-    readonly System.Windows.Forms.Timer _timer = new() { Interval = 30 };
-    int _ticks;
+    readonly System.Windows.Forms.Timer _timer = new() { Interval = 2300 };
 
     Toast(string title, string detail, Color accent)
     {
@@ -26,8 +25,10 @@ sealed class Toast : Form
         BackColor = Color.FromArgb(24, 24, 28);
         DoubleBuffered = true;
         Size = new Size(300, 64);
-        Opacity = 0;
-        _timer.Tick += (_, _) => Animate();
+        // Fixed opacity, no fade: changing a topmost window's alpha every frame over a borderless game
+        // forces Windows to composite every game frame, which stutters the game while it animates.
+        Opacity = 0.95;
+        _timer.Tick += (_, _) => { _timer.Stop(); Close(); };
     }
 
     protected override bool ShowWithoutActivation => true;
@@ -54,15 +55,6 @@ sealed class Toast : Form
         _current = t;
         t.Show();
         t._timer.Start();
-    }
-
-    void Animate()
-    {
-        _ticks++;
-        // fade in 150 ms, hold ~2 s, fade out 300 ms
-        if (_ticks <= 5) Opacity = _ticks / 5.0 * 0.95;
-        else if (_ticks > 72) Opacity = Math.Max(0, 0.95 - (_ticks - 72) / 10.0);
-        if (_ticks > 82) { _timer.Stop(); Close(); }
     }
 
     protected override void OnPaint(PaintEventArgs e)

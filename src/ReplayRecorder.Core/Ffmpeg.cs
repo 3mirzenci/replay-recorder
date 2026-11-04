@@ -51,6 +51,21 @@ public static class Ffmpeg
         return null;
     }
 
+    /// <summary>Windows Graphics Capture (gfxcapture) only exists in ffmpeg 8.0 and newer.</summary>
+    public static bool HasGfxCapture => _hasGfxCapture.Value;
+    static readonly Lazy<bool> _hasGfxCapture = new(() =>
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(FfmpegPath!, "-hide_banner -filters") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
+            using var p = Process.Start(psi)!;
+            var list = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(5000);
+            return list.Contains(" gfxcapture ");
+        }
+        catch { return true; } // can't tell: try it and let the normal error handling report failures
+    });
+
     /// <summary>The bin folders of a winget portable package, e.g. Packages\Gyan.FFmpeg_…\ffmpeg-9.0-full_build\bin.</summary>
     static string[] WingetPackageDirs(string id)
     {
@@ -79,6 +94,8 @@ public static class Ffmpeg
         foreach (var a in args) psi.ArgumentList.Add(a);
         using var p = Process.Start(psi)!;
         ChildProcesses.Track(p);
+        // Saves and exports can wait; a game running alongside shouldn't lose frames to them.
+        try { p.PriorityClass = ProcessPriorityClass.BelowNormal; } catch { }
         var err = p.StandardError.ReadToEndAsync(ct);
         if (stdin != null)
         {

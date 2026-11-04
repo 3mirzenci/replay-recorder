@@ -76,6 +76,7 @@ sealed class ReplayEngine : IDisposable
     }
 
     bool _ram;
+    bool _wgc; // Settings.Capture, unless this ffmpeg is too old for it
     byte[]? _tsHeader; // PAT + PMT packets, prepended when joining in-memory segments
 
     public ReplayEngine(Settings settings) => _s = settings;
@@ -93,6 +94,13 @@ sealed class ReplayEngine : IDisposable
         if (Display == null) { Fail("No monitor found to capture."); return; }
 
         var encoder = ChooseEncoder(Display);
+        _wgc = _s.Capture == CaptureMethod.Wgc;
+        if (_wgc && !Ffmpeg.HasGfxCapture)
+        {
+            _wgc = false;
+            Log.Warn($"ffmpeg at {Ffmpeg.FfmpegPath} has no gfxcapture (needs 8.0+); using Desktop Duplication");
+            Problem?.Invoke("Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder.");
+        }
         if (Display.HdrEnabled)
         {
             // Capture is 8-bit SDR: Windows maps the HDR desktop down, so SDR content looks right
@@ -268,7 +276,7 @@ sealed class ReplayEngine : IDisposable
         string I(double v) => v.ToString(CultureInfo.InvariantCulture);
 
         string src;
-        if (_s.Capture == CaptureMethod.Wgc)
+        if (_wgc)
         {
             // Capture at the monitor's refresh rate, not the output rate: WGC can only deliver on
             // refresh ticks, so a 60 fps cap on a 144 Hz screen rounds to every 3rd tick = 48 fps,
@@ -602,7 +610,8 @@ sealed class ReplayEngine : IDisposable
                 "-map", "0", "-c", "copy",
                 "-t", (endAt - first.Start + 0.5).ToString("0.###", CultureInfo.InvariantCulture),
                 "-avoid_negative_ts", "make_zero",
-                "-movflags", "+faststart",
+                // No +faststart: it rewrites the whole file, a disk burst mid-game; local playback and the
+                // Discord export (which adds it) don't need it.
                 "-metadata", $"title={game}",
                 "-metadata", "comment=Replay Recorder",
                 "-metadata:s:a:0", "title=Everything (game + voice chat + mic)",

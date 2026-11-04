@@ -1,6 +1,6 @@
 # Publishes a new version: bumps the version, commits, tags and pushes. GitHub then builds the
 # installer and creates the release (.github/workflows/release.yml), which the in-app update
-# button and the download link point at. Nothing is built on this PC.
+# button and the download link point at. Only the tests run on this PC.
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Notes "Fixed X, added Y"            # 1.0.3 -> 1.0.4
 #   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 1.1.0 -Notes "Big update"
 # The notes become the release text and the "What's new" window. Needs: git (and gh to watch the build).
@@ -16,6 +16,10 @@ $props = "Directory.Build.props"
 $current = [version]([xml](Get-Content $props)).Project.PropertyGroup.Version
 if (-not $Version) { $Version = "{0}.{1}.{2}" -f $current.Major, $current.Minor, ($current.Build + 1) }
 if ([version]$Version -le $current -and (git tag --list "v$current")) { throw "Version $Version is not newer than the released $current" }
+
+# Tests run here first so a failure stops before anything is tagged or pushed.
+dotnet test tests/ReplayRecorder.Tests -c Release --nologo -v q
+if ($LASTEXITCODE -ne 0) { throw "Tests failed; nothing was released" }
 
 # Bump the version (the updater compares the running app's version with the release tag).
 $text = [IO.File]::ReadAllText((Resolve-Path $props))
