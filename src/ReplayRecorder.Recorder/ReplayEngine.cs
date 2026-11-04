@@ -143,6 +143,7 @@ sealed class ReplayEngine : IDisposable
             _ffmpeg.EnableRaisingEvents = true;
             _ffmpeg.Exited += OnFfmpegExited;
             var ff = _ffmpeg;
+            _ = Task.Run(() => RaiseGpuPriority(ff));
             _ = Task.Run(() => PumpStderr(ff));
             if (_ram) _ = Task.Run(() => PumpTs(ff));
         }
@@ -219,6 +220,28 @@ sealed class ReplayEngine : IDisposable
             _stopping = false;
             Start();
         });
+    }
+
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern int D3DKMTSetProcessSchedulingPriorityClass(IntPtr process, int priorityClass);
+    const int GpuPriorityHigh = 4; // D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH; the game runs at NORMAL (2)
+
+    /// <summary>
+    /// Lets ffmpeg's capture and encode work go ahead of the game on the GPU. Without it a GPU-heavy
+    /// game starves capture and clips freeze or skip frames (measured in MW at ~65 % GPU).
+    /// Windows only accepts it once ffmpeg has set up its graphics, so retry for a few seconds.
+    /// </summary>
+    static async Task RaiseGpuPriority(Process p)
+    {
+        int status = 0;
+        for (int i = 0; i < 20; i++)
+        {
+            await Task.Delay(500);
+            try { if (p.HasExited) return; status = D3DKMTSetProcessSchedulingPriorityClass(p.Handle, GpuPriorityHigh); }
+            catch (Exception ex) { Log.Warn($"GPU priority: {ex.Message}"); return; }
+            if (status == 0) { Log.Info("ffmpeg GPU priority set to high"); return; }
+        }
+        Log.Warn($"Couldn't raise ffmpeg's GPU priority (status 0x{status:X8}); clips may skip frames in GPU-heavy games");
     }
 
     async Task PumpStderr(Process p)
