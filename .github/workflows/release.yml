@@ -1,0 +1,38 @@
+# Builds the installer on GitHub and publishes the release when release.ps1 pushes a version tag.
+# The tag's message holds the release notes (the in-app "What's new" window shows them).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: ./build.ps1 -Version ('${{ github.ref_name }}'.TrimStart('v'))
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          # checkout keeps only the commit; fetch the annotated tag itself to read its message
+          git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
+          git tag -l --format='%(contents)' $tag | Set-Content notes.md
+          gh release create $tag dist/ReplayRecorder-Setup.exe --title "Replay Recorder $($tag.TrimStart('v'))" --notes-file notes.md

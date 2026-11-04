@@ -291,6 +291,14 @@
                             <TextBlock x:Name="MicVolText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
                         <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Mic leveling" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Evens out quiet talk and shouting" Style="{StaticResource Hint}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="MicLevelingBox" Grid.Column="1" Width="120" HorizontalAlignment="Left"/>
+                        </Grid>
+                        <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="Level (with boost)" Style="{StaticResource Label}" Foreground="{DynamicResource Subtle}"/>

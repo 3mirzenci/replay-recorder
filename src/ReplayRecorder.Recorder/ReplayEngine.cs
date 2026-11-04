@@ -29,6 +29,22 @@ sealed class ReplayEngine : IDisposable
 {
     const double SegmentSeconds = 2.0;
 
+    // Tuned on a HyperX Cloud III (+5 dB boost); loudness range of quiet talk to shouting, raw 19 LU:
+    // Light 15 (same overall loudness as raw), Medium 11 (whispers stay ~10 dB under normal talk),
+    // Strong 7 (whisper ~ shout). The gate sits between quiet talk (~-45 dBFS) and background music
+    // bleed (~-62), so pauses stay quiet. Only the limiter looks ahead (5 ms): A/V sync is unaffected.
+    static string MicLevelingChain(MicLeveling m)
+    {
+        var comp = m switch
+        {
+            MicLeveling.Light => "threshold=-22dB:ratio=2.5:makeup=5dB",
+            MicLeveling.Strong => "threshold=-40dB:ratio=5:makeup=24dB",
+            _ => "threshold=-28dB:ratio=3:makeup=10dB",
+        };
+        return "highpass=f=80,agate=threshold=-50dB:range=-40dB:ratio=4:attack=5:release=300," +
+               $"acompressor={comp}:knee=4:attack=10:release=250,alimiter=limit=0.89:attack=5:release=50:level=0";
+    }
+
     Settings _s;
     Process? _ffmpeg;
     ClockedAudioSink? _sysSink, _micSink;
@@ -287,7 +303,10 @@ sealed class ReplayEngine : IDisposable
         // Separate graph (own thread) so audio mixing can never hold up video frames.
         // Track 1 mixes game + mic so ordinary players (which only play the first track) have
         // everything; tracks 2 and 3 keep them separate so the library can rebalance them.
-        var audio = "[1:a]pan=stereo|c0=c0|c1=c0[micst];[0:a][micst]amix=inputs=2:normalize=0:duration=longest," +
+        // Mic leveling runs once, then feeds both the mix (track 1) and the mic track (track 3).
+        bool level = _s.MicLevelingStrength != MicLeveling.Off;
+        var mic = level ? $"[1:a]{MicLevelingChain(_s.MicLevelingStrength)},asplit[miclv][mic];[miclv]" : "[1:a]";
+        var audio = mic + "pan=stereo|c0=c0|c1=c0[micst];[0:a][micst]amix=inputs=2:normalize=0:duration=longest," +
                     // Game and voice peaking together would clip the sum; a transparent limiter catches it.
                     "alimiter=limit=0.95:attack=5:release=50:level=0[mix]";
 
@@ -299,7 +318,7 @@ sealed class ReplayEngine : IDisposable
             "-f", "f32le", "-ar", "48000", "-ac", "1", "-thread_queue_size", "4096", "-i", _micSink!.PipePath,
             "-filter_complex", video,
             "-filter_complex", audio,
-            "-map", "[v]", "-map", "[mix]", "-map", "0:a", "-map", "1:a",
+            "-map", "[v]", "-map", "[mix]", "-map", "0:a", "-map", level ? "[mic]" : "1:a",
         };
 
         switch (encoder)

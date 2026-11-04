@@ -66,6 +66,8 @@ public partial class SettingsWindow : Window
         MicDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.MicDeviceId, "Loading devices…") };
         MicDeviceBox.SelectedIndex = 0;
         MicVol.Value = _s.MicVolumeDb;
+        Fill(MicLevelingBox, _s.MicLevelingStrength, (MicLeveling.Off, "Off"), (MicLeveling.Light, "Light"),
+            (MicLeveling.Medium, "Medium"), (MicLeveling.Strong, "Strong"));
 
         ClipsFolderBox.Text = _s.ClipsFolder;
         ExportFolderBox.Text = _s.ExportFolder;
@@ -221,6 +223,7 @@ public partial class SettingsWindow : Window
         _s.MicEnabled = MicEnabled.IsChecked == true;
         _s.MicDeviceId = (MicDeviceBox.SelectedItem as DeviceChoice)?.Id ?? "";
         _s.MicVolumeDb = Math.Round(MicVol.Value);
+        _s.MicLevelingStrength = Get(MicLevelingBox, MicLeveling.Medium);
         _s.ClipsFolder = ClipsFolderBox.Text.Trim();
         _s.ExportFolder = ExportFolderBox.Text.Trim();
         _s.BufferFolder = BufferFolderBox.Text.Trim();
