@@ -20,6 +20,26 @@ Two programs:
 
 Nothing is injected into games, so it's safe with anti-cheats like Vanguard and FACEIT. The app doesn't use accounts, telemetry or the cloud. The only network request it makes is checking this page for updates.
 
+> **Still in development.** Replay Recorder is a young project and gets better with each update. Some things still have rough edges, like a short stutter in a clip right when you save in a GPU-heavy game. Updates arrive inside the app, so you get the fixes automatically.
+
+## Performance
+
+Measured on a laptop with an RTX 4060 Laptop GPU, playing Call of Duty (Shipment, about 55 % GPU use) with Discord open. Both apps were running side by side and saving clips; GG's numbers are from the match just before the 1.0.6 one, which ran without GG. Replay Recorder records 1440p60 (up to 50 Mbps, buffer in RAM); SteelSeries Moments was on its default 1080p60 "High".
+
+| Average while playing | Replay Recorder 1.0.6 | SteelSeries Moments + GG |
+|---|---|---|
+| CPU (share of the whole CPU) | 2.6 % | 2.5 % + 0.7 % for the GG app |
+| RAM | ~800 MB, levels off around 870 MB | ~850 MB + ~330 MB for the GG app |
+| GPU | 6 % | 1 % |
+| GPU video encoder | 19 % | 9 % |
+| Frames in a clip that are new (smoothness) | 56–60 % | 65–67 % |
+
+- **CPU and RAM** are about even with GG.
+- **GPU and encoder** are higher mostly because Replay Recorder records at 1440p, which is 1.8× the pixels of GG's 1080p. Set Resolution to 1080p in Settings → Video for a lighter load.
+- **Smoothness:** this counts how many frames differ from the one before. Not every frame is new even in a perfect recording, because standing still or a killcam repeats frames. Before 1.0.6, Replay Recorder's clips were at 18–42 % and froze in busy moments; 1.0.6 fixed that by giving capture priority over the game on the GPU.
+
+Each number comes from 3–9 minutes of play. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
+
 ### The library
 
 - **Clips are grouped by day**, newest first. While you scroll, the current day's header stays at the top.
@@ -169,12 +189,19 @@ Open them from the tray menu (*Settings…*) or the library sidebar. The setting
 
 ## Measuring resource use
 
-Use this to compare Replay Recorder with SteelSeries GG in a real game:
+This logs Replay Recorder's and SteelSeries GG's CPU, RAM, GPU and encoder use every second while you play, then prints a summary of the time a game was running. It's how the [Performance](#performance) numbers were made.
 
 ```
-powershell -ExecutionPolicy Bypass -File tools\measure.ps1 -Seconds 300
-powershell -ExecutionPolicy Bypass -File tools\measure.ps1 -Seconds 300 -Names SteelSeriesGG,SteelSeriesEngine,SteelSeriesSonar
+powershell -ExecutionPolicy Bypass -File tools\measure.ps1 -Seconds 600
 ```
+
+If you stop it early with Ctrl+C, `-Summarize` prints the summary of what was logged so far. To check a clip's smoothness, count the frames that differ from the one before:
+
+```
+ffmpeg -i clip.mp4 -map 0:v -vf mpdecimate -f null -
+```
+
+The last `frame=` number is the count of new frames; divide it by the clip's total frames.
 
 ## Logs
 
