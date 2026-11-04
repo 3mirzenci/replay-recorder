@@ -166,8 +166,12 @@ sealed class TrayApp : ApplicationContext
         var screen = CaptureScreenBounds();
         try
         {
+            // Feedback right away: the clip already ends at this moment, but writing it can take a few
+            // seconds in a busy game, which made it look like the hotkey didn't work.
+            if (_settings.PlaySaveSound) SaveSound.Saved();
+            Notify("Saving clip…".T(), game, Grey, screen);
             var clip = await _engine.SaveClipAsync(game);
-            if (_settings.PlaySaveSound) { if (clip != null) SaveSound.Saved(); else SaveSound.Failed(); }
+            if (_settings.PlaySaveSound && clip == null) SaveSound.Failed();
             if (clip != null) Notify("Clip saved".T(), "{0} · last {1}s".T(game, Math.Max(1, (int)Math.Round(clip.Seconds))), Green, screen);
             else Notify("Clip not saved".T(), "See the log for details".T(), Red, screen);
             CheckStorage();

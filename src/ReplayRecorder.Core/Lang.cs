@@ -321,6 +321,7 @@ public static class Lang
         ["● Full recording in progress"] = "● Tam kayıt sürüyor",
         ["Recording {0} · buffer {1}s"] = "{0} kaydediliyor · arabellek {1} sn",
         ["Clip saved"] = "Klip kaydedildi",
+        ["Saving clip…"] = "Klip kaydediliyor…",
         ["{0} · last {1}s"] = "{0} · son {1} sn",
         ["Clip not saved"] = "Klip kaydedilmedi",
         ["See the log for details"] = "Ayrıntılar için günlüğe bak",

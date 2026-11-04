@@ -19,6 +19,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The RAM buffer frees a ~12 MB segment every 2 s; this makes the GC compact and return that memory
+         instead of letting it pile up (measured: overhead over the kept data ~200 MB -> ~95 MB). -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ReplayRecorder.Core\ReplayRecorder.Core.csproj" />
   </ItemGroup>
 
