@@ -576,6 +576,7 @@ public partial class MainWindow : Window
             {
                 if (_update == null) UpdatePanel.Visibility = Visibility.Collapsed;
             }));
+            _ = WhatsNewWindow.ShowAsync(this, Updater.Current);
         }
         _update = await Updater.CheckAsync(_cts.Token);
         if (_update == null) return;

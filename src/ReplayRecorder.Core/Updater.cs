@@ -93,7 +93,30 @@ public static class Updater
         }
     }
 
-    static bool IsGitHub(string url) =>
+    /// <summary>The notes (Markdown body) of this repo's release for <paramref name="v"/>, or null if offline / not found.</summary>
+    public static async Task<string?> NotesForAsync(Version v, CancellationToken ct = default)
+    {
+        // Test hook, like REPLAYRECORDER_PROFILE: show a local Markdown file instead of the GitHub release.
+        if (Environment.GetEnvironmentVariable("REPLAYRECORDER_NOTES") is { } file) return File.ReadAllText(file);
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repo}/releases/tags/v{v}");
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(15));
+            using var resp = await Http.SendAsync(req, cts.Token);
+            if (!resp.IsSuccessStatusCode) return null;
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
+            return doc.RootElement.TryGetProperty("body", out var b) ? b.GetString() : null;
+        }
+        catch (Exception ex)
+        {
+            Log.Info($"Release notes skipped: {ex.Message}");
+            return null;
+        }
+    }
+
+    public static bool IsGitHub(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps &&
         (u.Host == "github.com" || u.Host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase));
 
