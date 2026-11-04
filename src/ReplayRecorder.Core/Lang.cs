@@ -321,7 +321,6 @@ public static class Lang
         ["● Full recording in progress"] = "● Tam kayıt sürüyor",
         ["Recording {0} · buffer {1}s"] = "{0} kaydediliyor · arabellek {1} sn",
         ["Clip saved"] = "Klip kaydedildi",
-        ["Saving clip…"] = "Klip kaydediliyor…",
         ["{0} · last {1}s"] = "{0} · son {1} sn",
         ["Clip not saved"] = "Klip kaydedilmedi",
         ["See the log for details"] = "Ayrıntılar için günlüğe bak",
@@ -336,8 +335,8 @@ public static class Lang
         ["Your clips use {0:0.0} GB (warning limit {1:0} GB). Open the library to delete old clips."] = "Klipler {0:0.0} GB kullanıyor (uyarı sınırı {1:0} GB). Eski klipleri silmek için kitaplığı aç.",
         [Ffmpeg.InstallHint] = "ffmpeg bulunamadı. Başlat'a sağ tıkla, Terminal'i aç ve şunu çalıştır:  winget install Gyan.FFmpeg  sonra Replay Recorder'ı yeniden başlat.",
         ["No monitor found to capture."] = "Kaydedilecek monitör bulunamadı.",
-        ["Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder."] =
-            "ffmpeg sürümün Windows Graphics Capture için çok eski, bu yüzden Desktop Duplication kullanılıyor. Güncellemek için Terminal'i aç,  winget upgrade Gyan.FFmpeg  çalıştır ve Replay Recorder'ı yeniden başlat.",
+        ["Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. It records at your screen's full resolution, whatever you picked in Settings. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder."] =
+            "ffmpeg sürümün Windows Graphics Capture için çok eski, bu yüzden Desktop Duplication kullanılıyor. Bu yöntem, Ayarlar'da ne seçtiysen seç ekranının tam çözünürlüğünde kaydeder. Güncellemek için Terminal'i aç,  winget upgrade Gyan.FFmpeg  çalıştır ve Replay Recorder'ı yeniden başlat.",
         ["HDR is on for this monitor. Clips are recorded in SDR, so very bright highlights may look clipped. Turn HDR off in Windows display settings for the most accurate colours."] =
             "Bu monitörde HDR açık. Klipler SDR kaydedilir, bu yüzden çok parlak yerler patlamış görünebilir. En doğru renkler için Windows ekran ayarlarından HDR'yi kapat.",
         ["Could not start ffmpeg: {0}"] = "ffmpeg başlatılamadı: {0}",

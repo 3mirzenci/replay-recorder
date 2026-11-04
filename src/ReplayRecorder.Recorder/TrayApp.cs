@@ -170,12 +170,16 @@ sealed class TrayApp : ApplicationContext
             // seconds in a busy game, which made it look like the hotkey didn't work.
             var saving = _engine.SaveClipAsync(game); // the clip ends now, whatever the feedback does
             await Task.Delay(500); // instant feedback felt unnatural; half a second still reads as "it worked"
+            // One pop-up per save: each new topmost window over the game can disturb capture. Saves
+            // practically never fail, so say "saved" now and replace it only if this one does.
             if (_settings.PlaySaveSound) SaveSound.Saved();
-            Notify("Saving clip…".T(), game, Grey, screen);
+            Notify("Clip saved".T(), game, Green, screen);
             var clip = await saving;
-            if (_settings.PlaySaveSound && clip == null) SaveSound.Failed();
-            if (clip != null) Notify("Clip saved".T(), "{0} · last {1}s".T(game, Math.Max(1, (int)Math.Round(clip.Seconds))), Green, screen);
-            else Notify("Clip not saved".T(), "See the log for details".T(), Red, screen);
+            if (clip == null)
+            {
+                if (_settings.PlaySaveSound) SaveSound.Failed();
+                Notify("Clip not saved".T(), "See the log for details".T(), Red, screen);
+            }
             CheckStorage();
         }
         catch (Exception ex)

@@ -39,7 +39,7 @@ Measured on a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, play
 - **GPU:** higher, because Replay Recorder captures every refresh of the 144 Hz screen and scales 1440p down to 1080p, then keeps the 60 frames that line up best. Capturing fewer frames is being worked on.
 - **Smoothness** (measured at 1440p): this counts how many frames differ from the one before. Even a perfect recording doesn't reach 100 %, because standing still or a killcam repeats frames. Before 1.0.6, Replay Recorder's clips were at 18–42 % and froze in busy moments; 1.0.6 fixed that by giving capture priority over the game on the GPU.
 
-Recording at 1440p roughly doubles the encoder load (19 % instead of 10.6 % in the same test). To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
+**These are not the default settings.** Out of the box, Replay Recorder records at your screen's resolution up to 1440p and keeps the buffer on disk. At 1440p the encoder load roughly doubles (19 % instead of 10.6 % in the same game); a disk buffer uses less RAM but writes to your drive constantly. For numbers like the table, pick 1080p in Settings → Video and turn on "Keep the replay buffer in RAM". To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
 
 ### The library
 

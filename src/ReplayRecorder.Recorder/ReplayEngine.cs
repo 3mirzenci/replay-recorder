@@ -99,7 +99,7 @@ sealed class ReplayEngine : IDisposable
         {
             _wgc = false;
             Log.Warn($"ffmpeg at {Ffmpeg.FfmpegPath} has no gfxcapture (needs 8.0+); using Desktop Duplication");
-            Problem?.Invoke("Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder.".T());
+            Problem?.Invoke("Your ffmpeg is too old for Windows Graphics Capture, so Desktop Duplication is used instead. It records at your screen's full resolution, whatever you picked in Settings. To update: open Terminal and run  winget upgrade Gyan.FFmpeg  then restart Replay Recorder.".T());
         }
         if (Display.HdrEnabled)
         {
