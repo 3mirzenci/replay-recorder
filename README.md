@@ -24,21 +24,22 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 
 ## Performance
 
-Measured on a laptop with an RTX 4060 Laptop GPU, playing Call of Duty (Shipment, about 55 % GPU use) with Discord open. Both apps were running side by side and saving clips; GG's numbers are from the match just before the 1.0.6 one, which ran without GG. Replay Recorder records 1440p60 (up to 50 Mbps, buffer in RAM); SteelSeries Moments was on its default 1080p60 "High".
+Measured on a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty (Shipment, about 60 % GPU use) with Discord open. Both apps record **1080p60** with a 60-second replay: Replay Recorder 1.0.6 with its buffer in RAM, SteelSeries Moments on its default "High" quality. Replay Recorder's numbers come from a 10-minute match with 32 clips saved; Moments' from a match earlier the same day with the same settings.
 
 | Average while playing | Replay Recorder 1.0.6 | SteelSeries Moments + GG |
 |---|---|---|
-| CPU (share of the whole CPU) | 2.6 % | 2.5 % + 0.7 % for the GG app |
-| RAM | ~800 MB, levels off around 870 MB | ~850 MB + ~330 MB for the GG app |
-| GPU | 6 % | 1 % |
-| GPU video encoder | 19 % | 9 % |
+| CPU (share of the whole CPU) | **2.3 %** | 3.2 % (2.5 % capture + 0.7 % GG app) |
+| RAM | **~595 MB**, steady | ~1.2 GB (~850 MB capture + ~330 MB GG app) |
+| GPU video encoder | 10.6 % | 8.6 % |
+| GPU | 5.5 % | 1.1 % |
 | Frames in a clip that are new (smoothness) | 56–60 % | 65–67 % |
 
-- **CPU and RAM** are about even with GG.
-- **GPU and encoder** are higher mostly because Replay Recorder records at 1440p, which is 1.8× the pixels of GG's 1080p. Set Resolution to 1080p in Settings → Video for a lighter load.
-- **Smoothness:** this counts how many frames differ from the one before. Not every frame is new even in a perfect recording, because standing still or a killcam repeats frames. Before 1.0.6, Replay Recorder's clips were at 18–42 % and froze in busy moments; 1.0.6 fixed that by giving capture priority over the game on the GPU.
+- **CPU and RAM:** Replay Recorder uses less of both. RAM is about half, even with the whole replay buffer kept in memory.
+- **Encoder:** about the same.
+- **GPU:** higher, because Replay Recorder captures every refresh of the 144 Hz screen and scales 1440p down to 1080p, then keeps the 60 frames that line up best. Capturing fewer frames is being worked on.
+- **Smoothness** (measured at 1440p): this counts how many frames differ from the one before. Even a perfect recording doesn't reach 100 %, because standing still or a killcam repeats frames. Before 1.0.6, Replay Recorder's clips were at 18–42 % and froze in busy moments; 1.0.6 fixed that by giving capture priority over the game on the GPU.
 
-Each number comes from 3–9 minutes of play. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
+Recording at 1440p roughly doubles the encoder load (19 % instead of 10.6 % in the same test). To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
 
 ### The library
 
