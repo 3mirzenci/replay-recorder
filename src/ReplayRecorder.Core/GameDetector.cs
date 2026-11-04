@@ -36,14 +36,10 @@ public static class GameDetector
         "ReplayRecorder.Recorder.exe", "ReplayRecorder.exe", "ApplicationFrameHost.exe", "LockApp.exe",
     };
 
-    /// <summary>The exe behind the last game <see cref="Detect"/> named (null for Desktop/Unknown); the recorder saves its icon.</summary>
-    public static string? LastExePath { get; private set; }
-
     public static string Detect(IReadOnlyDictionary<string, string> names)
     {
         try
         {
-            LastExePath = null;
             var hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return "Desktop";
             GetWindowThreadProcessId(hwnd, out var pid);
@@ -51,7 +47,7 @@ public static class GameDetector
             var exe = path == null ? null : Path.GetFileName(path);
             var title = WindowTitle(hwnd);
 
-            if (exe != null && names.TryGetValue(exe, out var mapped)) { LastExePath = path; return mapped; }
+            if (exe != null && names.TryGetValue(exe, out var mapped)) return mapped;
             if (exe == null || NotGames.Contains(exe)) return "Desktop";
 
             // Unknown app: prefer the exe's product name, then the window title, then the exe name.
@@ -59,7 +55,6 @@ public static class GameDetector
             var name = !string.IsNullOrWhiteSpace(product) ? product
                      : !string.IsNullOrWhiteSpace(title) ? title
                      : Path.GetFileNameWithoutExtension(exe);
-            LastExePath = path;
             return Paths.SafeName(name!);
         }
         catch (Exception ex)

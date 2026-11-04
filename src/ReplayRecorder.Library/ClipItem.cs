@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
@@ -76,11 +76,7 @@ sealed class ClipItem : INotifyPropertyChanged
         }
     }
 
-    ImageSource? _cover;
-    /// <summary>Small thumbnail that ignores <see cref="InView"/>: for the header and the sidebar's game covers.</summary>
-    public ImageSource? Cover => _cover ??= Clip.ThumbPath != null ? LoadImage(Clip.ThumbPath, 240) : null;
-
-    internal static ImageSource? LoadImage(string path, int decodeWidth)
+    static ImageSource? LoadImage(string path, int decodeWidth)
     {
         try
         {
@@ -132,7 +128,7 @@ sealed class ClipItem : INotifyPropertyChanged
     public void Refresh()
     {
         _thumb = null;
-        OnChanged(nameof(Thumb)); OnChanged(nameof(Cover)); OnChanged(nameof(DurationText)); OnChanged(nameof(Subtitle));
+        OnChanged(nameof(Thumb)); OnChanged(nameof(DurationText)); OnChanged(nameof(Subtitle));
         OnChanged(nameof(QualityText)); OnChanged(nameof(Duration));
     }
 
@@ -150,17 +146,8 @@ sealed class ClipItem : INotifyPropertyChanged
 }
 
 /// <summary>A row in the game filter sidebar.</summary>
-sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false, ImageSource? ClipCover = null, ImageSource? Icon = null)
+sealed record GameEntry(string Name, int Count, bool IsAll = false, bool IsFavorites = false)
 {
-    /// <summary>The game's exe icon (saved by the recorder) when there is one, else its newest clip.</summary>
-    public ImageSource? Cover => Icon ?? ClipCover;
-
-    public static ImageSource? LoadIcon(string game)
-    {
-        var file = Core.Paths.GameIconFile(game);
-        return System.IO.File.Exists(file) ? ClipItem.LoadImage(file, 128) : null;
-    }
-
     public string Label => IsAll ? "All clips" : IsFavorites ? "Favorites" : Name;
     public string Detail => Count == 1 ? "1 clip" : $"{Count} clips";
 }

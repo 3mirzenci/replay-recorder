@@ -56,26 +56,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Full-width row button in the sidebar's top panel -->
-        <Style x:Key="NavBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Padding" Value="12,9"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
@@ -108,118 +88,68 @@
     <Grid>
         <!-- ================= Library ================= -->
         <Grid x:Name="LibraryView" Margin="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="272"/>
-                <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <!-- Sidebar: two panels, app and actions on top, your games below -->
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="8"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="8">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="12,8,0,10">
-                            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Accent}">
-                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource OnAccent}"/>
-                            </Border>
-                            <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="17" FontWeight="Bold" Margin="11,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button x:Name="OpenFolderBtn" Style="{StaticResource NavBtn}" Click="OpenFolder_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"/>
-                                <TextBlock Text="Open clips folder" Margin="14,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            </StackPanel>
+            <!-- Top bar: app, game filter, sort, search, folder and settings -->
+            <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="14,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
+                        <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Accent}">
+                            <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource OnAccent}"/>
+                        </Border>
+                        <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                        <!-- Not shown: their text feeds the two buttons' hover text -->
+                        <TextBlock x:Name="StorageText" Visibility="Collapsed"/>
+                        <TextBlock x:Name="VersionText" Visibility="Collapsed"/>
+                        <Button x:Name="OpenFolderBtn" Style="{StaticResource RoundBtn}" Click="OpenFolder_Click"
+                                ToolTip="{Binding Text, ElementName=StorageText}" ToolTipService.ShowDuration="20000">
+                            <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
                         </Button>
-                        <Button Style="{StaticResource NavBtn}" Click="Settings_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"/>
-                                <TextBlock Text="Settings" Margin="14,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            </StackPanel>
+                        <Button x:Name="SettingsBtn" Style="{StaticResource RoundBtn}" Margin="4,0,0,0" Click="Settings_Click" ToolTip="Settings">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
                         </Button>
                     </StackPanel>
-                </Border>
-
-                <Border Grid.Row="2" CornerRadius="8" Background="{DynamicResource Panel}" Padding="8,14,8,10">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Your games" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Margin="12,0,0,10"/>
-                        <StackPanel DockPanel.Dock="Bottom" Margin="12,10,8,0">
-                            <TextBlock x:Name="StorageText" Foreground="{DynamicResource Subtle}" FontSize="11.5" TextWrapping="Wrap"/>
-                            <TextBlock x:Name="VersionText" Foreground="{DynamicResource Subtle}" FontSize="11" Margin="0,6,0,0" Opacity="0.7"/>
-                        </StackPanel>
-                        <ListBox x:Name="GameList" Background="Transparent" BorderThickness="0" SelectionChanged="GameList_SelectionChanged"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Cursor" Value="Hand"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <Border x:Name="b" CornerRadius="6" Padding="8,6" Background="Transparent">
-                                                    <ContentPresenter/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ComboBox x:Name="GameList" Width="230" SelectionChanged="GameList_SelectionChanged" ToolTip="Show clips from one game">
+                            <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:GameEntry}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="48"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <!-- Cover: the game's newest clip; Favorites gets a star -->
-                                        <Border Width="48" Height="48" CornerRadius="5" Background="{DynamicResource Card}">
-                                            <Grid>
-                                                <TextBlock x:Name="glyph" Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18"
-                                                           Foreground="{DynamicResource Subtle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                <Border CornerRadius="5">
-                                                    <Border.Background>
-                                                        <ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/>
-                                                    </Border.Background>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="label" Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" FontFamily="{DynamicResource NumFont}"
+                                                   Foreground="{DynamicResource Subtle}"/>
+                                        <TextBlock x:Name="star" DockPanel.Dock="Left" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   Foreground="#FFC83D" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
+                                    </DockPanel>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsFavorites}" Value="True">
-                                            <Setter TargetName="glyph" Property="Text" Value="&#xE735;"/>
-                                            <Setter TargetName="glyph" Property="Foreground" Value="#FFC83D"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                            <Setter TargetName="label" Property="Foreground" Value="{DynamicResource Accent}"/>
+                                            <Setter TargetName="star" Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-            </Grid>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="14,0,14,0">
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
+                        </StackPanel>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" TextChanged="SearchBox_TextChanged"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
 
             <!-- Main panel -->
-            <Border Grid.Column="2" CornerRadius="8" Background="{DynamicResource Panel}">
+            <Border Grid.Row="2" CornerRadius="8" Background="{DynamicResource Panel}">
             <DockPanel>
-                <!-- Header: accent wash, the newest clip's cover, a big title, then the action row -->
+                <!-- Header: accent wash, big title, then the newest clip's actions -->
                 <Grid DockPanel.Dock="Top">
                     <Border CornerRadius="8,8,0,0" Background="{DynamicResource AccentSoft}">
                         <Border.OpacityMask>
@@ -229,60 +159,31 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
                     </Border>
-                    <StackPanel Margin="24,24,24,6">
-                        <Grid x:Name="Hero">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <!-- Game cover (its newest clip), only while one game is shown -->
-                            <Border x:Name="HeroCover" Width="76" Height="76" CornerRadius="6" Background="{DynamicResource Card}"
-                                    Margin="0,0,18,0" VerticalAlignment="Bottom" Visibility="Collapsed">
-                                <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="Black"/></Border.Effect>
-                                <Border CornerRadius="6">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="{Binding Icon}" Stretch="Uniform"/>
-                                    </Border.Background>
-                                </Border>
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="0,0,0,2" VerticalAlignment="Bottom">
-                                <TextBlock x:Name="HeaderKind" Text="Library" FontSize="12.5" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="40" FontWeight="Bold"
-                                           TextTrimming="CharacterEllipsis" Margin="-1,0,0,2"/>
-                                <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <Grid Margin="0,22,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel x:Name="HeroActions" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Style="{StaticResource PlayCircle}" Click="HeroPlay_Click" ToolTip="Play the newest clip">
-                                    <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20"
-                                               Foreground="{DynamicResource OnAccent}" Margin="3,0,0,0"/>
-                                </Button>
-                                <Button Style="{StaticResource RoundBtn}" Margin="14,0,0,0" Click="HeroExport_Click"
-                                        ToolTip="Export the newest clip for Discord, with its saved trim and volumes">
-                                    <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
-                                </Button>
-                                <Button Style="{StaticResource RoundBtn}" Margin="4,0,0,0" Click="HeroShow_Click" ToolTip="Show the newest clip in its folder">
-                                    <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
-                                </Button>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
-                                    <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
-                                    <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
-                                    <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
-                                    <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
-                                </StackPanel>
-                                <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" TextChanged="SearchBox_TextChanged"/>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
+                    <Grid x:Name="Hero" Margin="24,22,24,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <TextBlock x:Name="HeaderKind" Text="Library" FontSize="12.5" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="40" FontWeight="Bold"
+                                       TextTrimming="CharacterEllipsis" Margin="-1,0,0,2"/>
+                            <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5"/>
+                        </StackPanel>
+                        <StackPanel x:Name="HeroActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,4">
+                            <Button Style="{StaticResource RoundBtn}" Click="HeroShow_Click" ToolTip="Show the newest clip in its folder">
+                                <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
+                            </Button>
+                            <Button Style="{StaticResource RoundBtn}" Margin="4,0,14,0" Click="HeroExport_Click"
+                                    ToolTip="Export the newest clip for Discord, with its saved trim and volumes">
+                                <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17"/>
+                            </Button>
+                            <Button Style="{StaticResource PlayCircle}" Click="HeroPlay_Click" ToolTip="Play the newest clip">
+                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20"
+                                           Foreground="{DynamicResource OnAccent}" Margin="3,0,0,0"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
 
                 <!-- Shown when GitHub has a newer release -->

@@ -136,10 +136,9 @@ public partial class MainWindow : Window
     void RefreshSidebar()
     {
         var selected = _gameFilter;
-        // Each game's cover is its newest clip's thumbnail.
         var games = _items.GroupBy(i => i.Game).OrderBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase)
-            .Select(g => new GameEntry(g.Key, g.Count(), ClipCover: g.MaxBy(c => c.Created)!.Cover, Icon: GameEntry.LoadIcon(g.Key))).ToList();
-        games.Insert(0, new GameEntry("", _items.Count, IsAll: true, ClipCover: _items.MaxBy(c => c.Created)?.Cover));
+            .Select(g => new GameEntry(g.Key, g.Count())).ToList();
+        games.Insert(0, new GameEntry("", _items.Count, IsAll: true));
         games.Insert(1, new GameEntry(FavKey, _items.Count(i => i.IsFavorite), IsFavorites: true));
         GameList.SelectionChanged -= GameList_SelectionChanged;
         GameList.ItemsSource = games;
@@ -156,9 +155,6 @@ public partial class MainWindow : Window
     {
         HeaderText.Text = _gameFilter.Length == 0 ? "All clips" : _gameFilter == FavKey ? "Favorites" : _gameFilter;
         HeaderKind.Text = _gameFilter.Length == 0 ? "Library" : _gameFilter == FavKey ? "Collection" : "Game";
-        var game = GameList.SelectedItem as GameEntry; // header shows the game's own icon, never a clip frame
-        HeroCover.DataContext = game;
-        HeroCover.Visibility = game is { IsAll: false, IsFavorites: false, Icon: not null } ? Visibility.Visible : Visibility.Collapsed;
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
         CountText.Text = (shown == 1 ? "1 clip" : $"{shown} clips") + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
@@ -584,6 +580,7 @@ public partial class MainWindow : Window
     async Task CheckForUpdateAsync()
     {
         VersionText.Text = $"Version {Updater.Current}";
+        SettingsBtn.ToolTip = $"Settings (version {Updater.Current})";
         if (Updater.JustUpdatedFrom("library") is { } from)
         {
             UpdateTitle.Text = "Updated ✓";

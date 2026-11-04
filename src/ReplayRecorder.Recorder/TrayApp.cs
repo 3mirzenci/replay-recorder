@@ -162,7 +162,6 @@ sealed class TrayApp : ApplicationContext
             return;
         }
         var game = GameDetector.Detect(_settings.GameNames);
-        GameIcons.Save(game, GameDetector.LastExePath);
         var screen = CaptureScreenBounds();
         try
         {
@@ -187,7 +186,6 @@ sealed class TrayApp : ApplicationContext
         if (!_engine.IsRecording)
         {
             var game = GameDetector.Detect(_settings.GameNames);
-            GameIcons.Save(game, GameDetector.LastExePath);
             _engine.StartRecording(game);
             Notify("Recording started", $"{game} · press {_settings.ToggleRecordingHotkey} to stop", Red, screen);
         }
