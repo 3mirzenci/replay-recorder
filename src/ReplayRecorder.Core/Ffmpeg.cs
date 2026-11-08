@@ -19,6 +19,14 @@ public static class Ffmpeg
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "MPV Player"),
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "mpv"));
 
+    /// <summary>
+    /// Our own small ffmpeg for recording (ffmpeg/build.sh): gfxcapture paced to the output rate, drawing NV12
+    /// straight for NVENC. Shipped in capture\ next to the app; null when missing (then the normal ffmpeg is used).
+    /// </summary>
+    public static string? CapturePath { get; } =
+        File.Exists(Path.Combine(AppContext.BaseDirectory, "capture", "ffmpeg-capture.exe"))
+            ? Path.Combine(AppContext.BaseDirectory, "capture", "ffmpeg-capture.exe") : null;
+
     public const string InstallHint = "ffmpeg is missing. Right-click Start, open Terminal and run:  winget install Gyan.FFmpeg  then restart Replay Recorder.";
     public const string MpvInstallHint = "The mpv player was not found. Install it with:  winget install shinchiro.mpv  (then reopen Replay Recorder)";
 

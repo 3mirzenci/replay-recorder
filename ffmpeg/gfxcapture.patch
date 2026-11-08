@@ -1,0 +1,452 @@
+diff --git a/libavfilter/vsrc_gfxcapture.c b/libavfilter/vsrc_gfxcapture.c
+index 19d8a8a..3c4ec02 100644
+--- a/libavfilter/vsrc_gfxcapture.c
++++ b/libavfilter/vsrc_gfxcapture.c
+@@ -73,6 +73,11 @@ static const AVOption gfxcapture_options[] = {
+     { "x2bgr10",         "output 10 Bit X2BGR10",             0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_X2BGR10 },      0, 0, FLAGS, .unit = "output_fmt" },
+     { "16bit",           "output default 16 Bit format",      0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_RGBAF16 },      0, 0, FLAGS, .unit = "output_fmt" },
+     { "rgbaf16",         "output 16 Bit RGBAF16",             0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_RGBAF16 },      0, 0, FLAGS, .unit = "output_fmt" },
++    { "nv12",            "output 8 Bit NV12 (BT.709, limited range)",
++                                                              0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_NV12 },         0, 0, FLAGS, .unit = "output_fmt" },
++    { "output_rate",     "output exactly this many frames per second: the newest captured frame at each tick, "
++                         "or a repeat of the last one; 0 outputs every captured frame",
++                                                              OFFSET(output_rate),    AV_OPT_TYPE_RATIONAL,   { .dbl = 0 },      0, 1000,       FLAGS },
+     { NULL }
+ };
+ 
+diff --git a/libavfilter/vsrc_gfxcapture.h b/libavfilter/vsrc_gfxcapture.h
+index f541f9b..03e096e 100644
+--- a/libavfilter/vsrc_gfxcapture.h
++++ b/libavfilter/vsrc_gfxcapture.h
+@@ -67,6 +67,7 @@ typedef struct GfxCaptureContext {
+     int resize_mode;
+     int scale_mode;
+     int premult_alpha;
++    AVRational output_rate;
+ } GfxCaptureContext;
+ 
+ #ifdef __cplusplus
+diff --git a/libavfilter/vsrc_gfxcapture_shader.h b/libavfilter/vsrc_gfxcapture_shader.h
+index 3fe9d5e..213204e 100644
+--- a/libavfilter/vsrc_gfxcapture_shader.h
++++ b/libavfilter/vsrc_gfxcapture_shader.h
+@@ -119,6 +119,31 @@ static const char render_shader_src[] = HLSL_SHADER(
+             return main_ps(i);
+         return fix_color(texBicubic(t0, s0, i.uv));
+     }
++
++    float luma709(float3 c) {
++        return 16.0 / 255.0 + dot(c, float3(0.2126, 0.7152, 0.0722)) * (219.0 / 255.0);
++    }
++
++    float2 chroma709(float3 c) {
++        return 128.0 / 255.0 + float2(dot(c, float3(-0.1146, -0.3854, 0.5)),
++                                      dot(c, float3(0.5, -0.4542, -0.0458))) * (224.0 / 255.0);
++    }
++
++    float main_ps_y(VSOut i) : SV_Target {
++        return luma709(main_ps(i).rgb);
++    }
++
++    float2 main_ps_uv(VSOut i) : SV_Target {
++        return chroma709(main_ps(i).rgb);
++    }
++
++    float main_ps_y_bicubic(VSOut i) : SV_Target {
++        return luma709(main_ps_bicubic(i).rgb);
++    }
++
++    float2 main_ps_uv_bicubic(VSOut i) : SV_Target {
++        return chroma709(main_ps_bicubic(i).rgb);
++    }
+ );
+ 
+ #undef HLSL_SHADER
+diff --git a/libavfilter/vsrc_gfxcapture_winrt.cpp b/libavfilter/vsrc_gfxcapture_winrt.cpp
+index ddc6a7d..026f986 100644
+--- a/libavfilter/vsrc_gfxcapture_winrt.cpp
++++ b/libavfilter/vsrc_gfxcapture_winrt.cpp
+@@ -71,7 +71,8 @@ using ABI::Windows::Graphics::DirectX::DirectXPixelFormat;
+ #define TIMESPAN_RES 10000000
+ #define TIMESPAN_RES64 INT64_C(10000000)
+ 
+-#define CAPTURE_POOL_SIZE 2
++// One buffer may be held as the newest frame (output_rate), two stay free for WGC.
++#define CAPTURE_POOL_SIZE 3
+ 
+ enum {
+     WM_WGC_THREAD_SHUTDOWN = WM_APP + 1
+@@ -126,6 +127,10 @@ struct GfxCaptureContextWgc {
+     bool window_closed { false };
+     uint64_t frame_seq { 0 };
+ 
++    // output_rate: FrameArrived keeps only the newest frame here; older ones go straight back to the pool
++    bool hold_newest { false };
++    ComPtr<IDirect3D11CaptureFrame> held_frame;
++
+     SizeInt32 cap_size { 0, 0 };
+     RECT client_area_offsets { 0, 0, 0, 0 };
+ };
+@@ -133,6 +138,7 @@ struct GfxCaptureContextWgc {
+ struct GfxCaptureContextD3D {
+     ComPtr<ID3D11VertexShader> vertex_shader;
+     ComPtr<ID3D11PixelShader> pixel_shader;
++    ComPtr<ID3D11PixelShader> pixel_shader_uv; // NV12 output: chroma plane
+     ComPtr<ID3D11SamplerState> sampler_state;
+     ComPtr<ID3D11Buffer> shader_cb;
+     ComPtr<ID3D11DeviceContext> deferred_ctx;
+@@ -165,6 +171,10 @@ struct GfxCaptureContextCpp {
+ 
+     int64_t first_pts { 0 };
+     int64_t last_pts { 0 };
++
++    // output_rate: last output frame (for repeats) and the QPC time (100 ns) of the next tick
++    AVFrame *last_frame { nullptr };
++    int64_t next_tick { AV_NOPTS_VALUE };
+ };
+ 
+ template <typename T>
+@@ -199,11 +209,23 @@ static HRESULT get_activation_factory(GfxCaptureContextCpp *ctx, PCWSTR clsid, T
+ static void wgc_frame_arrived_handler(const std::unique_ptr<GfxCaptureContextWgc> &wgctx) {
+     {
+         std::lock_guard lock(wgctx->frame_arrived_mutex);
++        if (wgctx->hold_newest) {
++            // Free-threaded pool: drain it here so WGC never runs out of buffers between output ticks.
++            ComPtr<IDirect3D11CaptureFrame> frame;
++            while (SUCCEEDED(wgctx->frame_pool->TryGetNextFrame(&frame)) && frame)
++                wgctx->held_frame = std::move(frame);
++        }
+         wgctx->frame_seq += 1;
+     }
+     wgctx->frame_arrived_cond.notify_one();
+ }
+ 
++static DirectXPixelFormat wgc_capture_format(GfxCaptureContext *cctx) {
++    if (cctx->out_fmt == AV_PIX_FMT_BGRA || cctx->out_fmt == AV_PIX_FMT_NV12)
++        return DirectXPixelFormat::DirectXPixelFormat_B8G8R8A8UIntNormalized;
++    return DirectXPixelFormat::DirectXPixelFormat_R16G16B16A16Float;
++}
++
+ static void wgc_closed_handler(const std::unique_ptr<GfxCaptureContextWgc> &wgctx) {
+     {
+         std::lock_guard lock(wgctx->frame_arrived_mutex);
+@@ -337,9 +359,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
+     ComPtr<IGraphicsCaptureSession3> session3;
+     ComPtr<IGraphicsCaptureSession5> session5;
+ 
+-    DirectXPixelFormat fmt = DirectXPixelFormat::DirectXPixelFormat_B8G8R8A8UIntNormalized;
+-    if (cctx->out_fmt != AV_PIX_FMT_BGRA)
+-        fmt = DirectXPixelFormat::DirectXPixelFormat_R16G16B16A16Float;
++    DirectXPixelFormat fmt = wgc_capture_format(cctx);
+ 
+     CHECK_HR_RET(wgctx->capture_item->get_Size(&wgctx->cap_size));
+     ret = wgc_calculate_client_area(avctx);
+@@ -383,6 +403,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
+     }
+ 
+     wgctx->window_closed = 0;
++    wgctx->hold_newest = cctx->output_rate.num > 0;
+ 
+     CHECK_HR_RET(wgctx->capture_item->add_Closed(
+         create_cb_handler<ITypedEventHandler<GraphicsCaptureItem*,IInspectable*>, IGraphicsCaptureItem*, IInspectable*>(
+@@ -454,7 +475,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
+     ComPtr<ID3D11Texture2D> frame_texture;
+     SizeInt32 frame_size = { 0, 0 };
+ 
+-    CHECK_HR_RET(wgctx->frame_pool->TryGetNextFrame(&capture_frame));
++    if (wgctx->hold_newest) {
++        std::lock_guard lock(wgctx->frame_arrived_mutex);
++        capture_frame = std::move(wgctx->held_frame);
++    } else {
++        CHECK_HR_RET(wgctx->frame_pool->TryGetNextFrame(&capture_frame));
++    }
+     if (!capture_frame)
+         return AVERROR(EAGAIN);
+ 
+@@ -462,11 +488,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
+     if (frame_size.Width != wgctx->cap_size.Width || frame_size.Height != wgctx->cap_size.Height) {
+         av_log(avctx, AV_LOG_VERBOSE, "Capture size changed to %dx%d\n", frame_size.Width, frame_size.Height);
+ 
+-        DirectXPixelFormat fmt = DirectXPixelFormat::DirectXPixelFormat_B8G8R8A8UIntNormalized;
+-        if (cctx->out_fmt != AV_PIX_FMT_BGRA)
+-            fmt = DirectXPixelFormat::DirectXPixelFormat_R16G16B16A16Float;
++        DirectXPixelFormat fmt = wgc_capture_format(cctx);
+ 
+-        CHECK_HR_RET(wgctx->frame_pool->Recreate(wgctx->d3d_device.Get(), fmt, CAPTURE_POOL_SIZE, frame_size));
++        {
++            std::lock_guard lock(wgctx->frame_arrived_mutex);
++            CHECK_HR_RET(wgctx->frame_pool->Recreate(wgctx->d3d_device.Get(), fmt, CAPTURE_POOL_SIZE, frame_size));
++        }
+         wgctx->cap_size = frame_size;
+ 
+         int ret = wgc_calculate_client_area(avctx);
+@@ -980,6 +1007,7 @@ static av_cold void gfxcapture_uninit(AVFilterContext *avctx)
+ 
+     ctx->d3d.reset();
+ 
++    av_frame_free(&ctx->last_frame);
+     av_buffer_unref(&ctx->frames_ref);
+     av_buffer_unref(&ctx->device_ref);
+ 
+@@ -1081,7 +1109,9 @@ static int init_hwframes_ctx(AVFilterContext *avctx)
+     ctx->frames_ctx->width     = cctx->canvas_width;
+     ctx->frames_ctx->height    = cctx->canvas_height;
+     ctx->frames_ctx->sw_format = (AVPixelFormat)cctx->out_fmt;
+-    if (avctx->extra_hw_frames > 0)
++    // NVIDIA drivers refuse NV12 texture arrays without the decoder bind flag, so NV12 always uses
++    // single textures (initial_pool_size 0), which NVENC takes just as well.
++    if (avctx->extra_hw_frames > 0 && cctx->out_fmt != AV_PIX_FMT_NV12)
+         ctx->frames_ctx->initial_pool_size = 8 + avctx->extra_hw_frames;
+ 
+     ctx->frames_hwctx->BindFlags = D3D11_BIND_RENDER_TARGET;
+@@ -1161,11 +1191,14 @@ static int prepare_render_resources(AVFilterContext *avctx)
+         return AVERROR_EXTERNAL;
+     }
+ 
+-    const char *ps_entry = "main_ps_bicubic";
+-    if (cctx->resize_mode == GFX_RESIZE_CROP || cctx->scale_mode == GFX_SCALE_POINT) {
+-        ps_entry = "main_ps";
++    // bilinear = one hardware-filtered sample; it used to run the bicubic shader as well
++    bool nv12 = cctx->out_fmt == AV_PIX_FMT_NV12;
++    bool cubic = cctx->scale_mode == GFX_SCALE_BICUBIC && cctx->resize_mode != GFX_RESIZE_CROP;
++    const char *ps_entry = nv12 ? (cubic ? "main_ps_y_bicubic" : "main_ps_y")
++                                : (cubic ? "main_ps_bicubic" : "main_ps");
++    const char *ps_uv_entry = cubic ? "main_ps_uv_bicubic" : "main_ps_uv";
++    if (cctx->resize_mode == GFX_RESIZE_CROP || cctx->scale_mode == GFX_SCALE_POINT)
+         sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+-    }
+ 
+     hr = ctx->fn.D3DCompile(render_shader_src, sizeof(render_shader_src) - 1, NULL, NULL, NULL, ps_entry, "ps_4_0", flags, 0, &ps_blob, &err_blob);
+     if (FAILED(hr)) {
+@@ -1180,6 +1213,16 @@ static int prepare_render_resources(AVFilterContext *avctx)
+     CHECK_HR_RET(ctx->device_hwctx->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), NULL, &d3dctx->vertex_shader));
+     CHECK_HR_RET(ctx->device_hwctx->device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), NULL, &d3dctx->pixel_shader));
+ 
++    if (nv12) {
++        ps_blob.Reset();
++        hr = ctx->fn.D3DCompile(render_shader_src, sizeof(render_shader_src) - 1, NULL, NULL, NULL, ps_uv_entry, "ps_4_0", flags, 0, &ps_blob, &err_blob);
++        if (FAILED(hr)) {
++            av_log(avctx, AV_LOG_ERROR, "Failed compiling chroma pixel shader: 0x%08lX\n", hr);
++            return AVERROR_EXTERNAL;
++        }
++        CHECK_HR_RET(ctx->device_hwctx->device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), NULL, &d3dctx->pixel_shader_uv));
++    }
++
+     CHECK_HR_RET(ctx->device_hwctx->device->CreateSamplerState(&sampler_desc, &d3dctx->sampler_state));
+ 
+     D3D11_BUFFER_DESC cb_desc = { 0 };
+@@ -1261,7 +1304,7 @@ static int gfxcapture_config_props(AVFilterLink *outlink)
+     outlink->h = ctx->frames_ctx->height;
+     outlink->time_base = AVRational{1, TIMESPAN_RES};
+     outlink->alpha_mode = cctx->premult_alpha ? AVALPHA_MODE_PREMULTIPLIED : AVALPHA_MODE_STRAIGHT;
+-    link->frame_rate = cctx->frame_rate;
++    link->frame_rate = cctx->output_rate.num > 0 ? cctx->output_rate : cctx->frame_rate;
+ 
+     av_log(avctx, AV_LOG_DEBUG, "Capture setup with res %dx%d\n", outlink->w, outlink->h);
+ 
+@@ -1285,8 +1328,11 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+     D3D11_TEXTURE2D_DESC src_tex_desc;
+     src_tex->GetDesc(&src_tex_desc);
+ 
++    // NV12: render luma into an R8 view and chroma into an R8G8 view of the same texture
++    bool nv12 = dst_tex_desc.Format == DXGI_FORMAT_NV12;
++
+     D3D11_RENDER_TARGET_VIEW_DESC target_desc = {};
+-    target_desc.Format = dst_tex_desc.Format;
++    target_desc.Format = nv12 ? DXGI_FORMAT_R8_UNORM : dst_tex_desc.Format;
+ 
+     if (dst_tex_desc.ArraySize > 1) {
+         target_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+@@ -1302,6 +1348,13 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+     CHECK_HR_RET(dev->CreateRenderTargetView(
+         reinterpret_cast<ID3D11Resource*>(frame->data[0]), &target_desc, &rtv));
+ 
++    ComPtr<ID3D11RenderTargetView> rtv_uv;
++    if (nv12) {
++        target_desc.Format = DXGI_FORMAT_R8G8_UNORM;
++        CHECK_HR_RET(dev->CreateRenderTargetView(
++            reinterpret_cast<ID3D11Resource*>(frame->data[0]), &target_desc, &rtv_uv));
++    }
++
+     ComPtr<ID3D11ShaderResourceView> srv;
+     CHECK_HR_RET(dev->CreateShaderResourceView(src_tex.Get(), nullptr, &srv));
+ 
+@@ -1374,7 +1427,8 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+ 
+     def_ctx->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+ 
+-    const float clear_color[4] = {0.f, 0.f, 0.f, 1.f};
++    // black: limited-range Y 16, neutral chroma 128
++    const float clear_color[4] = {nv12 ? 16.f / 255.f : 0.f, 0.f, 0.f, 1.f};
+     def_ctx->ClearRenderTargetView(rtv.Get(), clear_color);
+ 
+     def_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+@@ -1387,6 +1441,19 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+ 
+     def_ctx->Draw(3, 0);
+ 
++    if (nv12) {
++        D3D11_VIEWPORT viewport_uv = viewport;
++        viewport_uv.Width  /= 2;
++        viewport_uv.Height /= 2;
++        def_ctx->RSSetViewports(1, &viewport_uv);
++
++        const float clear_uv[4] = {128.f / 255.f, 128.f / 255.f, 0.f, 1.f};
++        def_ctx->ClearRenderTargetView(rtv_uv.Get(), clear_uv);
++        def_ctx->OMSetRenderTargets(1, rtv_uv.GetAddressOf(), nullptr);
++        def_ctx->PSSetShader(d3dctx->pixel_shader_uv.Get(), nullptr, 0);
++        def_ctx->Draw(3, 0);
++    }
++
+     ComPtr<ID3D11CommandList> cmd_list;
+     CHECK_HR_RET(def_ctx->FinishCommandList(FALSE, &cmd_list));
+     dev_ctx->ExecuteCommandList(cmd_list.Get(), FALSE);
+@@ -1394,7 +1461,9 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+     return 0;
+ }
+ 
+-static int process_frame_if_exists(AVFilterLink *outlink)
++// Renders the next captured frame (or, with output_rate, the newest one) into *out.
++// out->pts is its capture time (QPC, 100 ns). AVERROR(EAGAIN) if there is none.
++static int grab_frame(AVFilterLink *outlink, AVFrame **out)
+ {
+     AVFilterContext *avctx = outlink->src;
+     GfxCaptureContext *cctx = CCTX(avctx->priv);
+@@ -1431,12 +1500,19 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+ 
+         return render_capture_to_frame(avctx, frame, frame_texture);
+     });
+-    if (ret < 0)
++    if (ret < 0) {
++        av_frame_free(&frame);
+         return ret;
++    }
+ 
+     frame->sample_aspect_ratio = AVRational{1, 1};
+ 
+-    if (ctx->frames_ctx->sw_format == AV_PIX_FMT_RGBAF16) {
++    if (ctx->frames_ctx->sw_format == AV_PIX_FMT_NV12) {
++        frame->color_range     = AVCOL_RANGE_MPEG;
++        frame->color_primaries = AVCOL_PRI_BT709;
++        frame->color_trc       = AVCOL_TRC_BT709;
++        frame->colorspace      = AVCOL_SPC_BT709;
++    } else if (ctx->frames_ctx->sw_format == AV_PIX_FMT_RGBAF16) {
+         // According to MSDN, all floating point formats contain sRGB image data with linear 1.0 gamma.
+         frame->color_range     = AVCOL_RANGE_JPEG;
+         frame->color_primaries = AVCOL_PRI_BT709;
+@@ -1450,6 +1526,18 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+         frame->colorspace      = AVCOL_SPC_RGB;
+     }
+ 
++    *out = frame;
++    return 0;
++}
++
++static int output_frame(AVFilterLink *outlink, AVFrame *frame)
++{
++    GfxCaptureContextCpp *ctx = CCTX(outlink->src->priv)->ctx;
++
++    // a repeat is stamped with its tick, which can be later than the next frame's capture time
++    if (ctx->first_pts && frame->pts <= ctx->last_pts)
++        frame->pts = ctx->last_pts + 1;
++
+     ctx->last_pts = frame->pts;
+ 
+     if (!ctx->first_pts)
+@@ -1459,6 +1547,86 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+     return ff_filter_frame(outlink, frame);
+ }
+ 
++static int process_frame_if_exists(AVFilterLink *outlink)
++{
++    AVFrame *frame = nullptr;
++    int ret = grab_frame(outlink, &frame);
++    if (ret < 0)
++        return ret;
++    return output_frame(outlink, frame);
++}
++
++// Current time in the clock and unit of WGC's SystemRelativeTime (QPC, 100 ns)
++static int64_t qpc_now()
++{
++    static const int64_t freq = []() {
++        LARGE_INTEGER f;
++        QueryPerformanceFrequency(&f);
++        return f.QuadPart;
++    }();
++
++    LARGE_INTEGER now;
++    QueryPerformanceCounter(&now);
++    return av_rescale(now.QuadPart, TIMESPAN_RES64, freq);
++}
++
++// output_rate: one frame per tick, like a camera with a fixed shutter: the newest captured frame,
++// or a repeat of the last one if nothing changed. Frames WGC delivered in between are never drawn.
++static int gfxcapture_activate_paced(AVFilterContext *avctx)
++{
++    AVFilterLink *outlink = avctx->outputs[0];
++    GfxCaptureContext *cctx = CCTX(avctx->priv);
++    GfxCaptureContextCpp *ctx = cctx->ctx;
++    std::unique_ptr<GfxCaptureContextWgc> &wgctx = ctx->wgc;
++    const int64_t interval = av_rescale(TIMESPAN_RES64, cctx->output_rate.den, cctx->output_rate.num);
++
++    for (;;) {
++        int64_t now = qpc_now();
++        if (ctx->next_tick == AV_NOPTS_VALUE)
++            ctx->next_tick = now + interval;
++
++        if (now < ctx->next_tick) {
++            std::unique_lock frame_lock(wgctx->frame_arrived_mutex);
++            if (wgctx->window_closed && !wgctx->held_frame) {
++                ff_outlink_set_status(outlink, AVERROR_EOF, ctx->last_pts - ctx->first_pts + 1);
++                return 0;
++            }
++            wgctx->frame_arrived_cond.wait_for(frame_lock, std::chrono::nanoseconds((ctx->next_tick - now) * 100),
++                                               [&]() { return wgctx->window_closed; });
++            continue;
++        }
++
++        int64_t tick = ctx->next_tick;
++        ctx->next_tick += interval;
++        if (ctx->next_tick <= now) // stalled: restart from now instead of bursting to catch up
++            ctx->next_tick = now + interval;
++
++        AVFrame *frame = nullptr;
++        int ret = grab_frame(outlink, &frame);
++        if (ret == AVERROR(EAGAIN)) {
++            if (!ctx->last_frame)
++                continue; // nothing captured yet
++            frame = av_frame_clone(ctx->last_frame);
++            if (!frame)
++                return AVERROR(ENOMEM);
++            frame->pts = tick;
++        } else if (ret < 0) {
++            return ret;
++        } else {
++            if (!ctx->last_frame && !(ctx->last_frame = av_frame_alloc())) {
++                av_frame_free(&frame);
++                return AVERROR(ENOMEM);
++            }
++            ret = av_frame_replace(ctx->last_frame, frame);
++            if (ret < 0) {
++                av_frame_free(&frame);
++                return ret;
++            }
++        }
++        return output_frame(outlink, frame);
++    }
++}
++
+ static int gfxcapture_activate(AVFilterContext *avctx)
+ {
+     AVFilterLink *outlink = avctx->outputs[0];
+@@ -1475,6 +1643,9 @@ static int gfxcapture_activate(AVFilterContext *avctx)
+     if (!ff_outlink_frame_wanted(outlink))
+         return FFERROR_NOT_READY;
+ 
++    if (cctx->output_rate.num > 0)
++        return gfxcapture_activate_paced(avctx);
++
+     for (;;) {
+         uint64_t last_seq = wgctx->frame_seq;
+ 

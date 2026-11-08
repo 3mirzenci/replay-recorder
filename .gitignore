@@ -10,3 +10,6 @@ obj/
 *.mp4
 *.ts
 *.log
+
+# ffmpeg-capture build tree (ffmpeg/build.sh)
+ffmpeg/.work/

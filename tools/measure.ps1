@@ -11,7 +11,7 @@ param(
 )
 [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::InvariantCulture
 $groups = [ordered]@{
-    "Replay Recorder (recorder + ffmpeg)" = @("ReplayRecorder.Recorder", "ffmpeg")
+    "Replay Recorder (recorder + ffmpeg)" = @("ReplayRecorder.Recorder", "ffmpeg", "ffmpeg-capture")
     "Replay Recorder library"             = @("ReplayRecorder")
     "SteelSeries Moments (capture)"       = @("SteelSeriesCaptureSvc", "SteelSeriesMoments")
     "SteelSeries GG (app)"                = @("SteelSeriesGG", "SteelSeriesEngine", "SteelSeriesGGEZ", "SteelSeriesPrism")

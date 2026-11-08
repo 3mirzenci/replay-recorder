@@ -22,6 +22,17 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
+      # Our small LGPL ffmpeg for recording (ffmpeg/build.sh); build.ps1 bundles it into capture\.
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: git make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-nasm
+
+      - name: Build ffmpeg-capture
+        shell: msys2 {0}
+        run: sh ffmpeg/build.sh "$(pwd)/ffmpeg/.work"
+
       - name: Run tests
         run: dotnet test tests/ReplayRecorder.Tests -c Release
 

@@ -1,0 +1,9 @@
+ffmpeg-capture.exe is FFmpeg 9.0.2 (https://github.com/FFmpeg/FFmpeg/tree/n9.0.2) with gfxcapture.patch
+applied, built by ffmpeg/build.sh in https://github.com/3mirzenci/replay-recorder. It is licensed under the
+GNU LGPL 2.1 or later (LICENSE-ffmpeg.txt); the full source is FFmpeg n9.0.2 plus the patch next to this file.
+
+The patch changes only the gfxcapture filter:
+- output_rate: one frame per tick (the newest captured frame, or a repeat), so 60 fps from a 144 Hz
+  screen is evenly paced and frames that would be dropped are never drawn.
+- output_fmt=nv12: draws straight into NV12 (BT.709), so NVENC needs no RGB->YUV conversion of its own.
+- a frame pool of 3 instead of 2, and scale_mode=bilinear really uses bilinear (it ran the bicubic shader).

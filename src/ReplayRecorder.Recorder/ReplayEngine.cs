@@ -77,6 +77,7 @@ sealed class ReplayEngine : IDisposable
 
     bool _ram;
     bool _wgc; // Settings.Capture, unless this ffmpeg is too old for it
+    bool _paced; // WGC + NVENC through our own capture ffmpeg (Ffmpeg.CapturePath): paced, straight to NV12
     byte[]? _tsHeader; // PAT + PMT packets, prepended when joining in-memory segments
 
     public ReplayEngine(Settings settings) => _s = settings;
@@ -106,7 +107,8 @@ sealed class ReplayEngine : IDisposable
 
         var encoder = ChooseEncoder(Display);
         _wgc = _s.Capture == CaptureMethod.Wgc;
-        if (_wgc && !Ffmpeg.HasGfxCapture)
+        _paced = _wgc && Ffmpeg.CapturePath != null && encoder.EndsWith("_nvenc");
+        if (_wgc && !_paced && !Ffmpeg.HasGfxCapture)
         {
             _wgc = false;
             Log.Warn($"ffmpeg at {Ffmpeg.FfmpegPath} has no gfxcapture (needs 8.0+); using Desktop Duplication");
@@ -134,10 +136,11 @@ sealed class ReplayEngine : IDisposable
         _tsHeader = null;
         _epochTicks = DateTime.UtcNow.Ticks;
         var args = BuildArgs(Display, encoder);
+        var exe = _paced ? Ffmpeg.CapturePath! : Ffmpeg.FfmpegPath;
         Log.Info($"Starting capture of {Display} with {encoder}, buffer in {(_ram ? "RAM" : "files")}");
-        Log.Info("ffmpeg " + string.Join(' ', args.Select(a => a.Contains(' ') ? $"\"{a}\"" : a)));
+        Log.Info(exe + " " + string.Join(' ', args.Select(a => a.Contains(' ') ? $"\"{a}\"" : a)));
 
-        var psi = new ProcessStartInfo(Ffmpeg.FfmpegPath)
+        var psi = new ProcessStartInfo(exe)
         {
             UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardError = true, RedirectStandardInput = true, RedirectStandardOutput = _ram,
@@ -312,7 +315,16 @@ sealed class ReplayEngine : IDisposable
         string I(double v) => v.ToString(CultureInfo.InvariantCulture);
 
         string src;
-        if (_wgc)
+        if (_paced)
+        {
+            // Our capture ffmpeg: WGC may deliver every refresh, but only the newest frame at each 1/fps tick
+            // is drawn, straight into NV12, so the GPU work is one small draw per output frame and NVENC
+            // needs no colour conversion of its own.
+            int rate = d.RefreshHz > 0 ? d.RefreshHz : fps * 2;
+            src = $"gfxcapture=hmonitor={d.HMonitor}:max_framerate={rate}:output_rate={fps}:output_fmt=nv12:capture_cursor={(_s.CaptureCursor ? 1 : 0)}";
+            if (scale) src += $":width={w}:height={h}:resize_mode=scale_aspect:scale_mode=bicubic";
+        }
+        else if (_wgc)
         {
             // WGC delivers only on refresh ticks, and every delivered frame costs a GPU copy + scale
             // (see Displays.CaptureRateLimit for how the limit is picked).
@@ -397,7 +409,7 @@ sealed class ReplayEngine : IDisposable
             "-force_key_frames", $"expr:gte(t,n_forced*{I(SegmentSeconds)})",
         });
 
-        if (encoder.Contains("nvenc"))
+        if (encoder.Contains("nvenc") && !_paced)
         {
             // NVENC converts the RGB capture to YUV with the BT.601 matrix (measured), so tag it
             // that way; untagged/mis-tagged files are what make clips look too dark or washed out.
