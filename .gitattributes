@@ -1,0 +1,2 @@
+# The patch must match FFmpeg's LF sources and sh needs LF scripts, also on Windows checkouts.
+ffmpeg/** text eol=lf
