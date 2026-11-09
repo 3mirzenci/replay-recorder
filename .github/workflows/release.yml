@@ -40,7 +40,9 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        run: ./build.ps1 -Version ('${{ github.ref_type }}' -eq 'tag' ? '${{ github.ref_name }}'.TrimStart('v') : '')
+        run: |
+          $v = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}'.TrimStart('v') } else { '' }
+          ./build.ps1 -Version $v
 
       - name: Keep test installer
         if: github.ref_type != 'tag'
