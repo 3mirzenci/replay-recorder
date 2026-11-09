@@ -36,6 +36,7 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
   - While anything is selected, a click selects or unselects a clip instead of opening it.
   - The bar at the bottom can open, show in folder, copy files, export everything for Discord (each clip keeps its saved trim and volumes) or delete.
 - **Right-click** gives the same actions, plus Rename (F2) and favorites.
+- **Sound bars:** the timeline under a playing clip is two bars, game + voice chat on top and your mic below, showing how loud each was across the clip, so the action stands out. They follow the game and mic volume sliders. Drag the trim handles across them as usual.
 - **Fullscreen:** the button next to the frame steps, or **F**, shows just the video with a see-through bar for play/pause, seeking and the game/mic volume. Esc or F comes back.
 - **Large libraries stay light:** thumbnails are only loaded for clips on or near the screen. With 1000 clips the library opens in about 2 s and uses about 250 MB.
 - **English and Turkish**, switchable live in Settings without a restart.
