@@ -1,5 +1,5 @@
 diff --git a/libavfilter/vsrc_gfxcapture.c b/libavfilter/vsrc_gfxcapture.c
-index 19d8a8a..3c4ec02 100644
+index 19d8a8a..e9da1c0 100644
 --- a/libavfilter/vsrc_gfxcapture.c
 +++ b/libavfilter/vsrc_gfxcapture.c
 @@ -73,6 +73,11 @@ static const AVOption gfxcapture_options[] = {
@@ -8,7 +8,7 @@ index 19d8a8a..3c4ec02 100644
      { "rgbaf16",         "output 16 Bit RGBAF16",             0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_RGBAF16 },      0, 0, FLAGS, .unit = "output_fmt" },
 +    { "nv12",            "output 8 Bit NV12 (BT.709, limited range)",
 +                                                              0,                      AV_OPT_TYPE_CONST,      { .i64 = AV_PIX_FMT_NV12 },         0, 0, FLAGS, .unit = "output_fmt" },
-+    { "output_rate",     "output exactly this many frames per second: the newest captured frame at each tick, "
++    { "output_rate",     "output exactly this many frames per second, stamped at each tick: the newest captured frame, "
 +                         "or a repeat of the last one; 0 outputs every captured frame",
 +                                                              OFFSET(output_rate),    AV_OPT_TYPE_RATIONAL,   { .dbl = 0 },      0, 1000,       FLAGS },
      { NULL }
@@ -63,10 +63,18 @@ index 3fe9d5e..213204e 100644
  
  #undef HLSL_SHADER
 diff --git a/libavfilter/vsrc_gfxcapture_winrt.cpp b/libavfilter/vsrc_gfxcapture_winrt.cpp
-index ddc6a7d..026f986 100644
+index ddc6a7d..ba22d1a 100644
 --- a/libavfilter/vsrc_gfxcapture_winrt.cpp
 +++ b/libavfilter/vsrc_gfxcapture_winrt.cpp
-@@ -71,7 +71,8 @@ using ABI::Windows::Graphics::DirectX::DirectXPixelFormat;
+@@ -50,6 +50,7 @@ extern "C" {
+ #include <cinttypes>
+ #include <condition_variable>
+ #include <cwchar>
++#include <deque>
+ #include <memory>
+ #include <mutex>
+ #include <regex>
+@@ -71,7 +72,8 @@ using ABI::Windows::Graphics::DirectX::DirectXPixelFormat;
  #define TIMESPAN_RES 10000000
  #define TIMESPAN_RES64 INT64_C(10000000)
  
@@ -76,7 +84,7 @@ index ddc6a7d..026f986 100644
  
  enum {
      WM_WGC_THREAD_SHUTDOWN = WM_APP + 1
-@@ -126,6 +127,10 @@ struct GfxCaptureContextWgc {
+@@ -126,6 +128,10 @@ struct GfxCaptureContextWgc {
      bool window_closed { false };
      uint64_t frame_seq { 0 };
  
@@ -87,7 +95,7 @@ index ddc6a7d..026f986 100644
      SizeInt32 cap_size { 0, 0 };
      RECT client_area_offsets { 0, 0, 0, 0 };
  };
-@@ -133,6 +138,7 @@ struct GfxCaptureContextWgc {
+@@ -133,6 +139,7 @@ struct GfxCaptureContextWgc {
  struct GfxCaptureContextD3D {
      ComPtr<ID3D11VertexShader> vertex_shader;
      ComPtr<ID3D11PixelShader> pixel_shader;
@@ -95,18 +103,47 @@ index ddc6a7d..026f986 100644
      ComPtr<ID3D11SamplerState> sampler_state;
      ComPtr<ID3D11Buffer> shader_cb;
      ComPtr<ID3D11DeviceContext> deferred_ctx;
-@@ -165,6 +171,10 @@ struct GfxCaptureContextCpp {
+@@ -165,8 +172,39 @@ struct GfxCaptureContextCpp {
  
      int64_t first_pts { 0 };
      int64_t last_pts { 0 };
 +
-+    // output_rate: last output frame (for repeats) and the QPC time (100 ns) of the next tick
++    // output_rate: a ticker thread renders one frame per tick into this queue, like a live camera, so
++    // ffmpeg pausing this source (its scheduler holds back streams that run ahead of audio) delays
++    // frames instead of losing them. last_frame is the ticker's previous frame, for repeats.
++    std::thread ticker;
++    std::mutex queue_mutex;
++    std::condition_variable queue_cond;
++    std::deque<AVFrame*> queue;
++    bool ticker_stop { false };
++    int ticker_err { 0 };
 +    AVFrame *last_frame { nullptr };
-+    int64_t next_tick { AV_NOPTS_VALUE };
  };
  
++// About half a second at 60 fps; when full the oldest frame is dropped.
++#define MAX_QUEUED_FRAMES 32
++
++static void stop_ticker(GfxCaptureContextCpp *ctx)
++{
++    {
++        std::lock_guard lock(ctx->queue_mutex);
++        ctx->ticker_stop = true;
++    }
++    ctx->queue_cond.notify_all();
++    if (ctx->ticker.joinable())
++        ctx->ticker.join();
++
++    std::lock_guard lock(ctx->queue_mutex);
++    for (AVFrame *f : ctx->queue)
++        av_frame_free(&f);
++    ctx->queue.clear();
++    ctx->ticker_stop = false;
++}
++
  template <typename T>
-@@ -199,11 +209,23 @@ static HRESULT get_activation_factory(GfxCaptureContextCpp *ctx, PCWSTR clsid, T
+ static HRESULT get_activation_factory(GfxCaptureContextCpp *ctx, PCWSTR clsid, T** factory) {
+     HSTRING_HEADER hsheader = { 0 };
+@@ -199,11 +237,23 @@ static HRESULT get_activation_factory(GfxCaptureContextCpp *ctx, PCWSTR clsid, T
  static void wgc_frame_arrived_handler(const std::unique_ptr<GfxCaptureContextWgc> &wgctx) {
      {
          std::lock_guard lock(wgctx->frame_arrived_mutex);
@@ -130,7 +167,7 @@ index ddc6a7d..026f986 100644
  static void wgc_closed_handler(const std::unique_ptr<GfxCaptureContextWgc> &wgctx) {
      {
          std::lock_guard lock(wgctx->frame_arrived_mutex);
-@@ -337,9 +359,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
+@@ -337,9 +387,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
      ComPtr<IGraphicsCaptureSession3> session3;
      ComPtr<IGraphicsCaptureSession5> session5;
  
@@ -141,7 +178,7 @@ index ddc6a7d..026f986 100644
  
      CHECK_HR_RET(wgctx->capture_item->get_Size(&wgctx->cap_size));
      ret = wgc_calculate_client_area(avctx);
-@@ -383,6 +403,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
+@@ -383,6 +431,7 @@ static int wgc_setup_gfxcapture_session(AVFilterContext *avctx)
      }
  
      wgctx->window_closed = 0;
@@ -149,7 +186,7 @@ index ddc6a7d..026f986 100644
  
      CHECK_HR_RET(wgctx->capture_item->add_Closed(
          create_cb_handler<ITypedEventHandler<GraphicsCaptureItem*,IInspectable*>, IGraphicsCaptureItem*, IInspectable*>(
-@@ -454,7 +475,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
+@@ -454,7 +503,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
      ComPtr<ID3D11Texture2D> frame_texture;
      SizeInt32 frame_size = { 0, 0 };
  
@@ -163,7 +200,7 @@ index ddc6a7d..026f986 100644
      if (!capture_frame)
          return AVERROR(EAGAIN);
  
-@@ -462,11 +488,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
+@@ -462,11 +516,12 @@ static int wgc_try_get_next_frame(AVFilterContext *avctx, ComPtr<IDirect3D11Capt
      if (frame_size.Width != wgctx->cap_size.Width || frame_size.Height != wgctx->cap_size.Height) {
          av_log(avctx, AV_LOG_VERBOSE, "Capture size changed to %dx%d\n", frame_size.Width, frame_size.Height);
  
@@ -180,7 +217,12 @@ index ddc6a7d..026f986 100644
          wgctx->cap_size = frame_size;
  
          int ret = wgc_calculate_client_area(avctx);
-@@ -980,6 +1007,7 @@ static av_cold void gfxcapture_uninit(AVFilterContext *avctx)
+@@ -976,10 +1031,12 @@ static av_cold void gfxcapture_uninit(AVFilterContext *avctx)
+     if (!ctx)
+         return;
+ 
++    stop_ticker(ctx);
+     stop_wgc_thread(avctx);
  
      ctx->d3d.reset();
  
@@ -188,7 +230,7 @@ index ddc6a7d..026f986 100644
      av_buffer_unref(&ctx->frames_ref);
      av_buffer_unref(&ctx->device_ref);
  
-@@ -1081,7 +1109,9 @@ static int init_hwframes_ctx(AVFilterContext *avctx)
+@@ -1081,7 +1138,9 @@ static int init_hwframes_ctx(AVFilterContext *avctx)
      ctx->frames_ctx->width     = cctx->canvas_width;
      ctx->frames_ctx->height    = cctx->canvas_height;
      ctx->frames_ctx->sw_format = (AVPixelFormat)cctx->out_fmt;
@@ -199,7 +241,7 @@ index ddc6a7d..026f986 100644
          ctx->frames_ctx->initial_pool_size = 8 + avctx->extra_hw_frames;
  
      ctx->frames_hwctx->BindFlags = D3D11_BIND_RENDER_TARGET;
-@@ -1161,11 +1191,14 @@ static int prepare_render_resources(AVFilterContext *avctx)
+@@ -1161,11 +1220,14 @@ static int prepare_render_resources(AVFilterContext *avctx)
          return AVERROR_EXTERNAL;
      }
  
@@ -218,7 +260,7 @@ index ddc6a7d..026f986 100644
  
      hr = ctx->fn.D3DCompile(render_shader_src, sizeof(render_shader_src) - 1, NULL, NULL, NULL, ps_entry, "ps_4_0", flags, 0, &ps_blob, &err_blob);
      if (FAILED(hr)) {
-@@ -1180,6 +1213,16 @@ static int prepare_render_resources(AVFilterContext *avctx)
+@@ -1180,6 +1242,16 @@ static int prepare_render_resources(AVFilterContext *avctx)
      CHECK_HR_RET(ctx->device_hwctx->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), NULL, &d3dctx->vertex_shader));
      CHECK_HR_RET(ctx->device_hwctx->device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), NULL, &d3dctx->pixel_shader));
  
@@ -235,7 +277,7 @@ index ddc6a7d..026f986 100644
      CHECK_HR_RET(ctx->device_hwctx->device->CreateSamplerState(&sampler_desc, &d3dctx->sampler_state));
  
      D3D11_BUFFER_DESC cb_desc = { 0 };
-@@ -1261,7 +1304,7 @@ static int gfxcapture_config_props(AVFilterLink *outlink)
+@@ -1261,7 +1333,7 @@ static int gfxcapture_config_props(AVFilterLink *outlink)
      outlink->h = ctx->frames_ctx->height;
      outlink->time_base = AVRational{1, TIMESPAN_RES};
      outlink->alpha_mode = cctx->premult_alpha ? AVALPHA_MODE_PREMULTIPLIED : AVALPHA_MODE_STRAIGHT;
@@ -244,7 +286,7 @@ index ddc6a7d..026f986 100644
  
      av_log(avctx, AV_LOG_DEBUG, "Capture setup with res %dx%d\n", outlink->w, outlink->h);
  
-@@ -1285,8 +1328,11 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+@@ -1285,8 +1357,11 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
      D3D11_TEXTURE2D_DESC src_tex_desc;
      src_tex->GetDesc(&src_tex_desc);
  
@@ -257,7 +299,7 @@ index ddc6a7d..026f986 100644
  
      if (dst_tex_desc.ArraySize > 1) {
          target_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-@@ -1302,6 +1348,13 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+@@ -1302,6 +1377,13 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
      CHECK_HR_RET(dev->CreateRenderTargetView(
          reinterpret_cast<ID3D11Resource*>(frame->data[0]), &target_desc, &rtv));
  
@@ -271,7 +313,7 @@ index ddc6a7d..026f986 100644
      ComPtr<ID3D11ShaderResourceView> srv;
      CHECK_HR_RET(dev->CreateShaderResourceView(src_tex.Get(), nullptr, &srv));
  
-@@ -1374,7 +1427,8 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+@@ -1374,7 +1456,8 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
  
      def_ctx->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
  
@@ -281,7 +323,7 @@ index ddc6a7d..026f986 100644
      def_ctx->ClearRenderTargetView(rtv.Get(), clear_color);
  
      def_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-@@ -1387,6 +1441,19 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+@@ -1387,6 +1470,19 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
  
      def_ctx->Draw(3, 0);
  
@@ -301,7 +343,7 @@ index ddc6a7d..026f986 100644
      ComPtr<ID3D11CommandList> cmd_list;
      CHECK_HR_RET(def_ctx->FinishCommandList(FALSE, &cmd_list));
      dev_ctx->ExecuteCommandList(cmd_list.Get(), FALSE);
-@@ -1394,7 +1461,9 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
+@@ -1394,7 +1490,9 @@ static int render_capture_to_frame(AVFilterContext *avctx, AVFrame *frame, const
      return 0;
  }
  
@@ -312,7 +354,7 @@ index ddc6a7d..026f986 100644
  {
      AVFilterContext *avctx = outlink->src;
      GfxCaptureContext *cctx = CCTX(avctx->priv);
-@@ -1431,12 +1500,19 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+@@ -1431,12 +1529,19 @@ static int process_frame_if_exists(AVFilterLink *outlink)
  
          return render_capture_to_frame(avctx, frame, frame_texture);
      });
@@ -334,7 +376,7 @@ index ddc6a7d..026f986 100644
          // According to MSDN, all floating point formats contain sRGB image data with linear 1.0 gamma.
          frame->color_range     = AVCOL_RANGE_JPEG;
          frame->color_primaries = AVCOL_PRI_BT709;
-@@ -1450,6 +1526,18 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+@@ -1450,6 +1555,18 @@ static int process_frame_if_exists(AVFilterLink *outlink)
          frame->colorspace      = AVCOL_SPC_RGB;
      }
  
@@ -353,10 +395,11 @@ index ddc6a7d..026f986 100644
      ctx->last_pts = frame->pts;
  
      if (!ctx->first_pts)
-@@ -1459,6 +1547,86 @@ static int process_frame_if_exists(AVFilterLink *outlink)
+@@ -1459,22 +1576,170 @@ static int process_frame_if_exists(AVFilterLink *outlink)
      return ff_filter_frame(outlink, frame);
  }
  
+-static int gfxcapture_activate(AVFilterContext *avctx)
 +static int process_frame_if_exists(AVFilterLink *outlink)
 +{
 +    AVFrame *frame = nullptr;
@@ -382,34 +425,60 @@ index ddc6a7d..026f986 100644
 +
 +// output_rate: one frame per tick, like a camera with a fixed shutter: the newest captured frame,
 +// or a repeat of the last one if nothing changed. Frames WGC delivered in between are never drawn.
-+static int gfxcapture_activate_paced(AVFilterContext *avctx)
++static void ticker_push(GfxCaptureContextCpp *ctx, AVFrame *frame, int err)
++{
++    {
++        std::lock_guard lock(ctx->queue_mutex);
++        if (frame) {
++            if (ctx->queue.size() >= MAX_QUEUED_FRAMES) {
++                av_frame_free(&ctx->queue.front());
++                ctx->queue.pop_front();
++            }
++            ctx->queue.push_back(frame);
++        }
++        if (err < 0)
++            ctx->ticker_err = err;
++    }
++    ctx->queue_cond.notify_all();
++}
++
++// output_rate: once per tick, render the newest captured frame (or repeat the last one) and queue it.
++static void ticker_main(AVFilterContext *avctx)
 +{
 +    AVFilterLink *outlink = avctx->outputs[0];
 +    GfxCaptureContext *cctx = CCTX(avctx->priv);
 +    GfxCaptureContextCpp *ctx = cctx->ctx;
-+    std::unique_ptr<GfxCaptureContextWgc> &wgctx = ctx->wgc;
 +    const int64_t interval = av_rescale(TIMESPAN_RES64, cctx->output_rate.den, cctx->output_rate.num);
++    int64_t next_tick = qpc_now() + interval;
++    // A plain wait can oversleep by a whole 15.6 ms timer period; this timer is precise (Windows 10 1803+).
++    std::unique_ptr<void, decltype(&CloseHandle)> timer(
++        CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS), &CloseHandle);
 +
 +    for (;;) {
-+        int64_t now = qpc_now();
-+        if (ctx->next_tick == AV_NOPTS_VALUE)
-+            ctx->next_tick = now + interval;
-+
-+        if (now < ctx->next_tick) {
-+            std::unique_lock frame_lock(wgctx->frame_arrived_mutex);
-+            if (wgctx->window_closed && !wgctx->held_frame) {
-+                ff_outlink_set_status(outlink, AVERROR_EOF, ctx->last_pts - ctx->first_pts + 1);
-+                return 0;
++        for (int64_t now = qpc_now(); now < next_tick; now = qpc_now()) {
++            LARGE_INTEGER due;
++            due.QuadPart = -(next_tick - now); // relative, in 100 ns
++            if (timer.get() && SetWaitableTimer(timer.get(), &due, 0, NULL, NULL, FALSE)) {
++                WaitForSingleObject(timer.get(), INFINITE);
++            } else {
++                std::unique_lock lock(ctx->queue_mutex);
++                ctx->queue_cond.wait_for(lock, std::chrono::nanoseconds(due.QuadPart * -100));
 +            }
-+            wgctx->frame_arrived_cond.wait_for(frame_lock, std::chrono::nanoseconds((ctx->next_tick - now) * 100),
-+                                               [&]() { return wgctx->window_closed; });
-+            continue;
++            std::lock_guard lock(ctx->queue_mutex);
++            if (ctx->ticker_stop)
++                return;
++        }
++        {
++            std::lock_guard lock(ctx->queue_mutex);
++            if (ctx->ticker_stop)
++                return;
 +        }
 +
-+        int64_t tick = ctx->next_tick;
-+        ctx->next_tick += interval;
-+        if (ctx->next_tick <= now) // stalled: restart from now instead of bursting to catch up
-+            ctx->next_tick = now + interval;
++        int64_t tick = next_tick;
++        int64_t now = qpc_now();
++        next_tick += interval;
++        if (next_tick <= now) // stalled: restart from now instead of bursting to catch up
++            next_tick = now + interval;
 +
 +        AVFrame *frame = nullptr;
 +        int ret = grab_frame(outlink, &frame);
@@ -418,34 +487,82 @@ index ddc6a7d..026f986 100644
 +                continue; // nothing captured yet
 +            frame = av_frame_clone(ctx->last_frame);
 +            if (!frame)
-+                return AVERROR(ENOMEM);
-+            frame->pts = tick;
++                return ticker_push(ctx, nullptr, AVERROR(ENOMEM));
 +        } else if (ret < 0) {
-+            return ret;
++            return ticker_push(ctx, nullptr, ret);
 +        } else {
-+            if (!ctx->last_frame && !(ctx->last_frame = av_frame_alloc())) {
-+                av_frame_free(&frame);
-+                return AVERROR(ENOMEM);
-+            }
-+            ret = av_frame_replace(ctx->last_frame, frame);
++            if (!ctx->last_frame && !(ctx->last_frame = av_frame_alloc()))
++                ret = AVERROR(ENOMEM);
++            else
++                ret = av_frame_replace(ctx->last_frame, frame);
 +            if (ret < 0) {
 +                av_frame_free(&frame);
-+                return ret;
++                return ticker_push(ctx, nullptr, ret);
 +            }
 +        }
-+        return output_frame(outlink, frame);
++        // Stamp the tick, not the capture time: capture times wobble by up to a game frame around
++        // the ticks, and an fps filter downstream then drops one frame and repeats another
++        // (measured in game: 88 % -> 72 % new pictures). The tick is at most one frame later.
++        frame->pts = tick;
++        ticker_push(ctx, frame, 0);
 +    }
 +}
 +
- static int gfxcapture_activate(AVFilterContext *avctx)
++static int gfxcapture_activate_paced(AVFilterContext *avctx)
  {
      AVFilterLink *outlink = avctx->outputs[0];
-@@ -1475,6 +1643,9 @@ static int gfxcapture_activate(AVFilterContext *avctx)
+     GfxCaptureContext *cctx = CCTX(avctx->priv);
+     GfxCaptureContextCpp *ctx = cctx->ctx;
+     std::unique_ptr<GfxCaptureContextWgc> &wgctx = ctx->wgc;
+ 
++    if (!ctx->ticker.joinable())
++        ctx->ticker = std::thread(ticker_main, avctx);
++
++    AVFrame *frame = nullptr;
++    {
++        std::unique_lock lock(ctx->queue_mutex);
++        ctx->queue_cond.wait_for(lock, std::chrono::seconds(1),
++                                 [&]() { return !ctx->queue.empty() || ctx->ticker_err < 0; });
++        if (!ctx->queue.empty()) {
++            frame = ctx->queue.front();
++            ctx->queue.pop_front();
++        } else if (ctx->ticker_err < 0) {
++            return ctx->ticker_err;
++        }
++    }
++    if (frame)
++        return output_frame(outlink, frame);
++
+     std::lock_guard wgc_lock(ctx->wgc_thread_uninit_mutex);
+     if (!wgctx) {
+         av_log(avctx, AV_LOG_ERROR, "WGC thread not initialized\n");
+         return AVERROR(ENOSYS);
+     }
++    std::lock_guard frame_lock(wgctx->frame_arrived_mutex);
++    if (wgctx->window_closed && !wgctx->held_frame)
++        ff_outlink_set_status(outlink, AVERROR_EOF, ctx->last_pts - ctx->first_pts + 1);
++    return 0;
++}
++
++static int gfxcapture_activate(AVFilterContext *avctx)
++{
++    AVFilterLink *outlink = avctx->outputs[0];
++    GfxCaptureContext *cctx = CCTX(avctx->priv);
++    GfxCaptureContextCpp *ctx = cctx->ctx;
++    std::unique_ptr<GfxCaptureContextWgc> &wgctx = ctx->wgc;
+ 
      if (!ff_outlink_frame_wanted(outlink))
          return FFERROR_NOT_READY;
  
++    // The ticker thread takes wgc_thread_uninit_mutex for every frame, so don't hold it while waiting.
 +    if (cctx->output_rate.num > 0)
 +        return gfxcapture_activate_paced(avctx);
++
++    std::lock_guard wgc_lock(ctx->wgc_thread_uninit_mutex);
++    if (!wgctx) {
++        av_log(avctx, AV_LOG_ERROR, "WGC thread not initialized\n");
++        return AVERROR(ENOSYS);
++    }
 +
      for (;;) {
          uint64_t last_seq = wgctx->frame_seq;
