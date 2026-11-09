@@ -26,8 +26,8 @@ sealed class TrimTimeline : FrameworkElement
     }
 
     /// <summary>
-    /// Sound bars inside the bar: game (+ chat) loudness up from the middle, mic down; a single-track clip
-    /// fills both halves. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
+    /// Sound bars inside the bar: game (+ chat) loudness in the top lane, mic in the bottom one; a single-track
+    /// clip gets one lane. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
     /// </summary>
     public void SetLevels(float[]? game, float[]? mic, int perSecond)
     {
@@ -57,7 +57,7 @@ sealed class TrimTimeline : FrameworkElement
 
     const double MinLength = 0.5;
     const double Pad = 10;      // horizontal padding so handles at the ends stay grabbable
-    const double BarH = 34;
+    const double BarH = 44; // tall enough for two sound lanes
     const double MoveThreshold = 4; // px before a press inside the range becomes a move
     double _duration, _position, _in, _out;
     // PressRange: pressed inside a trimmed range; becomes Move once dragged, or a seek click on release.
@@ -128,26 +128,37 @@ sealed class TrimTimeline : FrameworkElement
         var sub = Res("Subtle");
         var gameBrush = Frozen(Color.FromArgb(0xc0, sub.R, sub.G, sub.B));
         var micBrush = Frozen(Color.FromArgb(0xe0, accent.R, accent.G, accent.B));
-        double mid = bar.Top + bar.Height / 2, half = bar.Height / 2 - 3;
+        // Two lanes, game (+ chat) on top and mic below, each growing up from its own baseline;
+        // a single-track clip gets one lane the full height.
+        const double Gap = 4, Edge = 3;
+        double laneH = _mic != null ? (bar.Height - 2 * Edge - Gap) / 2 : bar.Height - 2 * Edge;
+        double gameBase = bar.Top + Edge + laneH, micBase = gameBase + Gap + laneH;
         const double Step = 3, Width = 2;
 
-        // Loudest bucket under each bar, plus the slider gain, as a share of half the bar height.
+        // Loudest bucket under each bar, plus the slider gain, as a share of the lane height.
         double Level(float[] lv, double gain, double t0, double t1)
         {
             int a = (int)(t0 * _levelsPerSecond), b = Math.Max(a + 1, (int)Math.Ceiling(t1 * _levelsPerSecond));
             float max = float.MinValue;
             for (int i = Math.Max(0, a); i < Math.Min(lv.Length, b); i++) max = Math.Max(max, lv[i]);
             if (max == float.MinValue) return 0;
-            return Math.Clamp((max + gain - QuietDb) / (LoudDb - QuietDb), 0, 1) * half;
+            return Math.Clamp((max + gain - QuietDb) / (LoudDb - QuietDb), 0, 1) * laneH;
         }
 
+        if (_mic != null) // faint baselines so a silent mic still reads as its own lane
+        {
+            var line = Frozen(Color.FromArgb(0x30, sub.R, sub.G, sub.B));
+            dc.DrawRectangle(line, null, new Rect(bar.Left + 1, gameBase, bar.Width - 2, 1));
+            dc.DrawRectangle(line, null, new Rect(bar.Left + 1, micBase, bar.Width - 2, 1));
+        }
         for (double x = bar.Left + 1; x + Width <= bar.Right - 1; x += Step)
         {
             double t0 = T(x), t1 = T(x + Step);
-            double up = Level(_game, _gameGain, t0, t1);
-            double down = _mic != null ? Level(_mic, _micGain, t0, t1) : up;
-            if (up > 0.5) dc.DrawRectangle(gameBrush, null, new Rect(x, mid - up, Width, up));
-            if (down > 0.5) dc.DrawRectangle(_mic != null ? micBrush : gameBrush, null, new Rect(x, mid, Width, down));
+            double g = Level(_game, _gameGain, t0, t1);
+            if (g > 0.5) dc.DrawRectangle(gameBrush, null, new Rect(x, gameBase - g, Width, g));
+            if (_mic == null) continue;
+            double m = Level(_mic, _micGain, t0, t1);
+            if (m > 0.5) dc.DrawRectangle(micBrush, null, new Rect(x, micBase - m, Width, m));
         }
     }
 
