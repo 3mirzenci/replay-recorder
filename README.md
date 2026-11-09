@@ -104,13 +104,15 @@ The two numbers in a cell are the two matches. Matches vary by a few FPS on thei
 - **Game FPS:** with Replay Recorder the average was unchanged; the 1 % low matched the no-recorder match in one run and was lower in the other. With Moments, every save was followed a few seconds later by a lag spike in the game (37 out of 37 saves), and average FPS dropped by about 12, even in the match with only 13 saves. That many saves per match is more than most people make, so in everyday play Moments' penalty from its save spikes would be smaller.
 - **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
 - **CPU and encoder:** about the same.
-- **GPU:** Moments is lighter here. Replay Recorder captures the 144 Hz screen and scales 1440p down to 1080p on the GPU; making that cheaper is the next thing being worked on.
+- **GPU:** Moments was lighter in 1.0.8. Since 1.0.10 Replay Recorder records through its own small capture ffmpeg (see [How recording works](#how-recording-works)), and GPU use in the same game dropped from 4.1–4.6 % to **under 1 %** (one match measured).
+- **Smoothness:** in 1.0.10 about 90 % of a clip's frames are new pictures in a fast game, about the same as NVIDIA's own recorder (88 %). In 1.0.8 it was about half.
 
 This is one game on one PC, so your numbers will differ. To measure on your own PC, see [Measuring resource use](#measuring-resource-use).
 
 ## How recording works
 
 - Screen capture uses Windows Graphics Capture (or Desktop Duplication). The frames go straight into NVENC on the GPU. Nothing is injected into games, so it's safe with Vanguard and FACEIT.
+- On NVIDIA cards, recording runs through `capture\ffmpeg-capture.exe`, a small ffmpeg that comes with the app. It takes the newest screen picture on a steady clock at your frame rate, like a camera, and converts it to the encoder's colour format itself, which keeps clips smooth and the GPU nearly idle. If it can't start on your PC, the app quietly switches to the normal ffmpeg until it restarts.
 - The replay buffer is 2-second segments on disk. Old segments are deleted automatically. Saving joins them without re-encoding, which takes 1–2 s during a game; recording carries on meanwhile.
 - **RAM buffer** (Settings → Instant replay): the segments are kept in memory instead, so nothing is written to the SSD until you save. It costs about 250 MB of RAM for a 60-second buffer. Full recordings still go to disk, because they can be long.
 - **A short chime** plays when a clip is saved, and a lower one if saving failed, because the pop-up can't show over exclusive-fullscreen games. You can turn it off in Settings → General. The chime is quiet, but the recorder hears it, so it ends up faintly in the buffer after a save.
@@ -132,7 +134,7 @@ Setup needs no admin rights and installs to `%LOCALAPPDATA%\Programs\Replay Reco
 
 Uninstalling stops both apps and removes the autostart entry. Your clips and settings stay.
 
-Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer for Windows Graphics Capture (setup installs a current one). The .NET runtime is bundled.
+Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC, with a driver from 2023 or newer (531+) for the smooth capture (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer for Windows Graphics Capture (setup installs a current one). The .NET runtime is bundled.
 
 ## Build from source
 
@@ -147,9 +149,13 @@ Both apps build into `build\<Configuration>\`.
 To build the installer you also need Inno Setup 6 (`winget install JRSoftware.InnoSetup`):
 
 ```
-powershell -ExecutionPolicy Bypass -File build.ps1               # dist\ReplayRecorder-Setup.exe, ~57 MB
+powershell -ExecutionPolicy Bypass -File build.ps1               # dist\ReplayRecorder-Setup.exe, ~59 MB
 powershell -ExecutionPolicy Bypass -File build.ps1 -BundleTools  # offline installer with ffmpeg + mpv inside
 ```
+
+`build.ps1` includes `ffmpeg-capture.exe` if `ffmpeg/build.sh` built it first (in MSYS2 UCRT64 with gcc, make, nasm and git; the GitHub release workflow does this). Without it the app records with the normal ffmpeg.
+
+`ffmpeg-capture.exe` is FFmpeg 9.0.2 with [`ffmpeg/gfxcapture.patch`](ffmpeg/gfxcapture.patch), built with only LGPL parts. It's licensed under the LGPL 2.1 or later; its licence, the patch and a note on the source ship next to it in `capture\`.
 
 The offline installer contains ffmpeg, which is GPL-licensed. If you share it, include ffmpeg's licence (the build copies it to `ffmpeg\LICENSE.txt`) and point to ffmpeg's source at https://ffmpeg.org.
 
@@ -207,13 +213,13 @@ This logs Replay Recorder's and SteelSeries GG's CPU, RAM, GPU and encoder use e
 powershell -ExecutionPolicy Bypass -File tools\measure.ps1 -Seconds 600
 ```
 
-If you stop it early with Ctrl+C, `-Summarize` prints the summary of what was logged so far. To check a clip's smoothness, count the frames that differ from the one before:
+If you stop it early with Ctrl+C, `-Summarize` prints the summary of what was logged so far. To check a clip's smoothness, record while the camera keeps moving (standing still looks like repeated frames), then measure how much each frame differs from the one before:
 
 ```
-ffmpeg -i clip.mp4 -map 0:v -vf mpdecimate -f null -
+ffmpeg -i clip.mp4 -map 0:v -vf "scale=640:-2,format=gray,tblend=all_mode=difference,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=motion.txt" -f null -
 ```
 
-The last `frame=` number is the count of new frames; divide it by the clip's total frames.
+Each `YAVG` line in `motion.txt` is one frame. A value of 0.15 or more is a new picture; below that it's a repeat. Divide the new pictures by the total. (`mpdecimate` is no good for this: it counts small changes as repeats.)
 
 To log the game's FPS, run [PresentMon](https://github.com/GameTechDev/PresentMon) as administrator during the match, for example `PresentMon-2.6.0-x64.exe --process_name cod.exe --timed 600 --terminate_after_timed --output_file fps.csv`. The `MsBetweenPresents` column is the time of each frame.
 

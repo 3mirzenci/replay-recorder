@@ -78,6 +78,7 @@ sealed class ReplayEngine : IDisposable
     bool _ram;
     bool _wgc; // Settings.Capture, unless this ffmpeg is too old for it
     bool _paced; // WGC + NVENC through our own capture ffmpeg (Ffmpeg.CapturePath): paced, straight to NV12
+    static bool s_pacedBroken; // our capture ffmpeg failed at start on this PC: the normal ffmpeg until the app restarts
     byte[]? _tsHeader; // PAT + PMT packets, prepended when joining in-memory segments
 
     public ReplayEngine(Settings settings) => _s = settings;
@@ -107,7 +108,7 @@ sealed class ReplayEngine : IDisposable
 
         var encoder = ChooseEncoder(Display);
         _wgc = _s.Capture == CaptureMethod.Wgc;
-        _paced = _wgc && Ffmpeg.CapturePath != null && encoder.EndsWith("_nvenc");
+        _paced = _wgc && Ffmpeg.CapturePath != null && encoder.EndsWith("_nvenc") && !s_pacedBroken;
         if (_wgc && !_paced && !Ffmpeg.HasGfxCapture)
         {
             _wgc = false;
@@ -138,6 +139,8 @@ sealed class ReplayEngine : IDisposable
         var args = BuildArgs(Display, encoder);
         var exe = _paced ? Ffmpeg.CapturePath! : Ffmpeg.FfmpegPath;
         Log.Info($"Starting capture of {Display} with {encoder}, buffer in {(_ram ? "RAM" : "files")}");
+        // A muted or turned-down track looks exactly like a silent device in clips, so say which it is.
+        Log.Info($"PC audio {(_s.SystemAudioEnabled ? "on" : "OFF")} at {_s.SystemVolumeDb:+0;-0;0} dB, mic {(_s.MicEnabled ? "on" : "OFF")} at {_s.MicVolumeDb:+0;-0;0} dB");
         Log.Info(exe + " " + string.Join(' ', args.Select(a => a.Contains(' ') ? $"\"{a}\"" : a)));
 
         var psi = new ProcessStartInfo(exe)
@@ -160,6 +163,15 @@ sealed class ReplayEngine : IDisposable
             _ = Task.Run(() => RaiseGpuPriority(ff));
             _ = Task.Run(() => PumpStderr(ff));
             if (_ram) _ = Task.Run(() => PumpTs(ff));
+        }
+        catch (Exception ex) when (_paced)
+        {
+            // e.g. blocked by antivirus: record with the normal ffmpeg instead
+            Log.Warn($"Could not start {exe} ({ex.Message}); using the normal ffmpeg until the app restarts");
+            s_pacedBroken = true;
+            DisposeAudio();
+            StartCore();
+            return;
         }
         catch (Exception ex)
         {
@@ -222,6 +234,13 @@ sealed class ReplayEngine : IDisposable
         // Restart with backoff; give up after repeated immediate failures (bad settings).
         bool quickFail = DateTime.UtcNow - _lastStart < TimeSpan.FromSeconds(10);
         _restartCount = quickFail ? _restartCount + 1 : 0;
+        if (_paced && _restartCount >= 2)
+        {
+            // Twice at start in a row: our capture ffmpeg doesn't work on this PC (old driver, odd GPU setup)
+            Log.Warn("Our capture ffmpeg failed twice at start; using the normal ffmpeg until the app restarts");
+            s_pacedBroken = true;
+            _restartCount = 0;
+        }
         int gen = Volatile.Read(ref _generation);
         ThreadPool.QueueUserWorkItem(_ =>
         {
