@@ -32,9 +32,10 @@ sealed class TrimTimeline : FrameworkElement
     public void SetLevels(float[]? game, float[]? mic, int perSecond)
     {
         _game = game; _mic = mic; _levelsPerSecond = perSecond;
-        // Each bar is scaled to its own clip: the loudest moment fills it. A silent track stays empty.
-        _gameTop = game is { Length: > 0 } ? Math.Max(game.Max(), -40) : 0;
-        _micTop = mic is { Length: > 0 } ? Math.Max(mic.Max(), -40) : 0;
+        // Each bar is scaled to its own clip (its loudest moment fills it), but only sound at least FullDb loud
+        // can fill it: keyboard clicks on a mic (around -45 dB) stay small instead of looking like talk (-10 dB).
+        _gameTop = game is { Length: > 0 } ? Math.Max(game.Max(), FullDb) : 0;
+        _micTop = mic is { Length: > 0 } ? Math.Max(mic.Max(), FullDb) : 0;
         InvalidateVisual();
     }
 
@@ -50,6 +51,7 @@ sealed class TrimTimeline : FrameworkElement
     double _gameGain, _micGain;
     double _gameTop, _micTop; // loudest level of each track (dBFS)
     const double RangeDb = 30; // a bar is empty this far below its track's loudest moment
+    const double FullDb = -20; // quietest level that can still fill a bar
 
     /// <summary>User asked to seek (seconds).</summary>
     public event Action<double>? SeekRequested;
