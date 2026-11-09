@@ -1,10 +1,12 @@
 # Builds the installer on GitHub and publishes the release when release.ps1 pushes a version tag.
 # The tag's message holds the release notes (the in-app "What's new" window shows them).
+# A push to a claude/* or test/* branch runs the same build as a test and keeps the installer as an artifact.
 name: Release
 
 on:
   push:
     tags: ['v*']
+    branches: ['claude/**', 'test/**']
 
 permissions:
   contents: write
@@ -38,9 +40,19 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        run: ./build.ps1 -Version ('${{ github.ref_name }}'.TrimStart('v'))
+        run: ./build.ps1 -Version ('${{ github.ref_type }}' -eq 'tag' ? '${{ github.ref_name }}'.TrimStart('v') : '')
+
+      - name: Keep test installer
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-build
+          path: |
+            dist/ReplayRecorder-Setup.exe
+            ffmpeg/.work/out/ffmpeg-capture.exe
 
       - name: Publish release
+        if: github.ref_type == 'tag'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
