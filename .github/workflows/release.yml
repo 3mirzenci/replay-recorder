@@ -35,6 +35,13 @@ jobs:
         shell: msys2 {0}
         run: sh ffmpeg/build.sh "$(pwd)/ffmpeg/.work"
 
+      # Our patch must be in it (output_rate, nv12); a build without it would quietly record the old way.
+      - name: Check ffmpeg-capture
+        shell: msys2 {0}
+        run: |
+          help=$(ffmpeg/.work/out/ffmpeg-capture.exe -hide_banner -h filter=gfxcapture)
+          echo "$help" | grep -q output_rate && echo "$help" | grep -q nv12 || { echo "ffmpeg-capture lacks the gfxcapture patch"; exit 1; }
+
       - name: Run tests
         run: dotnet test tests/ReplayRecorder.Tests -c Release
 

@@ -30,6 +30,8 @@ $capture = Join-Path $PSScriptRoot "ffmpeg\.work\out"
 if (Test-Path "$capture\ffmpeg-capture.exe") {
     New-Item -ItemType Directory -Force "$app\capture" | Out-Null
     Copy-Item "$capture\*" "$app\capture"
+} elseif ($env:GITHUB_ACTIONS) {
+    throw "ffmpeg\.work\out\ffmpeg-capture.exe not found: a release must include it"
 } else {
     Write-Warning "ffmpeg\.work\out\ffmpeg-capture.exe not found (run: sh ffmpeg/build.sh); recording will use the normal ffmpeg"
 }
