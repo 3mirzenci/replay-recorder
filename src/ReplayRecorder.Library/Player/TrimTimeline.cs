@@ -25,6 +25,29 @@ sealed class TrimTimeline : FrameworkElement
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// Sound bars inside the bar: game (+ chat) loudness up from the middle, mic down; a single-track clip
+    /// fills both halves. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
+    /// </summary>
+    public void SetLevels(float[]? game, float[]? mic, int perSecond)
+    {
+        _game = game; _mic = mic; _levelsPerSecond = perSecond;
+        InvalidateVisual();
+    }
+
+    /// <summary>The mix sliders' gains (dB), so the bars show what you'll hear.</summary>
+    public void SetGains(double gameDb, double micDb)
+    {
+        _gameGain = gameDb; _micGain = micDb;
+        InvalidateVisual();
+    }
+
+    float[]? _game, _mic;
+    int _levelsPerSecond = 10;
+    double _gameGain, _micGain;
+    // Bar scale in dBFS RMS: game sits around -30 to -10 in loud games, talking around -40 to -30.
+    const double QuietDb = -50, LoudDb = -10;
+
     /// <summary>User asked to seek (seconds).</summary>
     public event Action<double>? SeekRequested;
     /// <summary>Trim range is changing during a drag (in, out).</summary>
@@ -69,6 +92,7 @@ sealed class TrimTimeline : FrameworkElement
         if (_duration <= 0) return;
 
         var accent = Res("Accent");
+        DrawLevels(dc, bar, accent);
         var bg = Res("Bg");
         var Range = Frozen(Color.FromArgb(0x50, accent.R, accent.G, accent.B));
         var Dim = Frozen(Color.FromArgb(0xb0, bg.R, bg.G, bg.B));
@@ -96,6 +120,35 @@ sealed class TrimTimeline : FrameworkElement
         // Playhead.
         double xp = X(Math.Clamp(_position, 0, _duration));
         dc.DrawRectangle(Head, null, new Rect(xp - 1, top - 3, 2, BarH + 6));
+    }
+
+    void DrawLevels(DrawingContext dc, Rect bar, Color accent)
+    {
+        if (_game == null || bar.Width < 10) return;
+        var sub = Res("Subtle");
+        var gameBrush = Frozen(Color.FromArgb(0xc0, sub.R, sub.G, sub.B));
+        var micBrush = Frozen(Color.FromArgb(0xe0, accent.R, accent.G, accent.B));
+        double mid = bar.Top + bar.Height / 2, half = bar.Height / 2 - 3;
+        const double Step = 3, Width = 2;
+
+        // Loudest bucket under each bar, plus the slider gain, as a share of half the bar height.
+        double Level(float[] lv, double gain, double t0, double t1)
+        {
+            int a = (int)(t0 * _levelsPerSecond), b = Math.Max(a + 1, (int)Math.Ceiling(t1 * _levelsPerSecond));
+            float max = float.MinValue;
+            for (int i = Math.Max(0, a); i < Math.Min(lv.Length, b); i++) max = Math.Max(max, lv[i]);
+            if (max == float.MinValue) return 0;
+            return Math.Clamp((max + gain - QuietDb) / (LoudDb - QuietDb), 0, 1) * half;
+        }
+
+        for (double x = bar.Left + 1; x + Width <= bar.Right - 1; x += Step)
+        {
+            double t0 = T(x), t1 = T(x + Step);
+            double up = Level(_game, _gameGain, t0, t1);
+            double down = _mic != null ? Level(_mic, _micGain, t0, t1) : up;
+            if (up > 0.5) dc.DrawRectangle(gameBrush, null, new Rect(x, mid - up, Width, up));
+            if (down > 0.5) dc.DrawRectangle(_mic != null ? micBrush : gameBrush, null, new Rect(x, mid, Width, down));
+        }
     }
 
     static void DrawHandle(DrawingContext dc, Pen pen, double x, bool left)

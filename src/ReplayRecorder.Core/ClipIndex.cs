@@ -200,6 +200,129 @@ public sealed class ClipIndex
         finally { _storyboardGate.Release(); }
     }
 
+    public const int LevelsPerSecond = 10;
+
+    /// <summary>
+    /// Loudness of the game (+ chat) and mic tracks for the player's sound bars: RMS in dBFS,
+    /// <see cref="LevelsPerSecond"/> values a second. Mic is null for single-track clips. Made once, then cached.
+    /// </summary>
+    public async Task<(float[] Game, float[]? Mic)?> EnsureLevelsAsync(ClipInfo c, CancellationToken ct = default)
+    {
+        if (Ffmpeg.FfmpegPath == null || c.AudioTracks == 0) return null;
+        var fi = new FileInfo(c.Path);
+        if (!fi.Exists) return null;
+        var file = ThumbFile(fi)[..^4] + "_lv.bin";
+        if (TryReadLevels(file) is { } cached) return cached;
+        await _levelsGate.WaitAsync(ct);
+        try
+        {
+            if (TryReadLevels(file) is { } again) return again;
+            const string Mono = "aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=mono";
+            var tracks = c.SeparateTracks;
+            var args = new List<string> { "-hide_banner", "-loglevel", "error", "-i", c.Path, "-vn" };
+            if (tracks is var (g, m))
+                args.AddRange(new[] { "-filter_complex", $"[0:a:{g}]{Mono}[g];[0:a:{m}]{Mono}[m];[g][m]amerge=inputs=2[out]", "-map", "[out]" });
+            else
+                args.AddRange(new[] { "-map", "0:a:0", "-af", Mono });
+            args.AddRange(new[] { "-f", "f32le", "-" });
+
+            var (game, mic) = await ReadLevels(args, tracks != null ? 2 : 1, ct);
+            if (game == null) return null;
+            Directory.CreateDirectory(Paths.ThumbFolder);
+            using (var w = new BinaryWriter(File.Create(file)))
+            {
+                w.Write(game.Length); w.Write(mic != null);
+                foreach (var v in game) w.Write(v);
+                if (mic != null) foreach (var v in mic) w.Write(v);
+            }
+            return (game, mic);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { Log.Warn($"Sound levels failed for {c.Path}: {ex.Message}"); return null; }
+        finally { _levelsGate.Release(); }
+    }
+
+    readonly SemaphoreSlim _levelsGate = new(1);
+
+    static (float[] Game, float[]? Mic)? TryReadLevels(string file)
+    {
+        try
+        {
+            if (!File.Exists(file)) return null;
+            using var r = new BinaryReader(File.OpenRead(file));
+            int n = r.ReadInt32(); bool hasMic = r.ReadBoolean();
+            var game = new float[n]; for (int i = 0; i < n; i++) game[i] = r.ReadSingle();
+            float[]? mic = null;
+            if (hasMic) { mic = new float[n]; for (int i = 0; i < n; i++) mic[i] = r.ReadSingle(); }
+            return (game, mic);
+        }
+        catch { return null; } // half-written or old format: made again
+    }
+
+    /// <summary>Runs ffmpeg writing 48 kHz float samples (1 or 2 interleaved channels) to stdout; RMS per bucket in dB.</summary>
+    static async Task<(float[]? Game, float[]? Mic)> ReadLevels(List<string> args, int channels, CancellationToken ct)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo(Ffmpeg.FfmpegPath!)
+        {
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
+        };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+        using var p = System.Diagnostics.Process.Start(psi)!;
+        ChildProcesses.Track(p);
+        using var kill = ct.Register(() => { try { p.Kill(); } catch { } });
+        _ = p.StandardError.ReadToEndAsync(ct);
+
+        var acc = new LevelAccumulator(channels, 48000 / LevelsPerSecond);
+        var buf = new byte[1 << 16];
+        int carry = 0; // bytes of an incomplete float left from the last read
+        var stream = p.StandardOutput.BaseStream;
+        for (int n; (n = await stream.ReadAsync(buf.AsMemory(carry, buf.Length - carry), ct)) > 0;)
+        {
+            int total = carry + n, whole = total / 4 * 4;
+            acc.Add(System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(buf.AsSpan(0, whole)));
+            carry = total - whole;
+            if (carry > 0) Buffer.BlockCopy(buf, whole, buf, 0, carry);
+        }
+        await p.WaitForExitAsync(ct);
+        if (p.ExitCode != 0) return (null, null);
+        var lanes = acc.Finish();
+        return (lanes[0], channels > 1 ? lanes[1] : null);
+    }
+
+    /// <summary>Interleaved samples in, one RMS level (dBFS) per channel per bucket out.</summary>
+    public sealed class LevelAccumulator(int channels, int bucketFrames)
+    {
+        readonly List<float>[] _lanes = Enumerable.Range(0, channels).Select(_ => new List<float>()).ToArray();
+        readonly double[] _sum = new double[channels];
+        int _frames, _ch; // frames in the current bucket; channel of the next sample
+
+        public void Add(ReadOnlySpan<float> samples)
+        {
+            foreach (var s in samples)
+            {
+                _sum[_ch] += s * s;
+                if (++_ch < channels) continue;
+                _ch = 0;
+                if (++_frames == bucketFrames) Flush();
+            }
+        }
+
+        public float[][] Finish()
+        {
+            if (_frames > 0) Flush();
+            return _lanes.Select(l => l.ToArray()).ToArray();
+        }
+
+        void Flush()
+        {
+            for (int c = 0; c < channels; c++)
+            {
+                _lanes[c].Add((float)(10 * Math.Log10(Math.Max(_sum[c] / _frames, 1e-10))));
+                _sum[c] = 0;
+            }
+            _frames = 0;
+        }
+    }
+
     /// <summary>
     /// Deletes thumbnails and hover strips whose clip is gone (deleted, renamed or moved): they're
     /// keyed by path, size and date, so nothing else ever removes them.

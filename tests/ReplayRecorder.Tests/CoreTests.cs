@@ -120,3 +120,28 @@ public class SettingsTests
         Assert.Equal(expected, Paths.SafeName(game));
     }
 }
+
+public class SoundLevelTests
+{
+    [Fact]
+    public void LevelsPerChannelPerBucket()
+    {
+        // Left: a full-scale square wave (0 dBFS RMS); right: half amplitude (about -6 dB). 2.5 buckets of 4 frames.
+        var acc = new ReplayRecorder.Core.ClipIndex.LevelAccumulator(2, 4);
+        var s = Enumerable.Range(0, 10).SelectMany(i => new[] { i % 2 == 0 ? 1f : -1f, 0.5f }).ToArray();
+        acc.Add(s.AsSpan(0, 7)); // split mid-frame, as reads from a pipe are
+        acc.Add(s.AsSpan(7));
+        var lanes = acc.Finish();
+        Assert.Equal(3, lanes[0].Length); // the last half bucket counts too
+        Assert.All(lanes[0], v => Assert.Equal(0, v, 3));
+        Assert.All(lanes[1], v => Assert.Equal(-6.02, v, 2));
+    }
+
+    [Fact]
+    public void SilenceIsVeryQuietNotInfinite()
+    {
+        var acc = new ReplayRecorder.Core.ClipIndex.LevelAccumulator(1, 4);
+        acc.Add(new float[4]);
+        Assert.Equal(-100, acc.Finish()[0][0], 3);
+    }
+}

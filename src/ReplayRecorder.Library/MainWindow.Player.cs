@@ -41,6 +41,9 @@ public partial class MainWindow
 
         Timeline.SetClip(c.Duration, _edit.In, _edit.EffectiveOut(c.Duration));
         Timeline.Position = 0;
+        Timeline.SetLevels(null, null, ClipIndex.LevelsPerSecond);
+        Timeline.SetGains(tracks != null ? GameVol.Value : 0, MicVol.Value);
+        _ = LoadLevels(c);
         UpdateTrimText();
         UpdateTimeText(0);
 
@@ -48,6 +51,16 @@ public partial class MainWindow
         _mpv!.SetLoop(null, null);
         _mpv.Load(c.Path, AudioGraph());
         Focus();
+    }
+
+    async Task LoadLevels(ClipItem c)
+    {
+        try
+        {
+            var levels = await _index.EnsureLevelsAsync(c.Clip, _cts.Token);
+            if (levels is var (game, mic) && _current == c) Timeline.SetLevels(game, mic, ClipIndex.LevelsPerSecond);
+        }
+        catch (OperationCanceledException) { }
     }
 
     bool EnsurePlayer()
@@ -292,6 +305,7 @@ public partial class MainWindow
         if (_current == null) return;
         _edit.GameVolumeDb = GameVol.Value;
         _edit.MicVolumeDb = MicVol.Value;
+        Timeline.SetGains(GameVol.Value, MicVol.Value);
         ClipEdits.Set(_current.Path, _edit);
         _mixDebounce.Stop(); _mixDebounce.Start();
     }
