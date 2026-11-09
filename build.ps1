@@ -27,11 +27,11 @@ Copy-Item README.md $app
 
 # Our capture ffmpeg (ffmpeg/build.sh), if it was built: the recorder uses it for WGC + NVENC.
 $capture = Join-Path $PSScriptRoot "ffmpeg\.work\out"
-if (Test-Path "$capturefmpeg-capture.exe") {
+if (Test-Path "$capture\ffmpeg-capture.exe") {
     New-Item -ItemType Directory -Force "$app\capture" | Out-Null
     Copy-Item "$capture\*" "$app\capture"
 } else {
-    Write-Warning "ffmpeg\.work\outfmpeg-capture.exe not found (run: sh ffmpeg/build.sh); recording will use the normal ffmpeg"
+    Write-Warning "ffmpeg\.work\out\ffmpeg-capture.exe not found (run: sh ffmpeg/build.sh); recording will use the normal ffmpeg"
 }
 
 if ($BundleTools) {
