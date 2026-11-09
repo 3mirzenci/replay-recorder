@@ -32,6 +32,9 @@ sealed class TrimTimeline : FrameworkElement
     public void SetLevels(float[]? game, float[]? mic, int perSecond)
     {
         _game = game; _mic = mic; _levelsPerSecond = perSecond;
+        // Each bar is scaled to its own clip: the loudest moment fills it. A silent track stays empty.
+        _gameTop = game is { Length: > 0 } ? Math.Max(game.Max(), -40) : 0;
+        _micTop = mic is { Length: > 0 } ? Math.Max(mic.Max(), -40) : 0;
         InvalidateVisual();
     }
 
@@ -45,8 +48,8 @@ sealed class TrimTimeline : FrameworkElement
     float[]? _game, _mic;
     int _levelsPerSecond = 10;
     double _gameGain, _micGain;
-    // Bar scale in dBFS RMS: game sits around -30 to -10 in loud games, talking around -40 to -30.
-    const double QuietDb = -50, LoudDb = -10;
+    double _gameTop, _micTop; // loudest level of each track (dBFS)
+    const double RangeDb = 30; // a bar is empty this far below its track's loudest moment
 
     /// <summary>User asked to seek (seconds).</summary>
     public event Action<double>? SeekRequested;
@@ -104,17 +107,18 @@ sealed class TrimTimeline : FrameworkElement
 
         var accent = Res("Accent");
         var sub = Res("Subtle");
-        DrawLevels(dc, strips[0], _game, _gameGain, Frozen(Color.FromArgb(0xc0, sub.R, sub.G, sub.B)));
-        if (strips.Length > 1) DrawLevels(dc, strips[1], _mic, _micGain, Frozen(Color.FromArgb(0xe0, accent.R, accent.G, accent.B)));
-
         var bg = Res("Bg");
-        var Range = Frozen(Color.FromArgb(0x50, accent.R, accent.G, accent.B));
+        var Range = Frozen(Color.FromArgb(0x38, accent.R, accent.G, accent.B));
         var Dim = Frozen(Color.FromArgb(0xb0, bg.R, bg.G, bg.B));
         var handlePen = FrozenPen(accent, 3);
         double xi = X(_in), xo = X(_out);
+        // The kept range is tinted only once you've trimmed; the sound bars go on top of it, the dimming over them.
+        if (IsTrimmed)
+            foreach (var s in strips) dc.DrawRectangle(Range, null, new Rect(xi, s.Top, Math.Max(0, xo - xi), s.Height));
+        DrawLevels(dc, strips[0], _game, _gameGain + RangeDb - _gameTop, Frozen(Color.FromArgb(0xd0, sub.R, sub.G, sub.B)));
+        if (strips.Length > 1) DrawLevels(dc, strips[1], _mic, _micGain + RangeDb - _micTop, Frozen(accent));
         foreach (var s in strips)
         {
-            dc.DrawRectangle(Range, null, new Rect(xi, s.Top, Math.Max(0, xo - xi), s.Height));
             dc.DrawRectangle(Dim, null, new Rect(Pad, s.Top, Math.Max(0, xi - Pad), s.Height));
             dc.DrawRectangle(Dim, null, new Rect(xo, s.Top, Math.Max(0, w - Pad - xo), s.Height));
         }
@@ -139,20 +143,23 @@ sealed class TrimTimeline : FrameworkElement
         dc.DrawRectangle(Head, null, new Rect(xp - 1, top - 3, 2, BarH + 6));
     }
 
-    /// <summary>One sound bar: the loudest moment under each column, plus the slider gain, growing up from the bottom.</summary>
-    void DrawLevels(DrawingContext dc, Rect strip, float[]? lv, double gain, Brush brush)
+    /// <summary>
+    /// One sound bar: the loudest moment under each column, centred. <paramref name="shift"/> (dB) maps the
+    /// track's loudest moment, at slider 0, to full height.
+    /// </summary>
+    void DrawLevels(DrawingContext dc, Rect strip, float[]? lv, double shift, Brush brush)
     {
         if (lv == null || strip.Width < 10) return;
-        const double Edge = 3, Step = 3, Width = 2;
-        double baseY = strip.Bottom - Edge, maxH = strip.Height - 2 * Edge;
-        for (double x = strip.Left + 2; x + Width <= strip.Right - 2; x += Step)
+        const double Edge = 4, Step = 4, Width = 2.5;
+        double mid = strip.Top + strip.Height / 2, maxH = strip.Height - 2 * Edge;
+        for (double x = strip.Left + 3; x + Width <= strip.Right - 3; x += Step)
         {
             int a = (int)(T(x) * _levelsPerSecond), b = Math.Max(a + 1, (int)Math.Ceiling(T(x + Step) * _levelsPerSecond));
             float max = float.MinValue;
             for (int i = Math.Max(0, a); i < Math.Min(lv.Length, b); i++) max = Math.Max(max, lv[i]);
             if (max == float.MinValue) continue;
-            double h = Math.Clamp((max + gain - QuietDb) / (LoudDb - QuietDb), 0, 1) * maxH;
-            if (h > 0.5) dc.DrawRectangle(brush, null, new Rect(x, baseY - h, Width, h));
+            double h = Math.Clamp((max + shift) / RangeDb, 0, 1) * maxH;
+            if (h >= 1) dc.DrawRoundedRectangle(brush, null, new Rect(x, mid - h / 2, Width, h), Width / 2, Width / 2);
         }
     }
 
