@@ -461,8 +461,34 @@ public partial class MainWindow : Window
     ScrollViewer? _gridScroll;
 
     /// <summary>Cards fill the width: as many columns of 260 px or more as fit, 18 px apart (each card carries its gap).</summary>
+    // While the user drags a window edge the width changes every pixel, and refitting every card each time
+    // made side resizing stutter; refit a few times a second instead, and exactly once when the drag ends.
+    bool _sizing;
+    DispatcherTimer? _fitTimer;
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(this).Handle).AddHook(SizingHook);
+    }
+
+    IntPtr SizingHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_ENTERSIZEMOVE = 0x0231, WM_EXITSIZEMOVE = 0x0232;
+        if (msg == WM_ENTERSIZEMOVE) _sizing = true;
+        else if (msg == WM_EXITSIZEMOVE) { _sizing = false; _fitTimer?.Stop(); FitGrid(); }
+        return IntPtr.Zero;
+    }
+
     void FitGrid(bool force = false)
     {
+        if (_sizing && !force)
+        {
+            _fitTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background,
+                (_, _) => { _fitTimer!.Stop(); _sizing = false; FitGrid(); _sizing = true; }, Dispatcher);
+            if (!_fitTimer.IsEnabled) _fitTimer.Start();
+            return;
+        }
         // The width the cards really get: the first day's panel (every day's is as wide).
         if (FindChild<WrapPanel>(ClipGrid) is not { ActualWidth: > 0 } panel) return;
         const double gap = 18, min = 260;
