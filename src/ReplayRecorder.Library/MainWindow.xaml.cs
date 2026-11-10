@@ -62,7 +62,8 @@ public partial class MainWindow : Window
         Loaded += (_, _) => LoadLibrary();
         // Scrolling, resizing and filtering all change the scroll extent/offset: recheck which cards are near the viewport.
         ClipGrid.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler((_, _) => ScheduleViewUpdate()));
-        Closing += (_, _) => Shutdown();
+        Closing += (_, _) => { FinishPendingDelete(); Shutdown(); };
+        _undoTimer.Tick += (_, _) => FinishPendingDelete();
         PreviewKeyDown += OnPreviewKeyDown;
     }
 
@@ -129,7 +130,7 @@ public partial class MainWindow : Window
 
         foreach (var gone in _items.Where(i => !diskPaths.Contains(i.Path)).ToList())
             _items.Remove(gone);
-        var added = onDisk.Where(c => !known.ContainsKey(c.Path)).Select(c => new ClipItem(c)).ToList();
+        var added = onDisk.Where(c => !known.ContainsKey(c.Path) && !IsPendingDelete(c.Path)).Select(c => new ClipItem(c)).ToList();
         foreach (var a in added) _items.Add(a);
         RefreshSidebar();
         if (added.Count > 0) _ = FillMetadataAsync(added);
@@ -539,25 +540,56 @@ public partial class MainWindow : Window
             (clips.Count == 1 ? "Delete clip" : "Delete clips").T(), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
         if (r != MessageBoxResult.OK) return;
 
-        var open = _current != null && clips.Contains(_current) ? _current : null;
-        if (open != null) CloseClip(); // mpv must release the file first
-        var failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        FinishPendingDelete(); // an earlier batch still waiting goes now
+        if (_current != null && clips.Contains(_current)) CloseClip(); // mpv must release the file first
+        // Hidden at once; the files only go when the Undo bar runs out (or the library closes).
+        foreach (var c in clips) _items.Remove(c);
+        _pendingDelete = clips;
+        RefreshSidebar();
+        UndoText.Text = clips.Count == 1 ? "Deleted {0}".T(clips[0].Title) : "Deleted {0} clips".T(clips.Count);
+        UndoBar.Visibility = Visibility.Visible;
+        _undoTimer.Stop();
+        _undoTimer.Start();
+    }
+
+    List<ClipItem>? _pendingDelete;
+    readonly DispatcherTimer _undoTimer = new() { Interval = TimeSpan.FromSeconds(10) };
+
+    bool IsPendingDelete(string path) => _pendingDelete?.Any(c => string.Equals(c.Path, path, StringComparison.OrdinalIgnoreCase)) == true;
+
+    void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        _undoTimer.Stop();
+        UndoBar.Visibility = Visibility.Collapsed;
+        if (_pendingDelete is not { } clips) return;
+        _pendingDelete = null;
+        foreach (var c in clips) _items.Add(c); // the view sorts them back into place
+        RefreshSidebar();
+        Log.Info($"Undid deleting {clips.Count} clip(s)");
+    }
+
+    /// <summary>Deletes the clips waiting behind the Undo bar, for good.</summary>
+    void FinishPendingDelete()
+    {
+        _undoTimer.Stop();
+        UndoBar.Visibility = Visibility.Collapsed;
+        if (_pendingDelete is not { } clips) return;
+        _pendingDelete = null;
+        var failed = new List<ClipItem>();
         foreach (var c in clips)
         {
             try { File.Delete(c.Path); }
-            catch (Exception ex) { failed.Add(c.Path); Log.Warn($"Delete failed for {c.Path}: {ex.Message}"); continue; }
-            _items.Remove(c);
+            catch (Exception ex) { failed.Add(c); Log.Warn($"Delete failed for {c.Path}: {ex.Message}"); continue; }
             ClipEdits.Remove(c.Path);
             Log.Info($"Deleted: {c.Path}");
         }
-        RefreshSidebar();
         _ = Task.Run(_index.CleanupThumbnails);
-        if (failed.Count > 0)
-        {
+        if (failed.Count == 0) return;
+        foreach (var c in failed) _items.Add(c); // still on disk: show them again
+        RefreshSidebar();
+        if (IsVisible)
             MessageBox.Show(this, (failed.Count == 1 ? "Couldn't delete 1 clip (open in another app?)." : "Couldn't delete {0} clips (open in another app?).").T(failed.Count),
                 "Delete clips".T(), MessageBoxButton.OK, MessageBoxImage.Warning);
-            if (open != null && failed.Contains(open.Path)) OpenClip(open);
-        }
     }
 
     // ================================================================== updates

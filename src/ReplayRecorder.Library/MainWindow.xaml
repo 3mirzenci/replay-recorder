@@ -564,5 +564,15 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- ================= Undo after delete ================= -->
+        <Border x:Name="UndoBar" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
+                Padding="16,8,8,8" CornerRadius="8" Background="{DynamicResource CardHover}">
+            <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.4"/></Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="UndoText" VerticalAlignment="Center" FontSize="13"/>
+                <Button Content="Undo" Click="Undo_Click" Style="{StaticResource AccentBtn}" Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
