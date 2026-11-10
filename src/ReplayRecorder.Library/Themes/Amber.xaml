@@ -36,6 +36,8 @@
     <SolidColorBrush x:Key="PanelBg" Color="#181B22"/>
     <CornerRadius x:Key="PanelRadius">8</CornerRadius>
     <CornerRadius x:Key="ButtonRadius">6</CornerRadius>
+    <!-- Tabs are 26 px tall: half of that makes a pill -->
+    <CornerRadius x:Key="TabRadius">5</CornerRadius>
     <CornerRadius x:Key="ThumbRadius">7</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0</sys:Double>
     <sys:Double x:Key="HaloOpacity">0</sys:Double>

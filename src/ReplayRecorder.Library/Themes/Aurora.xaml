@@ -38,6 +38,8 @@
     <CornerRadius x:Key="PanelRadius">0</CornerRadius>
     <!-- Half a control's height: WPF draws larger radii as an ellipse, not a pill -->
     <CornerRadius x:Key="ButtonRadius">16</CornerRadius>
+    <!-- Tabs are 26 px tall: half of that makes a pill -->
+    <CornerRadius x:Key="TabRadius">13</CornerRadius>
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0.10</sys:Double>
     <sys:Double x:Key="HaloOpacity">0.30</sys:Double>

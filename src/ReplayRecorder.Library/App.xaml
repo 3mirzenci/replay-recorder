@@ -76,7 +76,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ButtonRadius}" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource TabRadius}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <!-- Blocks the app-wide text style, so the label takes the tab's grey/white -->
                                 <ContentPresenter.Resources><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="{DynamicResource BodyFont}"/></Style></ContentPresenter.Resources>

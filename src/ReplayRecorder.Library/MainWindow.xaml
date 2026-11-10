@@ -169,9 +169,9 @@
                     <DockPanel Margin="22,22,22,0">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
                             <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Margin="4,0,0,0" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Margin="4,0,0,0" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Margin="4,0,0,0" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="36" FontWeight="SemiBold"
