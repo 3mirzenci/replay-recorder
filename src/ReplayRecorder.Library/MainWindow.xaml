@@ -522,10 +522,11 @@
                         <TextBlock Text="Delete" Foreground="{DynamicResource Danger}"/>
                     </Button>
                 </StackPanel>
-                <StackPanel Margin="18,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12.5" Margin="0,1,0,0"/>
-                </StackPanel>
+                <!-- Title, then length · size · quality on the same baseline (like "All clips  84 clips · 16,4 GB") -->
+                <TextBlock Margin="18,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                    <Run x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="SemiBold"/><Run
+                         Text="   " FontSize="13"/><Run x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="13"/>
+                </TextBlock>
             </DockPanel>
 
             <!-- Video -->
