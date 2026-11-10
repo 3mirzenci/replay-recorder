@@ -43,6 +43,12 @@
     <!-- Tabs are 26 px tall: half of that makes a pill -->
     <CornerRadius x:Key="TabRadius">13</CornerRadius>
     <!-- Sticky day header: no box; the clips fade out under it instead (StickyFade masks the list) -->
+    <!-- Settings: no group boxes; rows split by faint lines; the page list is pills -->
+    <SolidColorBrush x:Key="SettingsGroupBg" Color="Transparent"/>
+    <Thickness x:Key="SettingsGroupPad">0</Thickness>
+    <Thickness x:Key="SettingsRowPad">0,12</Thickness>
+    <SolidColorBrush x:Key="SettingsRowLine" Color="#14FFFFFF"/>
+    <CornerRadius x:Key="NavRadius">19</CornerRadius>
     <SolidColorBrush x:Key="StickyBg" Color="Transparent"/>
     <SolidColorBrush x:Key="StickyLine" Color="Transparent"/>
     <!-- Its presence turns the fade on (MainWindow.StickyFade builds it): clips fully visible from StickyFadeStart px

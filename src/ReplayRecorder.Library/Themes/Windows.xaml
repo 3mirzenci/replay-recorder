@@ -41,6 +41,12 @@
     <!-- Tabs are 26 px tall: half of that makes a pill -->
     <CornerRadius x:Key="TabRadius">5</CornerRadius>
     <!-- Sticky day header: a box, as before -->
+    <!-- Settings: boxed groups as before -->
+    <SolidColorBrush x:Key="SettingsGroupBg" Color="#252527"/>
+    <Thickness x:Key="SettingsGroupPad">20,8</Thickness>
+    <Thickness x:Key="SettingsRowPad">0,9</Thickness>
+    <SolidColorBrush x:Key="SettingsRowLine" Color="Transparent"/>
+    <CornerRadius x:Key="NavRadius">6</CornerRadius>
     <SolidColorBrush x:Key="StickyBg" Color="#1A1A1C"/>
     <SolidColorBrush x:Key="StickyLine" Color="#343437"/>
     <!-- Library top row: Aurora has no box, so it sits closer to the window top as in the mock-up -->

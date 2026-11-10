@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurora Settings</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+/* Aurora Settings sketch: same tokens as mockup.html. Every setting the app has today, on six pages. */
+:root{color-scheme:dark;--accent:#FFC21A;--on:#141210;--gs:10%;
+--page:#0E0E0F;--bg:#070708;--text:#F2F2F3;--sub:#A3A3A8;--faint:#85858B;--glass:rgba(255,255,255,.06);--glass2:rgba(255,255,255,.1);--line:rgba(255,255,255,.08);--edge:#262628;
+--good:#3EDC6E;--warn:#FFB547;--discord:#7B86FF;--game:#B9B9C0;
+--ui:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;--disp:Bahnschrift,"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;--num:Bahnschrift,"Segoe UI",system-ui,sans-serif;--icon:"Segoe Fluent Icons","Segoe MDL2 Assets"}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--text);font-family:var(--ui);padding:24px 16px 60px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--disp);font-size:24px;margin:0;font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;color:var(--sub);font-size:13px}
+.sw{display:flex;gap:8px;align-items:center}
+.sw button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.sw button[aria-pressed=true]{border-color:var(--text)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.scroll{overflow-x:auto;border-radius:12px}
+
+.win{min-width:900px;height:780px;position:relative;background:var(--bg);border:1px solid var(--edge);border-radius:12px;overflow:hidden;isolation:isolate;display:flex;flex-direction:column}
+.glow{position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(95% 55% at 50% 0%,color-mix(in srgb,var(--accent) var(--gs),transparent),transparent 75%)}
+.top{position:relative;z-index:1;height:58px;flex:none;display:flex;align-items:center;padding:0 0 0 30px}
+.top b{font-family:var(--disp);font-weight:600;font-size:15.5px}
+.wc{display:flex;margin-left:auto;margin-right:6px}.wc span{width:46px;height:34px;display:grid;place-items:center;color:var(--sub);font-size:12px}
+.body{position:relative;z-index:1;flex:1;min-height:0;display:grid;grid-template-columns:232px 1fr}
+
+/* section list: pills, no box */
+nav{padding:6px 14px 0 18px;display:flex;flex-direction:column;gap:2px}
+nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:999px;color:var(--sub);font-size:14px}
+nav button i{font-family:var(--icon);font-style:normal;font-size:15px;width:16px;text-align:center}
+nav button:hover{background:var(--glass);color:var(--text)}
+nav button[aria-current=true]{background:var(--glass2);color:var(--text);font-weight:600}
+nav button[aria-current=true] i{color:var(--accent)}
+
+/* page */
+.main{display:flex;flex-direction:column;min-height:0}
+.pg{flex:1;overflow:auto;padding:0 30px 24px 22px}
+.pg h2{font-family:var(--disp);font-weight:600;font-size:28px;margin:6px 0 10px}
+.sub{color:var(--faint);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:26px 0 2px}
+.r{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);max-width:760px}
+.r:last-child{border-bottom:0}
+.r .l{font-size:13.5px}.r .h{display:block;color:var(--sub);font-size:11.5px;margin-top:3px;line-height:1.4}
+.c{display:flex;align-items:center;gap:12px;min-width:0}
+.note{max-width:760px;color:var(--sub);font-size:11.5px;margin:10px 0 0;line-height:1.5}
+.warn{color:var(--warn)}
+
+/* controls */
+.dd{flex:1;max-width:420px;display:flex;align-items:center;justify-content:space-between;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;white-space:nowrap;overflow:hidden}
+.dd::after{content:"\E70D";font-family:var(--icon);font-size:10px;color:var(--sub);margin-left:12px}
+.dd.s{flex:none;width:130px}
+.fld{flex:1;max-width:420px;background:var(--glass);border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fld.n{flex:none;width:80px;font-family:var(--num)}
+.fld.m{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px;white-space:pre;height:130px;line-height:1.6;overflow:auto;border-radius:12px}
+.btn{border-radius:999px;padding:7px 14px;font-size:13px;background:var(--glass);border:1px solid var(--line);color:var(--text);white-space:nowrap;cursor:pointer}
+.btn.acc{background:var(--accent);color:var(--on);font-weight:700;border-color:var(--accent);padding:9px 26px;font-size:14px}
+.btn.gh{background:none;border-color:transparent;color:var(--sub);padding:9px 18px;font-size:14px}
+.sl{flex:1;max-width:420px;height:4px;border-radius:2px;background:var(--line);position:relative}
+.sl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--v);background:var(--c,var(--accent));border-radius:2px}
+.sl::after{content:"";position:absolute;left:calc(var(--v) - 7px);top:-5px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.val{width:58px;text-align:right;font-family:var(--num);font-size:13px;font-variant-numeric:tabular-nums}
+.mt{flex:1;max-width:420px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.mt b{display:block;height:100%;width:var(--v);background:var(--good);border-radius:3px}
+.tg{width:38px;height:22px;border-radius:11px;background:var(--glass2);position:relative;flex:none;cursor:pointer}
+.tg::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--sub);transition:left .15s}
+.tg.on{background:var(--accent)}.tg.on::after{left:19px;background:var(--on)}
+.tgl{font-size:13px;color:var(--sub)}
+.hk{display:flex;gap:6px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:5px 8px 5px 6px;font-size:12.5px}
+.hk kbd{font:600 12px var(--num);background:var(--glass2);border-radius:6px;padding:3px 8px}
+.hk span{color:var(--faint);font-size:11.5px;margin-left:4px}
+.sws{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sws button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;outline-offset:2px}
+.sws button[aria-pressed=true]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.sws .auto{background:var(--glass2);color:var(--sub);font:700 11px var(--num)}
+
+/* bottom bar: no box, a faint line */
+.foot{flex:none;display:flex;align-items:center;gap:8px;padding:14px 30px 18px 22px;border-top:1px solid var(--line)}
+.foot p{margin:0 auto 0 0;color:var(--sub);font-size:12px}
+.ex{color:var(--sub);font-size:13px;margin:6px 0 0;line-height:1.5;max-width:900px}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <h1>Aurora sketches · Settings</h1>
+ <div class="row">
+  <div class="sw" role="group" aria-label="Accent colour">Accent
+   <button aria-label="Yellow" aria-pressed="true" data-a="#FFC21A" style="background:#FFC21A"></button>
+   <button aria-label="Red" aria-pressed="false" data-a="#FF4545" style="background:#FF4545"></button>
+   <button aria-label="Green" aria-pressed="false" data-a="#3EDC6E" style="background:#3EDC6E"></button>
+   <button aria-label="Cyan" aria-pressed="false" data-a="#3FC8FF" style="background:#3FC8FF"></button>
+   <button aria-label="Purple" aria-pressed="false" data-a="#9B6BFF" style="background:#9B6BFF"></button>
+  </div>
+ </div>
+ <div class="scroll"><div class="win">
+  <div class="glow"></div>
+  <div class="top"><b>Settings</b><div class="wc"><span>&#8212;</span><span>&#9633;</span><span>&#10005;</span></div></div>
+  <div class="body">
+   <nav id="nav" aria-label="Settings pages"></nav>
+   <div class="main">
+    <div class="pg" id="pg"></div>
+    <div class="foot"><p>Saving restarts the recorder's capture (about a second).</p><span class="btn gh">Cancel</span><span class="btn acc">Save</span></div>
+   </div>
+  </div>
+ </div></div>
+ <p class="ex">Same pages and settings as today, nothing added or removed. What changes: no grey boxes (rows are split by faint lines), the page list is pills with the accent on the chosen icon, dropdowns and buttons are pills, switches and sliders use the accent, the faint accent light at the top, and the app's own title bar. Classic looks keep their boxes.</p>
+</div>
+<script>
+const ic={rep:"\uE768",vid:"\uE714",aud:"\uE767",fol:"\uE8B7",dis:"\uE898",gen:"\uE713"};
+const dd=(t,s)=>`<span class="dd${s?" s":""}">${t}</span>`;
+const tg=(on,t)=>`<span class="tg${on?" on":""}" role="switch" aria-checked="${on}" tabindex="0"></span>${t?`<span class="tgl">${t}</span>`:""}`;
+const sl=(v,val,c)=>`<span class="sl" style="--v:${v}%${c?`;--c:${c}`:""}"></span><span class="val">${val}</span>`;
+const mt=(v,t)=>`<span class="mt" style="--v:${v}%"><b></b></span><span class="val" style="color:var(--sub);font-size:11.5px">${t}</span>`;
+const fld=(t,c)=>`<span class="fld${c?" "+c:""}">${t}</span>`;
+const row=(l,h,c)=>`<div class="r"><div><span class="l">${l}</span>${h?`<span class="h">${h}</span>`:""}</div><div class="c">${c}</div></div>`;
+const PAGES=[
+ ["rep","Instant replay",()=>
+  row("Replay length","",sl(13,"0:45"))+
+  row("Save clip hotkey","",`<span class="hk"><kbd>Alt</kbd><kbd>F8</kbd><span>click, then press keys</span></span>`)+
+  row("Start/stop full recording","Optional",`<span class="hk"><kbd style="opacity:.5">None</kbd><span>click, then press keys</span></span>`)+
+  row("Keep the replay buffer in RAM","About 380 MB at your settings. Faster saves, no disk writes while you play.",tg(true))+
+  `<p class="note">Avoid Alt+F10 / Alt+F9 / Alt+Z: the NVIDIA overlay uses them. Either Alt key works for Alt hotkeys.</p>`],
+ ["vid","Video",()=>
+  row("Monitor to record","",dd("Display 1 · 2560 × 1440 · 144 Hz (main)"))+
+  row("Resolution","",dd("Native (2560 × 1440)"))+
+  row("Frame rate","",dd("60 fps"))+
+  row("Quality","",dd("High"))+
+  row("Encoder","",dd("NVIDIA (NVENC)"))+
+  row("Codec","",dd("H.264 (plays everywhere)"))+
+  row("Capture method","",dd("Windows Graphics Capture"))+
+  row("Record mouse cursor","",tg(false))],
+ ["aud","Audio",()=>
+  `<div class="sub">Game and chat</div>`+
+  row("Game + voice chat","Everything you hear, Discord included",tg(true,"Record"))+
+  row("Output device","Not used while Discord has its own track",dd("Default · Speakers (Realtek)"))+
+  row("Game volume","",sl(60,"0 dB","var(--game)"))+
+  row(`<span style="color:var(--sub)">Level</span>`,"",mt(46,"−18 dB"))+
+  row("Discord on its own track","Friends' voices apart from the game, so you can rebalance them later",tg(true,"Separate"))+
+  row("Discord volume","",sl(60,"0 dB","var(--discord)"))+
+  `<div class="sub">Microphone</div>`+
+  row("Microphone","Its own track, so you can rebalance it later",tg(true,"Record"))+
+  row("Mic device","",dd("Default · Microphone (USB Audio)"))+
+  row("Mic boost","",sl(68,"+4 dB"))+
+  row("Mic leveling","Evens out quiet talk and shouting",dd("Medium",1))+
+  row(`<span style="color:var(--sub)">Level (with boost)</span>`,"Talk normally: aim for the bar to reach the middle",mt(52,"−14 dB"))],
+ ["fol","Folders and storage",()=>
+  row("Clips folder","",fld("C:\\Users\\you\\Videos\\Replay Recorder")+`<span class="btn">Browse…</span>`)+
+  row("Discord exports folder","",fld("C:\\Users\\you\\AppData\\Local\\Replay Recorder\\exports")+`<span class="btn">Browse…</span>`)+
+  row("Replay buffer folder","Rolling temp files (~300 MB). An SSD is best.",fld("C:\\Users\\you\\AppData\\Local\\Temp\\ReplayRecorder")+`<span class="btn">Browse…</span>`)+
+  row("Warn when clips exceed","GB · 0 = never warn",fld("50","n")+`<span class="h" style="margin:0">Using 16.4 GB (86 clips)</span>`)+
+  row("Delete clips older than","days · deleted for good, favorites are kept",fld("30","n")+tg(false))],
+ ["dis","Discord export",()=>
+  row("Maximum file size","MB · Discord free limit is 20",fld("19.5","n")+`<span class="h" style="margin:0">Nitro: up to 500. Exports are never larger than this.</span>`)],
+ ["gen","General",()=>
+  row("Look","Changes right away; Save keeps it",dd("Aurora"))+
+  row("Language","Applies when you save",dd("English"))+
+  row("Accent colour","Buttons, selection and the trim bar",`<div class="sws" id="acc"><button class="auto" aria-label="Auto">A</button>${["#FFC21A","#FF4545","#3EDC6E","#3FC8FF","#FF5C8A","#3B5BFF","#9B6BFF","#EDEDED"].map(c=>`<button aria-label="${c}" data-a="${c}" style="background:${c}"></button>`).join("")}<span class="btn">Custom…</span></div>`)+
+  row("Start recorder with Windows","",tg(true))+
+  row("\"Clip saved\" pop-ups","",tg(true))+
+  row("Sound when a clip is saved","Pop-ups can't show over exclusive-fullscreen games",tg(false))+
+  row("Game names","One per line: game.exe = Folder name. Unknown games use the window's product name.",fld("FortniteClient-Win64-Shipping.exe = Fortnite\ncs2.exe = CS2\nVALORANT-Win64-Shipping.exe = Valorant","m"))]];
+let cur="aud";
+function draw(){
+ document.getElementById("nav").innerHTML=PAGES.map(p=>`<button data-p="${p[0]}" aria-current="${p[0]==cur}"><i>${ic[p[0]]}</i>${p[1]}</button>`).join("");
+ const p=PAGES.find(p=>p[0]==cur);
+ document.getElementById("pg").innerHTML=`<h2>${p[1]}</h2>`+p[2]();
+ const a=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim().toUpperCase();
+ document.querySelectorAll("#acc [data-a]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.a==a));
+}
+document.getElementById("nav").onclick=e=>{const b=e.target.closest("button");if(b){cur=b.dataset.p;draw()}};
+document.getElementById("pg").onclick=e=>{const t=e.target.closest(".tg");if(t){t.classList.toggle("on");t.setAttribute("aria-checked",t.classList.contains("on"))}
+ const b=e.target.closest("#acc [data-a]");if(b)setAccent(b.dataset.a)};
+function setAccent(c){document.documentElement.style.setProperty("--accent",c);document.querySelectorAll(".row .sw button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.a==c));draw()}
+document.querySelector(".row .sw").onclick=e=>{const b=e.target.closest("button");if(b)setAccent(b.dataset.a)};
+draw();
+</script>
+</body>
+</html>

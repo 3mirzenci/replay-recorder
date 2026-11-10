@@ -60,6 +60,7 @@ public static class Lang
         ["Maximize"] = "Büyüt",
         ["Restore"] = "Geri yükle",
         ["Close"] = "Kapat",
+        ["Game and chat"] = "Oyun ve sohbet",
         ["Too long"] = "Çok uzun",
 
 

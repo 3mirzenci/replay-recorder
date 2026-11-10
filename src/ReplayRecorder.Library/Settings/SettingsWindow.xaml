@@ -8,9 +8,9 @@
     <Window.Resources>
         <Style x:Key="Section" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}"/>
-            <Setter Property="FontSize" Value="22"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="2,30,0,12"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,6,0,10"/>
             <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         </Style>
         <Style x:Key="Label" TargetType="TextBlock">
@@ -25,12 +25,53 @@
             <Setter Property="Margin" Value="0,3,0,0"/>
         </Style>
         <Style x:Key="Group" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Card}"/>
+            <Setter Property="Background" Value="{DynamicResource SettingsGroupBg}"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="Padding" Value="{DynamicResource SettingsGroupPad}"/>
         </Style>
         <Style x:Key="Row" TargetType="Grid">
-            <Setter Property="Margin" Value="0,9"/>
+            <Setter Property="Margin" Value="{DynamicResource SettingsRowPad}"/>
+        </Style>
+        <!-- The faint line under each row (Aurora; transparent in Classic) -->
+        <Style x:Key="RowLine" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource SettingsRowLine}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+        <!-- Small heading inside a page ("GAME AND CHAT"); upper-cased in code after translating -->
+        <Style x:Key="SubHead" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Faint}"/>
+            <Setter Property="Margin" Value="0,24,0,2"/>
+        </Style>
+        <!-- Page list: icon in the accent and label in full white on the chosen page -->
+        <Style x:Key="NavIcon" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="NavText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="14,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <!-- Accent colour circle: Background is the colour, Tag the saved value -->
         <Style x:Key="Swatch" TargetType="RadioButton">
@@ -61,8 +102,36 @@
             </Setter>
         </Style>
     </Window.Resources>
+    <!-- Own title bar, as in the main window: the top 58 px drag the window -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="58" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
 
-    <Grid Margin="8">
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!-- Faint accent light from the top edge, grain against banding (as in the main window) -->
+        <Rectangle Grid.RowSpan="2" Fill="{DynamicResource AccentGlow}" IsHitTestVisible="False"/>
+        <Rectangle Grid.RowSpan="2" Fill="{DynamicResource Grain}" Opacity="{DynamicResource GrainOpacity}"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False">
+            <Rectangle.OpacityMask>
+                <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusX="0.71" RadiusY="0.6">
+                    <GradientStop Color="Black" Offset="0"/>
+                    <GradientStop Color="Transparent" Offset="1"/>
+                </RadialGradientBrush>
+            </Rectangle.OpacityMask>
+        </Rectangle>
+        <TextBlock Text="Settings" FontFamily="{DynamicResource DisplayFont}" FontSize="15.5" FontWeight="SemiBold"
+                   VerticalAlignment="Center" Margin="30,0,0,0"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,13,6,0">
+            <Button Style="{StaticResource CaptionBtn}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimize"/>
+            <Button x:Name="MaxBtn" Style="{StaticResource CaptionBtn}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximize"/>
+            <Button Style="{StaticResource CloseBtn}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Close"/>
+        </StackPanel>
+
+    <Grid Grid.Row="1" Margin="8,0,8,8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="232"/>
             <ColumnDefinition Width="8"/>
@@ -70,9 +139,8 @@
         </Grid.ColumnDefinitions>
 
         <!-- Section menu: each entry is its own page -->
-        <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="8,18,8,8">
+        <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="10,6,8,8">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Settings" FontFamily="{DynamicResource DisplayFont}" FontSize="26" FontWeight="Bold" Margin="14,0,0,16"/>
                 <ListBox x:Name="NavList" Background="Transparent" BorderThickness="0" SelectionChanged="NavList_SelectionChanged">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
@@ -81,15 +149,15 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="b" CornerRadius="6" Padding="14,10" Margin="0,1" Background="Transparent">
+                                        <Border x:Name="b" CornerRadius="{DynamicResource NavRadius}" Padding="14,10" Margin="0,1" Background="Transparent">
                                             <ContentPresenter/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
+                                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Glass}"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}"/>
+                                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Glass2}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -99,38 +167,38 @@
                     </ListBox.ItemContainerStyle>
                         <ListBoxItem Tag="SecReplay">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Instant replay" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE768;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="Instant replay" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="SecVideo">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Video" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE714;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="Video" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="SecAudio">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE767;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Audio" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE767;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="Audio" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="SecFolders">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Folders and storage" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE8B7;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="Folders and storage" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="SecDiscord">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Discord export" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE898;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="Discord export" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="SecGeneral">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="General" Margin="14,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE713;" Style="{StaticResource NavIcon}"/>
+                                <TextBlock Text="General" Style="{StaticResource NavText}"/>
                             </StackPanel>
                         </ListBoxItem>
                 </ListBox>
@@ -138,7 +206,7 @@
         </Border>
 
         <!-- Content panel: the chosen page, Save/Cancel stay at the bottom -->
-        <Border Grid.Column="2" CornerRadius="8" Background="{DynamicResource Panel}">
+        <Border Grid.Column="2" CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}">
         <DockPanel>
         <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="28,14">
             <DockPanel>
@@ -152,22 +220,30 @@
         </Border>
 
         <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="28,0,20,28">
-            <StackPanel x:Name="Pages" MaxWidth="760" HorizontalAlignment="Left">
+            <!-- Pages always 760 px wide (less when the window is narrower), left-aligned -->
+            <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="760"/><ColumnDefinition Width="0"/></Grid.ColumnDefinitions>
+            <StackPanel x:Name="Pages">
                 <!-- ============ Replay & hotkeys ============ -->
                 <TextBlock x:Name="SecReplay" Text="Instant replay" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
                     <StackPanel>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Replay length" Style="{StaticResource Label}"/>
                             <Slider x:Name="BufferSlider" Grid.Column="1" Minimum="15" Maximum="300" SmallChange="5" LargeChange="15" ValueChanged="BufferSlider_ValueChanged"/>
                             <TextBlock x:Name="BufferText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Save clip hotkey" Style="{StaticResource Label}"/>
                             <s:HotkeyBox x:Name="SaveHotkey" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -176,6 +252,8 @@
                             </StackPanel>
                             <s:HotkeyBox x:Name="RecordHotkey" Grid.Column="1" AllowEmpty="True"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -184,6 +262,7 @@
                             </StackPanel>
                             <CheckBox x:Name="RamBox" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Top"/>
                         </Grid>
+                        </Border>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
                                    Text="Avoid Alt+F10 / Alt+F9 / Alt+Z: the NVIDIA overlay uses them. Either Alt key works for Alt hotkeys."/>
                     </StackPanel>
@@ -193,47 +272,63 @@
                 <TextBlock x:Name="SecVideo" Text="Video" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
                     <StackPanel>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Monitor to record" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="MonitorBox" Grid.Column="1" SelectionChanged="MonitorBox_SelectionChanged"/>
                         </Grid>
+                        </Border>
                         <TextBlock x:Name="MonitorWarning" Style="{StaticResource Hint}" Foreground="{DynamicResource Warn}" Visibility="Collapsed" Margin="230,-4,0,6"/>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Resolution" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="ResolutionBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Frame rate" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="FpsBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Quality" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="QualityBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Encoder" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="EncoderBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Codec" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="CodecBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Capture method" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="CaptureBox" Grid.Column="1"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Record mouse cursor" Style="{StaticResource Label}"/>
                             <CheckBox x:Name="CursorBox" Grid.Column="1" Style="{StaticResource Switch}"/>
                         </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -241,6 +336,8 @@
                 <TextBlock x:Name="SecAudio" Text="Audio" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
                     <StackPanel>
+                        <TextBlock x:Name="SubGame" Text="Game and chat" Style="{StaticResource SubHead}" Margin="0,4,0,2"/>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -249,6 +346,8 @@
                             </StackPanel>
                             <CheckBox x:Name="SysEnabled" Grid.Column="1" Style="{StaticResource Switch}" Content="Record"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -257,12 +356,16 @@
                             </StackPanel>
                             <ComboBox x:Name="SysDeviceBox" Grid.Column="1" SelectionChanged="SysDeviceBox_SelectionChanged"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Game volume" Style="{StaticResource Label}"/>
-                            <Slider x:Name="SysVol" Grid.Column="1" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
+                            <Slider x:Name="SysVol" Grid.Column="1" Foreground="{DynamicResource GameTrack}" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
                             <TextBlock x:Name="SysVolText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Level" Style="{StaticResource Label}" Foreground="{DynamicResource Subtle}"/>
@@ -271,6 +374,8 @@
                             </Border>
                             <TextBlock x:Name="SysMeterText" Grid.Column="2" Style="{StaticResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -279,15 +384,19 @@
                             </StackPanel>
                             <CheckBox x:Name="DiscordSeparate" Grid.Column="1" Style="{StaticResource Switch}" Content="Separate"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Discord volume" Style="{StaticResource Label}"/>
-                            <Slider x:Name="DiscordVol" Grid.Column="1" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
+                            <Slider x:Name="DiscordVol" Grid.Column="1" Foreground="{DynamicResource DiscordTrack}" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
                             <TextBlock x:Name="DiscordVolText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
+                        </Border>
 
-                        <Border Height="1" Background="{DynamicResource Line}" Margin="0,8"/>
+                        <TextBlock x:Name="SubMic" Text="Microphone" Style="{StaticResource SubHead}"/>
 
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -296,17 +405,23 @@
                             </StackPanel>
                             <CheckBox x:Name="MicEnabled" Grid.Column="1" Style="{StaticResource Switch}" Content="Record"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Mic device" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="MicDeviceBox" Grid.Column="1" SelectionChanged="MicDeviceBox_SelectionChanged"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Mic boost" Style="{StaticResource Label}"/>
                             <Slider x:Name="MicVol" Grid.Column="1" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
                             <TextBlock x:Name="MicVolText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -315,6 +430,8 @@
                             </StackPanel>
                             <ComboBox x:Name="MicLevelingBox" Grid.Column="1" Width="120" HorizontalAlignment="Left"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -326,6 +443,7 @@
                             </Border>
                             <TextBlock x:Name="MicMeterText" Grid.Column="2" Style="{StaticResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
                         </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -333,18 +451,23 @@
                 <TextBlock x:Name="SecFolders" Text="Folders and storage" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
                     <StackPanel>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Clips folder" Style="{StaticResource Label}"/>
                             <TextBox x:Name="ClipsFolderBox" Grid.Column="1" Style="{StaticResource Field}"/>
                             <Button Grid.Column="2" Content="Browse…" Margin="8,0,0,0" Click="Browse_Click" Tag="ClipsFolderBox"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Discord exports folder" Style="{StaticResource Label}"/>
                             <TextBox x:Name="ExportFolderBox" Grid.Column="1" Style="{StaticResource Field}"/>
                             <Button Grid.Column="2" Content="Browse…" Margin="8,0,0,0" Click="Browse_Click" Tag="ExportFolderBox"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -354,6 +477,8 @@
                             <TextBox x:Name="BufferFolderBox" Grid.Column="1" Style="{StaticResource Field}" VerticalAlignment="Center"/>
                             <Button Grid.Column="2" Content="Browse…" Margin="8,0,0,0" Click="Browse_Click" Tag="BufferFolderBox" VerticalAlignment="Center"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -363,6 +488,8 @@
                             <TextBox x:Name="LimitBox" Grid.Column="1" Style="{StaticResource Field}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="UsageText" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -373,12 +500,14 @@
                                      IsEnabled="{Binding IsChecked, ElementName=AutoDeleteBox}"/>
                             <CheckBox x:Name="AutoDeleteBox" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
                 <!-- ============ Discord export ============ -->
                 <TextBlock x:Name="SecDiscord" Text="Discord export" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
+                    <Border Style="{StaticResource RowLine}">
                     <Grid Style="{StaticResource Row}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition/></Grid.ColumnDefinitions>
                         <StackPanel>
@@ -389,12 +518,14 @@
                         <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
                                    Text="Nitro: up to 500. Exports are never larger than this."/>
                     </Grid>
+                    </Border>
                 </Border>
 
                 <!-- ============ General ============ -->
                 <TextBlock x:Name="SecGeneral" Text="General" Style="{StaticResource Section}"/>
                 <Border Style="{StaticResource Group}">
                     <StackPanel>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -403,6 +534,8 @@
                             </StackPanel>
                             <ComboBox x:Name="ThemeBox" Grid.Column="1" VerticalAlignment="Center"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -411,6 +544,8 @@
                             </StackPanel>
                             <ComboBox x:Name="LanguageBox" Grid.Column="1" VerticalAlignment="Center"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -432,16 +567,22 @@
                                 <Button Content="Custom…" Padding="12,6" Margin="4,0,0,6" Click="CustomAccent_Click" ToolTip="Pick any colour"/>
                             </WrapPanel>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Start recorder with Windows" Style="{StaticResource Label}"/>
                             <CheckBox x:Name="StartupBox" Grid.Column="1" Style="{StaticResource Switch}"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="&quot;Clip saved&quot; pop-ups" Style="{StaticResource Label}"/>
                             <CheckBox x:Name="NotifyBox" Grid.Column="1" Style="{StaticResource Switch}"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -450,6 +591,8 @@
                             </StackPanel>
                             <CheckBox x:Name="SoundBox" Grid.Column="1" Style="{StaticResource Switch}"/>
                         </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RowLine}">
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -459,11 +602,14 @@
                             <TextBox x:Name="GamesBox" Grid.Column="1" Style="{StaticResource Field}" AcceptsReturn="True" Height="150"
                                      VerticalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
                         </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
             </StackPanel>
+            </Grid>
         </ScrollViewer>
         </DockPanel>
         </Border>
+    </Grid>
     </Grid>
 </Window>

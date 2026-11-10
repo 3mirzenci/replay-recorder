@@ -21,6 +21,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         App.TranslateTree(this);
         ContentRendered += (_, _) => App.TranslateTree(this); // template parts exist only once shown
+        foreach (var t in new[] { SubGame, SubMic }) t.Text = t.Text.ToUpper(Lang.Culture);
         NavList.SelectedIndex = 0; // first page
         SourceInitialized += (_, _) => App.UseDarkTitleBar(this);
         Load();
@@ -281,6 +282,25 @@ public partial class SettingsWindow : Window
     void Error(string msg) => MessageBox.Show(this, msg, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
 
     void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    // ---- own title bar (WindowChrome in the XAML), as in the main window
+    void Minimize_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
+    void Close_Click(object sender, RoutedEventArgs e) => SystemCommands.CloseWindow(this);
+    void Maximize_Click(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized) SystemCommands.RestoreWindow(this);
+        else SystemCommands.MaximizeWindow(this);
+    }
+
+    /// <summary>A maximised window hangs over the screen edges by its resize frame; pad it back in.</summary>
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        bool max = WindowState == WindowState.Maximized;
+        Root.Margin = max ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
+        MaxBtn.Content = max ? "\uE923" : "\uE922";
+        MaxBtn.ToolTip = (max ? "Restore" : "Maximize").T();
+    }
 
     // ---- Look and accent colour: previewed live, saved with Save, undone on Cancel
     string _accent = "";
