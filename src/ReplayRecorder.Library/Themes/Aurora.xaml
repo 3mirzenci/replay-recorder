@@ -36,7 +36,8 @@
     <SolidColorBrush x:Key="OverlaySubtle" Color="#BEBEC8"/>
     <SolidColorBrush x:Key="PanelBg" Color="Transparent"/>
     <CornerRadius x:Key="PanelRadius">0</CornerRadius>
-    <CornerRadius x:Key="ButtonRadius">999</CornerRadius>
+    <!-- Half a control's height: WPF draws larger radii as an ellipse, not a pill -->
+    <CornerRadius x:Key="ButtonRadius">16</CornerRadius>
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0.10</sys:Double>
     <sys:Double x:Key="HaloOpacity">0.30</sys:Double>

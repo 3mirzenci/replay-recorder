@@ -40,7 +40,7 @@ This works by making the differences tokens, not separate layouts:
 |---|---|---|
 | `PanelBg` | transparent | today's `Panel` grey |
 | `PanelRadius` | 0 | today's value |
-| `ButtonRadius` | 999 (pill) | today's value |
+| `ButtonRadius` | 16 (pill: half a control's height; WPF draws 999 as an ellipse) | today's value |
 | `ThumbRadius` | 12 | today's value |
 | `GlowOpacity`, `HaloOpacity`, `GrainOpacity` | 0.10 / 0.30 / 0.03 | 0 / 0 / 0 |
 
