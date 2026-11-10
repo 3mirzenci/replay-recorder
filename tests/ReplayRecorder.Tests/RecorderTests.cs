@@ -50,6 +50,16 @@ public class PcmConverterTests
     }
 }
 
+public class SegmentListTests
+{
+    [Fact]
+    public void ReadsNamesWithCommasAndSkipsBrokenLines()
+    {
+        var text = "seg_00000.ts,0.000000,2.000000\r\n\"seg,01.ts\",2.000000,4.016667\nbroken line\nseg_00002.ts,abc,6.0\n";
+        Assert.Equal(new[] { ("seg_00000.ts", 0.0, 2.0), ("seg,01.ts", 2.0, 4.016667) }, SegmentList.Parse(text));
+    }
+}
+
 public class TsPacketTests
 {
     /// <summary>A video packet that starts a PES, with the given adaptation flags and PTS.</summary>

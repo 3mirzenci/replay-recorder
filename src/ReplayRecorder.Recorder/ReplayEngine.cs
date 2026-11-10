@@ -527,17 +527,8 @@ sealed class ReplayEngine : IDisposable
         if (lastNl < 0) return; // partial line; read it next time
         _segListPos += System.Text.Encoding.UTF8.GetByteCount(text.AsSpan(0, lastNl + 1));
         lock (_segLock)
-        {
-            foreach (var line in text[..lastNl].Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = line.Trim().Split(',');
-                if (parts.Length < 3) continue;
-                if (!double.TryParse(parts[^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var start) ||
-                    !double.TryParse(parts[^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var end)) continue;
-                var name = string.Join(',', parts[..^2]).Trim('"');
+            foreach (var (name, start, end) in SegmentList.Parse(text[..lastNl]))
                 _segments.Add(new Segment(Path.Combine(_runDir, name), start, end));
-            }
-        }
     }
 
     // ------------------------------------------------------------------ RAM mode: split the TS stream

@@ -17,6 +17,7 @@
     <!-- The recorder is a self-contained Windows app, so its pure parts are compiled in here instead of referenced. -->
     <Compile Include="..\..\src\ReplayRecorder.Recorder\Audio\PcmConverter.cs" Link="Recorder\PcmConverter.cs" />
     <Compile Include="..\..\src\ReplayRecorder.Recorder\TsPacket.cs" Link="Recorder\TsPacket.cs" />
+    <Compile Include="..\..\src\ReplayRecorder.Recorder\SegmentList.cs" Link="Recorder\SegmentList.cs" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />
   </ItemGroup>
   <ItemGroup>
