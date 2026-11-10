@@ -120,7 +120,8 @@ public partial class MainWindow
             };
             menu.Items.Add(item);
         }
-        menu.IsOpen = true;
+        // After a mouse click hands focus back (App.KeepFocusOnMouseClicks, Input priority): opening first, the focus move would close it.
+        Dispatcher.BeginInvoke(() => menu.IsOpen = true, System.Windows.Threading.DispatcherPriority.ContextIdle);
     }
 
     void GameHost_SizeChanged(object sender, SizeChangedEventArgs e)
