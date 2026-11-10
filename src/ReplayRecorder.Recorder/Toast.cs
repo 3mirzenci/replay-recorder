@@ -37,6 +37,16 @@ sealed class Toast : Form
 
     protected override bool ShowWithoutActivation => true;
 
+    // Keeps the pop-up out of clips (and screen shares): Windows leaves it out of every capture (Windows 10 2004+).
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        SetWindowDisplayAffinity(Handle, 0x11 /* WDA_EXCLUDEFROMCAPTURE */);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
     protected override CreateParams CreateParams
     {
         get
