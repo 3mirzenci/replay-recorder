@@ -50,16 +50,36 @@ static class TrayMenu
     // Drawn as font text, not a bitmap: sharp at any display scaling, and centred on the text line.
     static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 10.5f);
 
-    static readonly StringFormat Centered = new() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-
-    // Grey anti-aliasing, not ClearType: ClearType tints thin strokes (the pause bars) orange and blue.
-    static void DrawGlyph(Graphics g, char glyph, Rectangle box, Color color)
+    /// <summary>
+    /// Draws the icon's actual shape centred in <paramref name="box"/> across and on <paramref name="centerY"/>
+    /// down. Centring the character box instead leaves it off the text line: icon and text fonts place
+    /// their shapes differently inside their boxes.
+    /// </summary>
+    static void DrawGlyph(Graphics g, char glyph, Rectangle box, float centerY, Color color)
     {
-        var hint = g.TextRenderingHint;
-        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        using var path = new GraphicsPath();
+        path.AddString(glyph.ToString(), IconFont.FontFamily, (int)IconFont.Style, IconFont.SizeInPoints * g.DpiY / 72f, PointF.Empty, StringFormat.GenericTypographic);
+        var b = path.GetBounds();
+        using (var move = new Matrix())
+        {
+            move.Translate(box.X + box.Width / 2f - (b.X + b.Width / 2f), centerY - (b.Y + b.Height / 2f));
+            path.Transform(move);
+        }
+        var smoothing = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
         using var brush = new SolidBrush(color);
-        g.DrawString(glyph.ToString(), IconFont, brush, box, Centered);
-        g.TextRenderingHint = hint;
+        g.FillPath(brush, path);
+        g.SmoothingMode = smoothing;
+    }
+
+    /// <summary>Middle of the capital letters of one line of <paramref name="font"/> drawn centred in <paramref name="r"/>.</summary>
+    static float CapCenter(Graphics g, Font font, Rectangle r)
+    {
+        var ff = font.FontFamily;
+        float em = ff.GetEmHeight(font.Style), px = font.SizeInPoints * g.DpiY / 72f;
+        float line = px * ff.GetLineSpacing(font.Style) / em, ascent = px * ff.GetCellAscent(font.Style) / em;
+        const float CapHeight = 0.7f; // Segoe UI capitals are 0.7 em tall
+        return r.Y + (r.Height - line) / 2f + ascent - px * CapHeight / 2f;
     }
 
     sealed class Renderer(Color accent) : ToolStripProfessionalRenderer(new Colors())
@@ -90,8 +110,9 @@ static class TrayMenu
             if (e.Text != e.Item.Text) return; // the shortcut text
             // Icon, or the check mark for a ticked item without one: same box, so they all line up.
             var box = new Rectangle(4, e.TextRectangle.Y, e.TextRectangle.Left - 8, e.TextRectangle.Height);
-            if (e.Item.Tag is char glyph) DrawGlyph(e.Graphics, glyph, box, e.TextColor);
-            else if (e.Item is ToolStripMenuItem { Checked: true }) DrawGlyph(e.Graphics, '', box, accent); // CheckMark
+            float y = CapCenter(e.Graphics, e.TextFont ?? e.Item.Font, e.TextRectangle);
+            if (e.Item.Tag is char glyph) DrawGlyph(e.Graphics, glyph, box, y, e.TextColor);
+            else if (e.Item is ToolStripMenuItem { Checked: true }) DrawGlyph(e.Graphics, '', box, y, accent); // CheckMark
         }
 
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e) { } // drawn with the icons, in OnRenderItemText
