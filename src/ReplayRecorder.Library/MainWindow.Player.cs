@@ -301,9 +301,12 @@ public partial class MainWindow
         foreach (var el in new UIElement[] { PlayerHeader, TimelineArea, PlayerControls, PlayerTopPanel, PlayerBottomPanel }) el.Visibility = hide;
         VideoStage.Margin = on ? new Thickness(0) : new Thickness(30, 14, 30, 0);
         VideoHalo.Visibility = hide;
+        CaptionButtons.Visibility = hide;
         if (on)
         {
             _fullscreen = (WindowState, WindowStyle, ResizeMode);
+            _chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+            System.Windows.Shell.WindowChrome.SetWindowChrome(this, null); // plain borderless window, as before the own title bar
             WindowState = WindowState.Normal; // Maximized with a border would leave the taskbar showing
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
@@ -323,7 +326,9 @@ public partial class MainWindow
             _fullscreen = null;
             WindowStyle = style;
             ResizeMode = resize;
+            System.Windows.Shell.WindowChrome.SetWindowChrome(this, _chrome);
             WindowState = state;
+            FitToScreenWhenMaximized();
         }
     }
 

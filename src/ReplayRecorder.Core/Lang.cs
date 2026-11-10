@@ -56,6 +56,10 @@ public static class Lang
         ["All clips"] = "Tüm klipler",
         ["All"] = "Tümü",
         ["NEW"] = "YENİ",
+        ["Minimize"] = "Küçült",
+        ["Maximize"] = "Büyüt",
+        ["Restore"] = "Geri yükle",
+        ["Close"] = "Kapat",
         ["Too long"] = "Çok uzun",
 
 

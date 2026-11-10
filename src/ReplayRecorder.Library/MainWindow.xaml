@@ -89,8 +89,62 @@
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>
+        <!-- Minimise / maximise / close in the top-right corner (own title bar, MainWindow.Chrome.cs) -->
+        <Style x:Key="CaptionBtn" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}">
+                            <!-- a TextBlock of its own: the app-wide TextBlock style would swap the icon font -->
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
+                                       Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Glass2}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CloseBtn" TargetType="Button" BasedOn="{StaticResource CaptionBtn}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}">
+                            <!-- a TextBlock of its own: the app-wide TextBlock style would swap the icon font -->
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
+                                       Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Windows' own close red -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#C42B1C"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
-    <Grid>
+    <!-- Own title bar: the top 58 px drag the window; buttons in it opt out with IsHitTestVisibleInChrome.
+         A 1 px glass edge keeps the Windows shadow and rounded corners. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="58" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+    <Grid x:Name="Root">
         <!-- ================= Library ================= -->
         <Grid x:Name="LibraryView" Margin="8">
             <Grid.RowDefinitions>
@@ -121,7 +175,8 @@
                         </Border>
                         <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="15.5" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,126,0"
+                                WindowChrome.IsHitTestVisibleInChrome="True">
                         <!-- Not shown: their text feeds the two buttons' hover text -->
                         <TextBlock x:Name="StorageText" Visibility="Collapsed"/>
                         <TextBlock x:Name="VersionText" Visibility="Collapsed"/>
@@ -136,7 +191,7 @@
                     </StackPanel>
                     <!-- Game pills (MainWindow.Games.cs); the host takes the room left between logo and search -->
                     <Border x:Name="GameHost" ClipToBounds="True" SizeChanged="GameHost_SizeChanged">
-                        <StackPanel x:Name="GamePills" Orientation="Horizontal" VerticalAlignment="Center"/>
+                        <StackPanel x:Name="GamePills" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True"/>
                     </Border>
                 </DockPanel>
             </Border>
@@ -453,13 +508,15 @@
 
             <!-- Header -->
             <DockPanel x:Name="PlayerHeader" Height="58" Margin="30,1,30,0">
-                <Button DockPanel.Dock="Left" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,0,12,0" Height="32" VerticalAlignment="Center">
+                <Button DockPanel.Dock="Left" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,0,12,0" Height="32" VerticalAlignment="Center"
+                        WindowChrome.IsHitTestVisibleInChrome="True">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center"/>
                         <TextBlock Text="Library" Margin="8,0,0,0" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,126,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Content="Show in folder" Click="PlayerShow_Click" Padding="15,0" Height="34" Margin="0,0,8,0"/>
                     <Button Click="PlayerDelete_Click" ToolTip="Delete for good (Del)" Padding="15,0" Height="34">
                         <TextBlock Text="Delete" Foreground="{DynamicResource Danger}"/>
@@ -640,5 +697,11 @@
                 <Button Content="Undo" Click="Undo_Click" Style="{StaticResource AccentBtn}" Margin="16,0,0,0"/>
             </StackPanel>
         </Border>
+        <!-- Window buttons over both views (hidden in fullscreen) -->
+        <StackPanel x:Name="CaptionButtons" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <Button Style="{StaticResource CaptionBtn}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimize"/>
+            <Button x:Name="MaxBtn" Style="{StaticResource CaptionBtn}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximize"/>
+            <Button Style="{StaticResource CloseBtn}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Close"/>
+        </StackPanel>
     </Grid>
 </Window>
