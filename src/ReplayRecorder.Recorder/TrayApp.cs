@@ -393,7 +393,7 @@ sealed class TrayApp : ApplicationContext
 
     void Notify(string title, string detail, Color accent, Rectangle screen)
     {
-        if (_settings.ShowNotifications) Toast.Show(title, detail, accent, screen);
+        if (_settings.ShowNotifications) Toast.Show(title, detail, accent, screen, _settings.Theme == "aurora");
     }
 
     Rectangle CaptureScreenBounds()

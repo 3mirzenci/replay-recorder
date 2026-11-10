@@ -14,15 +14,19 @@ sealed class Toast : Form
     static Toast? _current;
     readonly string _title, _detail;
     readonly Color _accent;
+    readonly bool _aurora;
+    // Aurora tokens (Themes/Aurora.xaml): Panel, Line (8% white on Panel), Text, Subtle
+    static readonly Color AuroraPanel = Color.FromArgb(17, 17, 19), AuroraLine = Color.FromArgb(36, 36, 38),
+                          AuroraText = Color.FromArgb(242, 242, 243), AuroraSubtle = Color.FromArgb(163, 163, 168);
     readonly System.Windows.Forms.Timer _timer = new() { Interval = 2300 };
 
-    Toast(string title, string detail, Color accent)
+    Toast(string title, string detail, Color accent, bool aurora)
     {
-        _title = title; _detail = detail; _accent = accent;
+        _title = title; _detail = detail; _accent = accent; _aurora = aurora;
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
-        BackColor = Color.FromArgb(24, 24, 28);
+        BackColor = aurora ? AuroraPanel : Color.FromArgb(24, 24, 28);
         DoubleBuffered = true;
         Size = new Size(300, 64);
         // Fixed opacity, no fade: changing a topmost window's alpha every frame over a borderless game
@@ -44,14 +48,14 @@ sealed class Toast : Form
     }
 
     /// <summary>Shows a toast in the top-right corner of <paramref name="screenBounds"/>.</summary>
-    public static void Show(string title, string detail, Color accent, Rectangle screenBounds)
+    public static void Show(string title, string detail, Color accent, Rectangle screenBounds, bool aurora)
     {
         _current?.Close();
-        var t = new Toast(title, detail, accent);
+        var t = new Toast(title, detail, accent, aurora);
         float scale = t.DeviceDpi / 96f;
         t.Size = new Size((int)(300 * scale), (int)(64 * scale));
         t.Location = new Point(screenBounds.Right - t.Width - (int)(24 * scale), screenBounds.Top + (int)(24 * scale));
-        t.Region = new Region(RoundedRect(new Rectangle(Point.Empty, t.Size), (int)(10 * scale)));
+        t.Region = new Region(RoundedRect(new Rectangle(Point.Empty, t.Size), (int)((aurora ? 14 : 10) * scale)));
         _current = t;
         t.Show();
         t._timer.Start();
@@ -63,12 +67,18 @@ sealed class Toast : Form
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         float s = DeviceDpi / 96f;
+        if (_aurora)
+        {
+            using var line = new Pen(AuroraLine, 1);
+            using var edge = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), (int)(14 * s));
+            g.DrawPath(line, edge);
+        }
         using (var b = new SolidBrush(_accent)) g.FillEllipse(b, 16 * s, Height / 2f - 6 * s, 12 * s, 12 * s);
         using var f1 = new Font("Segoe UI Semibold", 11f);
         using var f2 = new Font("Segoe UI", 9f);
-        TextRenderer.DrawText(g, _title, f1, new Point((int)(40 * s), (int)(12 * s)), Color.White);
+        TextRenderer.DrawText(g, _title, f1, new Point((int)(40 * s), (int)(12 * s)), _aurora ? AuroraText : Color.White);
         TextRenderer.DrawText(g, _detail, f2, new Rectangle((int)(40 * s), (int)(34 * s), Width - (int)(50 * s), (int)(20 * s)),
-            Color.FromArgb(170, 170, 180), TextFormatFlags.EndEllipsis);
+            _aurora ? AuroraSubtle : Color.FromArgb(170, 170, 180), TextFormatFlags.EndEllipsis);
     }
 
     protected override void Dispose(bool disposing)
