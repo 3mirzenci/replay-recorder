@@ -55,6 +55,7 @@ public static class Lang
         ["Library"] = "Kitaplık",
         ["All clips"] = "Tüm klipler",
         ["All"] = "Tümü",
+        ["NEW"] = "YENİ",
         ["More"] = "Daha fazla",
         ["Favorites"] = "Favoriler",
         ["Today"] = "Bugün",

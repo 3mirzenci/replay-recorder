@@ -65,7 +65,11 @@ public partial class MainWindow : Window
             if (!_settings.SetupDone) { SetupWindow.Show(this); _settings = Settings.Load(); }
         };
         // Scrolling, resizing and filtering all change the scroll extent/offset: recheck which cards are near the viewport.
-        ClipGrid.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler((_, _) => ScheduleViewUpdate()));
+        ClipGrid.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler((_, e) =>
+        {
+            if (e.ViewportWidthChange != 0) FitGrid();
+            ScheduleViewUpdate();
+        }));
         Closing += (_, _) => { FinishPendingDelete(); Shutdown(); };
         _undoTimer.Tick += (_, _) => FinishPendingDelete();
         PreviewKeyDown += OnPreviewKeyDown;
@@ -148,6 +152,8 @@ public partial class MainWindow : Window
         // The filtered game's last clip is gone: back to all clips.
         if (_gameFilter.Length > 0 && _gameFilter != FavKey && !games.Any(g => g.Name == _gameFilter)) { _gameFilter = ""; _view.Refresh(); }
         BuildGamePills(games, _items.Count, _items.Count(i => i.IsFavorite));
+        var newest = _items.Where(i => i.Created.Date == DateTime.Today).MaxBy(i => i.Created);
+        foreach (var i in _items) i.IsNew = i == newest;
 
         long total = _items.Sum(i => i.SizeBytes);
         StorageText.Text = "{0} clips · {1}\n{2}".T(_items.Count, ClipItem.FormatSize(total), _settings.ClipsFolder);
@@ -454,6 +460,19 @@ public partial class MainWindow : Window
     bool _viewUpdatePending;
     ScrollViewer? _gridScroll;
 
+    /// <summary>Cards fill the width: as many columns of 260 px or more as fit, 18 px apart (each card carries its gap).</summary>
+    void FitGrid(bool force = false)
+    {
+        // The width the cards really get: the first day's panel (every day's is as wide).
+        if (FindChild<WrapPanel>(ClipGrid) is not { ActualWidth: > 0 } panel) return;
+        const double gap = 18, min = 260;
+        double w = panel.ActualWidth;
+        int cols = Math.Max(2, (int)(w / (min + gap)));
+        double tile = Math.Floor(w / cols - gap);
+        if (tile == ClipItem.TileWidth && !force) return;
+        ClipItem.SetTileWidth(tile, ((CornerRadius)FindResource("ThumbRadius")).TopLeft);
+    }
+
     void ScheduleViewUpdate()
     {
         if (_viewUpdatePending) return;
@@ -469,6 +488,7 @@ public partial class MainWindow : Window
     {
         _gridScroll ??= FindChild<ScrollViewer>(ClipGrid);
         if (_gridScroll == null || !ClipGrid.IsVisible) return;
+        FitGrid(); // also covers the first layout, before which there is no panel to measure
         double h = _gridScroll.ViewportHeight;
         var near = new HashSet<ClipItem>();
         CollectionViewGroup? current = null;
@@ -656,6 +676,7 @@ public partial class MainWindow : Window
         _settingsWindow = new SettingsUi.SettingsWindow { Owner = this };
         bool saved = _settingsWindow.ShowDialog() == true;
         _settingsWindow = null;
+        FitGrid(force: true); // the Look may have changed the thumbnail corners
         if (!saved) return;
 
         _settings = Settings.Load();

@@ -59,7 +59,7 @@
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
-                        <Border Background="Transparent" Cursor="Hand" Padding="18,24,8,2" HorizontalAlignment="Left"
+                        <Border Background="Transparent" Cursor="Hand" Padding="18,24,8,14" HorizontalAlignment="Left"
                                 MouseLeftButtonDown="DayHeader_Click" ToolTip="Select every clip from this day">
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="chk" Width="18" Height="18" CornerRadius="9" BorderThickness="1.5"
@@ -240,13 +240,29 @@
                 </Border>
 
                 <Grid>
-                    <ListBox x:Name="ClipGrid" Background="Transparent" BorderThickness="0" Padding="4,0,10,16"
+                    <ListBox x:Name="ClipGrid" Background="Transparent" BorderThickness="0" Padding="4,0,12,0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionMode="Extended" IsSynchronizedWithCurrentItem="False"
                              VirtualizingPanel.IsVirtualizing="False" SelectionChanged="ClipGrid_SelectionChanged"
                              PreviewMouseLeftButtonDown="ClipGrid_LeftDown" PreviewMouseLeftButtonUp="ClipGrid_LeftUp" KeyDown="ClipGrid_KeyDown"
                              PreviewMouseRightButtonDown="ClipGrid_RightDown" ContextMenuOpening="ClipGrid_ContextMenuOpening">
                         <ListBox.GroupStyle>
-                            <GroupStyle HeaderTemplate="{StaticResource DayHeaderTemplate}"/>
+                            <GroupStyle HeaderTemplate="{StaticResource DayHeaderTemplate}">
+                                <!-- Plain group: the default one indents the cards a few px past the day header -->
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="GroupItem">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="GroupItem">
+                                                    <StackPanel>
+                                                        <ContentPresenter/>
+                                                        <ItemsPresenter/>
+                                                    </StackPanel>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
                         </ListBox.GroupStyle>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
@@ -257,19 +273,10 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
-                                            <!-- No box at rest: the thumbnail is the card; hover/selection add one -->
-                                            <Border x:Name="b" CornerRadius="10" Margin="8" Background="Transparent"
-                                                    BorderBrush="Transparent" BorderThickness="2" Padding="2">
+                                            <!-- No box: the thumbnail is the card. 18 px between columns, 24 between rows. -->
+                                            <Border Margin="18,0,0,24" Background="Transparent">
                                                 <ContentPresenter/>
                                             </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource Card}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource Accent}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
@@ -292,65 +299,87 @@
                         </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type local:ClipItem}">
-                                <StackPanel Width="296">
-                                    <Grid Height="166" Background="Transparent" MouseMove="Thumb_MouseMove" MouseLeave="Thumb_MouseLeave">
-                                        <Border CornerRadius="7" Background="#0A0B0E" ClipToBounds="True">
-                                            <Grid>
-                                                <Image Source="{Binding Thumb}" Stretch="UniformToFill"/>
-                                                <!-- Hover scrub: 10 frames side by side, shifted so the one under the mouse shows -->
-                                                <Canvas x:Name="scrub" ClipToBounds="True" Visibility="Collapsed">
-                                                    <Image Source="{Binding Storyboard}" Width="2960" Height="166" Stretch="Fill" Canvas.Left="{Binding ScrubOffset}"/>
-                                                </Canvas>
-                                                <Border x:Name="scrubBar" Height="3" VerticalAlignment="Bottom" HorizontalAlignment="Left"
-                                                        Width="{Binding ScrubBarWidth}" Background="{DynamicResource Accent}" Visibility="Collapsed"/>
-                                            </Grid>
-                                        </Border>
-                                        <Border x:Name="star" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="26" Height="26"
-                                                CornerRadius="13" Background="#99000000" Cursor="Hand" Opacity="0" ToolTip="Favorite"
+                                <StackPanel Width="{Binding Path=(local:ClipItem.TileWidth)}">
+                                    <Grid x:Name="th" Height="{Binding Path=(local:ClipItem.ThumbHeight)}" Background="Transparent"
+                                          MouseMove="Thumb_MouseMove" MouseLeave="Thumb_MouseLeave">
+                                        <!-- Thin edge; lifts with a soft accent shadow on hover; accent outline when selected -->
+                                        <Border x:Name="edge" Margin="-1" CornerRadius="{DynamicResource ThumbRadius}" Background="#0A0B0E"
+                                                BorderBrush="{DynamicResource Line}" BorderThickness="1"/>
+                                        <Grid Clip="{Binding Path=(local:ClipItem.ThumbClip)}">
+                                            <Image Source="{Binding Thumb}" Stretch="UniformToFill"/>
+                                            <!-- Hover scrub: 10 frames side by side, shifted so the one under the mouse shows -->
+                                            <Canvas x:Name="scrub" ClipToBounds="True" Visibility="Collapsed">
+                                                <Image Source="{Binding Storyboard}" Width="{Binding Path=(local:ClipItem.StripWidth)}"
+                                                       Height="{Binding Path=(local:ClipItem.ThumbHeight)}" Stretch="Fill" Canvas.Left="{Binding ScrubOffset}"/>
+                                            </Canvas>
+                                            <Border x:Name="scrubBar" Height="3" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                                                    Width="{Binding ScrubBarWidth}" Background="{DynamicResource Accent}" Visibility="Collapsed"/>
+                                            <!-- Clip wall: game and time on the picture, over a dark fade for legibility -->
+                                            <Border x:Name="overlay" VerticalAlignment="Bottom" Height="70" Visibility="Collapsed" IsHitTestVisible="False">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#00000000" Offset="0"/>
+                                                        <GradientStop Color="#D9000000" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <StackPanel VerticalAlignment="Bottom" Margin="11,0,70,9">
+                                                    <TextBlock Text="{Binding Game}" FontFamily="{DynamicResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
+                                                               Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Subtitle}" Foreground="#D0FFFFFF" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        <Border x:Name="star" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="24" Height="24"
+                                                CornerRadius="12" Background="#80000000" Cursor="Hand" Opacity="0" ToolTip="Favorite"
                                                 PreviewMouseLeftButtonDown="Star_Down">
-                                            <TextBlock x:Name="starGlyph" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                            <TextBlock x:Name="starGlyph" Text="&#xE734;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
                                                        Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
-                                        <!-- Clip wall: game and time on the picture, over a dark fade for legibility -->
-                                        <Border x:Name="overlay" VerticalAlignment="Bottom" Height="70" CornerRadius="0,0,7,7" Visibility="Collapsed" IsHitTestVisible="False">
-                                            <Border.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                    <GradientStop Color="#00000000" Offset="0"/>
-                                                    <GradientStop Color="#D9000000" Offset="1"/>
-                                                </LinearGradientBrush>
-                                            </Border.Background>
-                                            <StackPanel VerticalAlignment="Bottom" Margin="11,0,70,9">
-                                                <TextBlock Text="{Binding Game}" FontFamily="{DynamicResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
-                                                           Foreground="White" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Subtitle}" Foreground="#D0FFFFFF" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
-                                            </StackPanel>
+                                        <Border x:Name="newBadge" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8" Padding="7,2"
+                                                CornerRadius="6" Background="{DynamicResource Accent}" Visibility="Collapsed">
+                                            <TextBlock Text="{x:Static local:ClipItem.NewLabel}" FontFamily="{DynamicResource NumFont}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource OnAccent}"/>
                                         </Border>
-                                        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" Padding="6,2"
-                                                CornerRadius="4" Background="#CC000000">
+                                        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" Padding="7,2"
+                                                CornerRadius="6" Background="#B8000000">
                                             <TextBlock Text="{Binding DurationText}" FontFamily="{DynamicResource NumFont}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
                                         </Border>
                                         <!-- Select circle: toggles this card without touching the rest of the selection -->
-                                        <Border x:Name="check" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Width="24" Height="24"
-                                                CornerRadius="12" Background="#99000000" BorderBrush="#E6FFFFFF" BorderThickness="1.5"
+                                        <Border x:Name="check" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Width="22" Height="22"
+                                                CornerRadius="11" Background="#80000000" BorderBrush="#D9FFFFFF" BorderThickness="1.5"
                                                 Cursor="Hand" Opacity="0" ToolTip="Select" PreviewMouseLeftButtonDown="CardCheck_Down">
                                             <TextBlock x:Name="checkMark" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"
                                                        Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Hidden"/>
                                         </Border>
                                     </Grid>
-                                    <StackPanel x:Name="info" Margin="4,9,4,6">
-                                        <TextBlock Text="{Binding Game}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,3,0,0"/>
-                                    </StackPanel>
+                                    <!-- Label: name and time on one baseline; size and quality at the right on hover/selection -->
+                                    <DockPanel x:Name="info" Margin="2,10,2,3">
+                                        <TextBlock x:Name="detail" DockPanel.Dock="Right" Text="{Binding Detail}" Foreground="{DynamicResource Faint}" FontSize="12"
+                                                   Margin="10,0,0,0" VerticalAlignment="Bottom" Opacity="0"/>
+                                        <TextBlock TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom">
+                                            <Run Text="{Binding DisplayName, Mode=OneWay}" FontSize="14" FontWeight="SemiBold"/><Run Text="  "/><Run
+                                                 Text="{Binding TimeText, Mode=OneWay}" FontSize="13" FontFamily="{DynamicResource NumFont}" Foreground="{DynamicResource Subtle}"/>
+                                        </TextBlock>
+                                    </DockPanel>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                         <Setter TargetName="check" Property="Opacity" Value="1"/>
                                         <Setter TargetName="star" Property="Opacity" Value="1"/>
+                                        <Setter TargetName="detail" Property="Opacity" Value="1"/>
+                                        <Setter TargetName="th" Property="RenderTransform">
+                                            <Setter.Value><TranslateTransform Y="-3"/></Setter.Value>
+                                        </Setter>
+                                        <Setter TargetName="edge" Property="BorderBrush" Value="#2EFFFFFF"/>
+                                        <Setter TargetName="edge" Property="Effect" Value="{DynamicResource HoverGlow}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsFavorite}" Value="True">
                                         <Setter TargetName="star" Property="Opacity" Value="1"/>
                                         <Setter TargetName="starGlyph" Property="Text" Value="&#xE735;"/>
                                         <Setter TargetName="starGlyph" Property="Foreground" Value="{DynamicResource Star}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsNew}" Value="True">
+                                        <Setter TargetName="newBadge" Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}" Value="wall">
                                         <Setter TargetName="overlay" Property="Visibility" Value="Visible"/>
@@ -369,6 +398,10 @@
                                         <Setter TargetName="check" Property="Background" Value="{DynamicResource Accent}"/>
                                         <Setter TargetName="check" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                         <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="detail" Property="Opacity" Value="1"/>
+                                        <Setter TargetName="edge" Property="Margin" Value="-2"/>
+                                        <Setter TargetName="edge" Property="BorderThickness" Value="2"/>
+                                        <Setter TargetName="edge" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

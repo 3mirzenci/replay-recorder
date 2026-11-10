@@ -17,8 +17,30 @@ sealed class ClipItem : INotifyPropertyChanged
         _fav = ClipEdits.Get(clip.Path).Favorite;
     }
 
-    /// <summary>Card width in the grid (the hover strip is laid out in multiples of it).</summary>
-    public const double CardWidth = 296;
+    // ---- grid layout, shared by every card: the grid fills the window's width (MainWindow.FitGrid)
+
+    /// <summary>Card width; the hover strip is laid out in multiples of it.</summary>
+    public static double TileWidth { get; private set; } = 296;
+    public static double ThumbHeight => Math.Round(TileWidth * 9 / 16);
+    public static double StripWidth => TileWidth * ClipIndex.StoryboardFrames;
+    /// <summary>Rounded-corner clip for the thumbnail, its scrub strip and its bar.</summary>
+    public static Geometry ThumbClip { get; private set; } = Geometry.Empty;
+    public static event EventHandler<PropertyChangedEventArgs>? StaticPropertyChanged;
+
+    public static void SetTileWidth(double width, double radius)
+    {
+        TileWidth = width;
+        var clip = new RectangleGeometry(new System.Windows.Rect(0, 0, width, ThumbHeight), radius, radius);
+        clip.Freeze();
+        ThumbClip = clip;
+        foreach (var n in new[] { nameof(TileWidth), nameof(ThumbHeight), nameof(StripWidth), nameof(ThumbClip) })
+            StaticPropertyChanged?.Invoke(null, new PropertyChangedEventArgs(n));
+    }
+
+    bool _new;
+    /// <summary>The newest clip of today: gets the NEW badge.</summary>
+    public bool IsNew { get => _new; set { if (_new != value) { _new = value; OnChanged(); } } }
+    public static string NewLabel => "NEW".T();
 
     bool _fav;
     public bool IsFavorite { get => _fav; set { if (_fav != value) { _fav = value; OnChanged(); } } }
@@ -63,6 +85,12 @@ sealed class ClipItem : INotifyPropertyChanged
     /// <summary>True while the grid is grouped by day: the day header already says the date, so cards show only the time.</summary>
     public static bool GroupedByDay { get; set; } = true;
     public DayGroup Day => DayGroup.For(Clip.Created);
+    // Card label: the game (or the clip's own name once renamed), then the time; size and quality show on hover.
+    static readonly System.Text.RegularExpressions.Regex DefaultName =
+        new(@"\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}( \(recording\))?( \(\d+\))?$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    public string DisplayName => DefaultName.IsMatch(Title) ? Game : Title;
+    public string TimeText => GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText;
+    public string Detail => string.Join("  ·  ", new[] { SizeText, QualityText }.Where(s => s.Length > 0));
     public string Subtitle => string.Join("  ·  ", new[] { GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText, SizeText, QualityText }.Where(s => s.Length > 0));
 
     ImageSource? _thumb;
@@ -117,8 +145,8 @@ sealed class ClipItem : INotifyPropertyChanged
     {
         fraction = Math.Clamp(fraction, 0, 0.999);
         int frame = (int)(fraction * ClipIndex.StoryboardFrames);
-        ScrubOffset = -frame * CardWidth;
-        ScrubBarWidth = fraction * CardWidth;
+        ScrubOffset = -frame * TileWidth;
+        ScrubBarWidth = fraction * TileWidth;
         IsScrubbing = _storyboard != null;
     }
 
@@ -129,10 +157,10 @@ sealed class ClipItem : INotifyPropertyChanged
     {
         _thumb = null;
         OnChanged(nameof(Thumb)); OnChanged(nameof(DurationText)); OnChanged(nameof(Subtitle));
-        OnChanged(nameof(QualityText)); OnChanged(nameof(Duration));
+        OnChanged(nameof(QualityText)); OnChanged(nameof(Duration)); OnChanged(nameof(Detail));
     }
 
-    public void RefreshSubtitle() => OnChanged(nameof(Subtitle));
+    public void RefreshSubtitle() { OnChanged(nameof(Subtitle)); OnChanged(nameof(TimeText)); }
 
     public static string FormatSize(long bytes) => bytes switch
     {

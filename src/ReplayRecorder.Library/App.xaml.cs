@@ -180,6 +180,12 @@ public partial class App : Application
         dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.71, 0.6);
         dict["AccentHalo"] = Light(c, (double)dict["HaloOpacity"], new(0.5, 0.5), 0.5, 0.5);
         dict["Grain"] = Grain;
+        // Card hover: a soft shadow below, tinted by the accent in Aurora, plain in Classic.
+        var glow = (double)dict["GlowOpacity"] > 0;
+        var shadow = new System.Windows.Media.Effects.DropShadowEffect
+        { Color = glow ? c : System.Windows.Media.Colors.Black, Direction = 270, ShadowDepth = 12, BlurRadius = 34, Opacity = glow ? 0.4 : 0.5 };
+        shadow.Freeze();
+        dict["HoverGlow"] = shadow;
         Current.Resources.MergedDictionaries[0] = dict;
         foreach (Window w in Current.Windows) UseDarkTitleBar(w);
     }
