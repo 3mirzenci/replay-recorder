@@ -24,11 +24,12 @@ public sealed class ClipInfo
     public string FileName => System.IO.Path.GetFileName(Path);
     public string Title => System.IO.Path.GetFileNameWithoutExtension(Path);
 
-    /// <summary>Indices (0-based among audio streams) of the separate game and mic tracks, if any.</summary>
-    public (int Game, int Mic)? SeparateTracks => AudioTracks switch
+    /// <summary>Indices (0-based among audio streams) of the separate game, mic and Discord tracks, if any.</summary>
+    public (int Game, int Mic, int? Discord)? SeparateTracks => AudioTracks switch
     {
-        >= 3 => (1, 2), // Replay Recorder layout: 0 = mix, 1 = game + chat, 2 = mic
-        2 => (0, 1),    // early Replay Recorder clips: 0 = game + chat, 1 = mic
+        >= 4 => (1, 2, 3),    // Replay Recorder layout: 0 = mix, 1 = game, 2 = mic, 3 = Discord
+        3 => (1, 2, null),    // before the Discord track: 0 = mix, 1 = game + chat, 2 = mic
+        2 => (0, 1, null),    // early Replay Recorder clips: 0 = game + chat, 1 = mic
         _ => null,
     };
 }
@@ -203,10 +204,11 @@ public sealed class ClipIndex
     public const int LevelsPerSecond = 10;
 
     /// <summary>
-    /// Loudness of the game (+ chat) and mic tracks for the player's sound bars: RMS in dBFS,
-    /// <see cref="LevelsPerSecond"/> values a second. Mic is null for single-track clips. Made once, then cached.
+    /// Loudness of the game (+ chat), mic and Discord tracks for the player's sound bars: RMS in dBFS,
+    /// <see cref="LevelsPerSecond"/> values a second. Mic is null for single-track clips, Discord for clips
+    /// without that track. Made once, then cached.
     /// </summary>
-    public async Task<(float[] Game, float[]? Mic)?> EnsureLevelsAsync(ClipInfo c, CancellationToken ct = default)
+    public async Task<(float[] Game, float[]? Mic, float[]? Discord)?> EnsureLevelsAsync(ClipInfo c, CancellationToken ct = default)
     {
         if (Ffmpeg.FfmpegPath == null || c.AudioTracks == 0) return null;
         var fi = new FileInfo(c.Path);
@@ -219,23 +221,25 @@ public sealed class ClipIndex
             if (TryReadLevels(file) is { } again) return again;
             const string Mono = "aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=mono";
             var tracks = c.SeparateTracks;
+            var lanes = tracks is var (g, m, d) ? (d is int di ? new[] { g, m, di } : new[] { g, m }) : new[] { 0 };
             var args = new List<string> { "-hide_banner", "-loglevel", "error", "-i", c.Path, "-vn" };
-            if (tracks is var (g, m))
-                args.AddRange(new[] { "-filter_complex", $"[0:a:{g}]{Mono}[g];[0:a:{m}]{Mono}[m];[g][m]amerge=inputs=2[out]", "-map", "[out]" });
+            if (lanes.Length > 1)
+                args.AddRange(new[] { "-filter_complex",
+                    string.Concat(lanes.Select((t, i) => $"[0:a:{t}]{Mono}[l{i}];")) +
+                    string.Concat(lanes.Select((_, i) => $"[l{i}]")) + $"amerge=inputs={lanes.Length}[out]", "-map", "[out]" });
             else
                 args.AddRange(new[] { "-map", "0:a:0", "-af", Mono });
             args.AddRange(new[] { "-f", "f32le", "-" });
 
-            var (game, mic) = await ReadLevels(args, tracks != null ? 2 : 1, ct);
-            if (game == null) return null;
+            var levels = await ReadLevels(args, lanes.Length, ct);
+            if (levels == null) return null;
             Directory.CreateDirectory(Paths.ThumbFolder);
             using (var w = new BinaryWriter(File.Create(file)))
             {
-                w.Write(game.Length); w.Write(mic != null);
-                foreach (var v in game) w.Write(v);
-                if (mic != null) foreach (var v in mic) w.Write(v);
+                w.Write(LevelsVersion); w.Write(levels[0].Length); w.Write(levels.Length);
+                foreach (var lane in levels) foreach (var v in lane) w.Write(v);
             }
-            return (game, mic);
+            return Lanes(levels);
         }
         catch (Exception ex) when (ex is not OperationCanceledException) { Log.Warn($"Sound levels failed for {c.Path}: {ex.Message}"); return null; }
         finally { _levelsGate.Release(); }
@@ -243,23 +247,29 @@ public sealed class ClipIndex
 
     readonly SemaphoreSlim _levelsGate = new(1);
 
-    static (float[] Game, float[]? Mic)? TryReadLevels(string file)
+    // Negative, so the old format (which started with the level count) never reads as this one.
+    const int LevelsVersion = -2;
+
+    static (float[] Game, float[]? Mic, float[]? Discord) Lanes(float[][] l) => (l[0], l.Length > 1 ? l[1] : null, l.Length > 2 ? l[2] : null);
+
+    static (float[] Game, float[]? Mic, float[]? Discord)? TryReadLevels(string file)
     {
         try
         {
             if (!File.Exists(file)) return null;
             using var r = new BinaryReader(File.OpenRead(file));
-            int n = r.ReadInt32(); bool hasMic = r.ReadBoolean();
-            var game = new float[n]; for (int i = 0; i < n; i++) game[i] = r.ReadSingle();
-            float[]? mic = null;
-            if (hasMic) { mic = new float[n]; for (int i = 0; i < n; i++) mic[i] = r.ReadSingle(); }
-            return (game, mic);
+            if (r.ReadInt32() != LevelsVersion) return null; // old format: made again
+            int n = r.ReadInt32(), count = r.ReadInt32();
+            if (count is < 1 or > 3) return null;
+            var lanes = new float[count][];
+            for (int l = 0; l < count; l++) { lanes[l] = new float[n]; for (int i = 0; i < n; i++) lanes[l][i] = r.ReadSingle(); }
+            return Lanes(lanes);
         }
-        catch { return null; } // half-written or old format: made again
+        catch { return null; } // half-written: made again
     }
 
-    /// <summary>Runs ffmpeg writing 48 kHz float samples (1 or 2 interleaved channels) to stdout; RMS per bucket in dB.</summary>
-    static async Task<(float[]? Game, float[]? Mic)> ReadLevels(List<string> args, int channels, CancellationToken ct)
+    /// <summary>Runs ffmpeg writing 48 kHz float samples (1-3 interleaved channels) to stdout; RMS per bucket in dB, one lane per channel.</summary>
+    static async Task<float[][]?> ReadLevels(List<string> args, int channels, CancellationToken ct)
     {
         var psi = new System.Diagnostics.ProcessStartInfo(Ffmpeg.FfmpegPath!)
         {
@@ -284,9 +294,7 @@ public sealed class ClipIndex
             if (carry > 0) Buffer.BlockCopy(buf, whole, buf, 0, carry);
         }
         await p.WaitForExitAsync(ct);
-        if (p.ExitCode != 0) return (null, null);
-        var lanes = acc.Finish();
-        return (lanes[0], channels > 1 ? lanes[1] : null);
+        return p.ExitCode == 0 ? acc.Finish() : null;
     }
 
     /// <summary>Interleaved samples in, one RMS level (dBFS) per channel per bucket out.</summary>

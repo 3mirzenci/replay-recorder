@@ -29,7 +29,7 @@ sealed class FullscreenBar : Window
     bool _updating, _dragging;
 
     /// <param name="gameVol">The player's own sliders: the bar's copies are bound to them, so the mix and its saving stay in one place.</param>
-    public FullscreenBar(Window owner, MpvPlayer mpv, Action exitFullscreen, Slider gameVol, Slider micVol, bool mixEnabled)
+    public FullscreenBar(Window owner, MpvPlayer mpv, Action exitFullscreen, Slider gameVol, Slider micVol, Slider? discordVol, bool mixEnabled)
     {
         _mpv = mpv;
         Owner = owner;
@@ -47,7 +47,8 @@ sealed class FullscreenBar : Window
         DockPanel.SetDock(_time, Dock.Right);
         _time.Margin = new Thickness(0, 0, 12, 0);
         var mix = new StackPanel { Orientation = Orientation.Horizontal, IsEnabled = mixEnabled, Margin = new Thickness(0, 0, 8, 0),
-            Children = { VolumeSlider("Game + chat".T(), gameVol), VolumeSlider("Your mic".T(), micVol) } };
+            Children = { VolumeSlider((discordVol != null ? "Game" : "Game + chat").T(), gameVol), VolumeSlider("Your mic".T(), micVol) } };
+        if (discordVol != null) mix.Children.Add(VolumeSlider("Discord", discordVol));
         DockPanel.SetDock(mix, Dock.Right);
 
         _bar = new Border

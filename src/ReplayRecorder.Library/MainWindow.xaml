@@ -490,7 +490,7 @@
                         <StackPanel Margin="0,0,16,0">
                             <DockPanel Width="150">
                                 <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
-                                <TextBlock Text="Game + chat" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
+                                <TextBlock x:Name="GameVolLabel" Text="Game + chat" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
                             </DockPanel>
                             <Slider x:Name="GameVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
                                     ValueChanged="Volume_ValueChanged" MouseDoubleClick="GameVol_DoubleClick" Width="150"/>
@@ -502,6 +502,14 @@
                             </DockPanel>
                             <Slider x:Name="MicVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
                                     ValueChanged="Volume_ValueChanged" MouseDoubleClick="MicVol_DoubleClick" Width="150"/>
+                        </StackPanel>
+                        <StackPanel x:Name="DiscordMix" Margin="0,0,16,0" Visibility="Collapsed">
+                            <DockPanel Width="150">
+                                <TextBlock x:Name="DiscordVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
+                                <TextBlock Text="Discord" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
+                            </DockPanel>
+                            <Slider x:Name="DiscordVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
+                                    ValueChanged="Volume_ValueChanged" MouseDoubleClick="DiscordVol_DoubleClick" Width="150"/>
                         </StackPanel>
                     </StackPanel>
                     <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" Padding="14,8" Click="Export_Click"

@@ -160,3 +160,29 @@ public class AutoDeleteTests
         Assert.Equal(new[] { "old" }, due.Select(c => c.Path));
     }
 }
+
+public class TrackLayoutTests
+{
+    static ClipInfo Clip(int tracks) => new() { Path = "x.mp4", Game = "g", Created = DateTime.Now, AudioTracks = tracks };
+
+    [Fact]
+    public void OldAndNewLayoutsAreDetected()
+    {
+        Assert.Equal((1, 2, (int?)3), Clip(4).SeparateTracks);
+        Assert.Equal((1, 2, (int?)null), Clip(3).SeparateTracks);
+        Assert.Equal((0, 1, (int?)null), Clip(2).SeparateTracks);
+        Assert.Null(Clip(1).SeparateTracks);
+    }
+
+    [Fact]
+    public void MixGraphAddsDiscordOnlyWhenPresent()
+    {
+        var four = DiscordExporter.MixGraph("0:a:", (1, 2, 3), 0, 0, -6, "[aout]");
+        Assert.Contains("[0:a:3]volume=-6dB[da]", four);
+        Assert.Contains("amix=inputs=3", four);
+        var mpv = DiscordExporter.MixGraph("aid", (1, 2, null), 0, 0, 0, "[ao]");
+        Assert.Contains("[aid2]", mpv);
+        Assert.Contains("[aid3]", mpv);
+        Assert.Contains("amix=inputs=2", mpv);
+    }
+}

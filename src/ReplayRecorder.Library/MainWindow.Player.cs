@@ -33,16 +33,20 @@ public partial class MainWindow
         var tracks = c.Clip.SeparateTracks;
         MixPanel.IsEnabled = tracks != null;
         MixPanel.ToolTip = tracks == null ? "This clip has a single audio track".T() : null;
+        bool discord = tracks?.Discord != null;
+        DiscordMix.Visibility = discord ? Visibility.Visible : Visibility.Collapsed;
+        GameVolLabel.Text = (discord ? "Game" : "Game + chat").T();
         _loadingClip = true;
         GameVol.Value = _edit.GameVolumeDb;
         MicVol.Value = _edit.MicVolumeDb;
+        DiscordVol.Value = _edit.DiscordVolumeDb;
         _loadingClip = false;
         UpdateVolumeLabels();
 
         Timeline.SetClip(c.Duration, _edit.In, _edit.EffectiveOut(c.Duration));
         Timeline.Position = 0;
-        Timeline.SetLevels(null, null, ClipIndex.LevelsPerSecond);
-        Timeline.SetGains(tracks != null ? GameVol.Value : 0, MicVol.Value);
+        Timeline.SetLevels(null, null, null, ClipIndex.LevelsPerSecond);
+        Timeline.SetGains(tracks != null ? GameVol.Value : 0, MicVol.Value, DiscordVol.Value);
         _ = LoadLevels(c);
         UpdateTrimText();
         UpdateTimeText(0);
@@ -58,7 +62,7 @@ public partial class MainWindow
         try
         {
             var levels = await _index.EnsureLevelsAsync(c.Clip, _cts.Token);
-            if (levels is var (game, mic) && _current == c) Timeline.SetLevels(game, mic, ClipIndex.LevelsPerSecond);
+            if (levels is var (game, mic, discord) && _current == c) Timeline.SetLevels(game, mic, discord, ClipIndex.LevelsPerSecond);
         }
         catch (OperationCanceledException) { }
     }
@@ -120,16 +124,10 @@ public partial class MainWindow
         ScheduleViewUpdate();
     }
 
-    /// <summary>mpv filter graph that mixes the separate game and mic tracks with the chosen volumes.</summary>
-    string? AudioGraph()
-    {
-        if (_current?.Clip.SeparateTracks is not { } tracks) return null;
-        var (g, m) = tracks;
-        string Db(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
-        return $"[aid{g + 1}]volume={Db(GameVol.Value)}dB[ga];" +
-               $"[aid{m + 1}]volume={Db(MicVol.Value)}dB,aformat=channel_layouts=stereo[ma];" +
-               "[ga][ma]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0[ao];[vid1]null[vo]";
-    }
+    /// <summary>mpv filter graph that mixes the separate game, mic and Discord tracks with the chosen volumes.</summary>
+    string? AudioGraph() => _current?.Clip.SeparateTracks is { } tracks
+        ? DiscordExporter.MixGraph("aid", tracks, GameVol.Value, MicVol.Value, DiscordVol.Value, "[ao]") + ";[vid1]null[vo]"
+        : null;
 
     void TrimEdited()
     {
@@ -154,6 +152,7 @@ public partial class MainWindow
         static string L(double v) => v == 0 ? "0 dB" : $"{v:+0;-0} dB";
         GameVolText.Text = L(GameVol.Value);
         MicVolText.Text = L(MicVol.Value);
+        DiscordVolText.Text = L(DiscordVol.Value);
     }
 
     void SetIn()
@@ -252,7 +251,7 @@ public partial class MainWindow
             WindowState = WindowState.Maximized;
             if (_mpv != null)
             {
-                _fsBar = new FullscreenBar(this, _mpv, () => SetFullscreen(false), GameVol, MicVol, MixPanel.IsEnabled);
+                _fsBar = new FullscreenBar(this, _mpv, () => SetFullscreen(false), GameVol, MicVol, DiscordMix.Visibility == Visibility.Visible ? DiscordVol : null, MixPanel.IsEnabled);
                 // Placed once the window has finished growing to the full screen.
                 Dispatcher.BeginInvoke(() => { if (_fsBar == null) return; _fsBar.PlaceOver(this); _fsBar.Show(); }, DispatcherPriority.Loaded);
             }
@@ -305,11 +304,13 @@ public partial class MainWindow
         if (_current == null) return;
         _edit.GameVolumeDb = GameVol.Value;
         _edit.MicVolumeDb = MicVol.Value;
-        Timeline.SetGains(GameVol.Value, MicVol.Value);
+        _edit.DiscordVolumeDb = DiscordVol.Value;
+        Timeline.SetGains(GameVol.Value, MicVol.Value, DiscordVol.Value);
         ClipEdits.Set(_current.Path, _edit);
         _mixDebounce.Stop(); _mixDebounce.Start();
     }
 
     void GameVol_DoubleClick(object sender, MouseButtonEventArgs e) => GameVol.Value = 0;
     void MicVol_DoubleClick(object sender, MouseButtonEventArgs e) => MicVol.Value = 0;
+    void DiscordVol_DoubleClick(object sender, MouseButtonEventArgs e) => DiscordVol.Value = 0;
 }

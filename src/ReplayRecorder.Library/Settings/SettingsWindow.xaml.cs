@@ -64,6 +64,8 @@ public partial class SettingsWindow : Window
         SysDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.SystemAudioDeviceId, "Loading devices…".T()) };
         SysDeviceBox.SelectedIndex = 0;
         SysVol.Value = _s.SystemVolumeDb;
+        DiscordSeparate.IsChecked = _s.DiscordSeparate;
+        DiscordVol.Value = _s.DiscordVolumeDb;
         MicEnabled.IsChecked = _s.MicEnabled;
         MicDeviceBox.ItemsSource = new[] { new DeviceChoice(_s.MicDeviceId, "Loading devices…".T()) };
         MicDeviceBox.SelectedIndex = 0;
@@ -123,6 +125,7 @@ public partial class SettingsWindow : Window
         static string Db(double v) => Math.Round(v) == 0 ? "0 dB" : $"{Math.Round(v):+0;-0} dB";
         SysVolText.Text = Db(SysVol.Value);
         MicVolText.Text = Db(MicVol.Value);
+        DiscordVolText.Text = Db(DiscordVol.Value);
 
         var sel = MonitorBox.SelectedItem as Choice<string>;
         var d = sel == null ? null : sel.Value.Length == 0 ? _displays.FirstOrDefault(x => x.Primary) : _displays.FirstOrDefault(x => x.DeviceName == sel.Value);
@@ -226,6 +229,8 @@ public partial class SettingsWindow : Window
         _s.SystemAudioEnabled = SysEnabled.IsChecked == true;
         _s.SystemAudioDeviceId = (SysDeviceBox.SelectedItem as DeviceChoice)?.Id ?? "";
         _s.SystemVolumeDb = Math.Round(SysVol.Value);
+        _s.DiscordSeparate = DiscordSeparate.IsChecked == true;
+        _s.DiscordVolumeDb = Math.Round(DiscordVol.Value);
         _s.MicEnabled = MicEnabled.IsChecked == true;
         _s.MicDeviceId = (MicDeviceBox.SelectedItem as DeviceChoice)?.Id ?? "";
         _s.MicVolumeDb = Math.Round(MicVol.Value);

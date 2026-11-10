@@ -29,7 +29,7 @@ public partial class MainWindow
     {
         if (_current == null || _exportCts != null) return;
         var clip = _current.Clip;
-        var edit = new ClipEdit { In = _edit.In, Out = _edit.Out, GameVolumeDb = _edit.GameVolumeDb, MicVolumeDb = _edit.MicVolumeDb };
+        var edit = new ClipEdit { In = _edit.In, Out = _edit.Out, GameVolumeDb = _edit.GameVolumeDb, MicVolumeDb = _edit.MicVolumeDb, DiscordVolumeDb = _edit.DiscordVolumeDb };
         if (clip.Duration <= 0 && Timeline.Duration > 0) clip.Duration = Timeline.Duration;
 
         _exportCts = new CancellationTokenSource();

@@ -11,6 +11,7 @@ public sealed class ClipEdit
     public double Out { get; set; }
     public double GameVolumeDb { get; set; }
     public double MicVolumeDb { get; set; }
+    public double DiscordVolumeDb { get; set; }
     /// <summary>Starred in the library.</summary>
     public bool Favorite { get; set; }
 
@@ -34,7 +35,7 @@ public static class ClipEdits
         {
             Load();
             return _all!.TryGetValue(clipPath, out var e)
-                ? new ClipEdit { In = e.In, Out = e.Out, GameVolumeDb = e.GameVolumeDb, MicVolumeDb = e.MicVolumeDb, Favorite = e.Favorite }
+                ? new ClipEdit { In = e.In, Out = e.Out, GameVolumeDb = e.GameVolumeDb, MicVolumeDb = e.MicVolumeDb, DiscordVolumeDb = e.DiscordVolumeDb, Favorite = e.Favorite }
                 : new ClipEdit();
         }
     }

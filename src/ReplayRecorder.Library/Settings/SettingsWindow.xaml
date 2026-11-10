@@ -251,7 +251,10 @@
                         </Grid>
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Output device" Style="{StaticResource Label}"/>
+                            <StackPanel>
+                                <TextBlock Text="Output device" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Not used while Discord has its own track" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,12,0"/>
+                            </StackPanel>
                             <ComboBox x:Name="SysDeviceBox" Grid.Column="1" SelectionChanged="SysDeviceBox_SelectionChanged"/>
                         </Grid>
                         <Grid Style="{StaticResource Row}">
@@ -267,6 +270,20 @@
                                 <Border x:Name="SysMeter" HorizontalAlignment="Left" Width="0" CornerRadius="4" Background="#2ECC71"/>
                             </Border>
                             <TextBlock x:Name="SysMeterText" Grid.Column="2" Style="{StaticResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
+                        </Grid>
+                        <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Discord on its own track" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Friends' voices apart from the game, so you can rebalance them later" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,12,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="DiscordSeparate" Grid.Column="1" Style="{StaticResource Switch}" Content="Separate"/>
+                        </Grid>
+                        <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Discord volume" Style="{StaticResource Label}"/>
+                            <Slider x:Name="DiscordVol" Grid.Column="1" Minimum="-30" Maximum="20" SmallChange="1" LargeChange="3" ValueChanged="Vol_ValueChanged"/>
+                            <TextBlock x:Name="DiscordVolText" Grid.Column="2" Style="{StaticResource Label}" HorizontalAlignment="Right"/>
                         </Grid>
 
                         <Border Height="1" Background="{DynamicResource Line}" Margin="0,8"/>

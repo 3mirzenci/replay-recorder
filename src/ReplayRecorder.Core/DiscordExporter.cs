@@ -193,9 +193,23 @@ public static class DiscordExporter
         return new ExportResult(final, size, plan, attempts, sw.Elapsed);
     }
 
+    /// <summary>
+    /// Filter graph mixing the separate tracks at the given volumes; <paramref name="input"/> is the stream
+    /// prefix ("0:a:" for ffmpeg, "aid" with 1-based numbers for mpv).
+    /// </summary>
+    public static string MixGraph(string input, (int Game, int Mic, int? Discord) t, double gameDb, double micDb, double discordDb, string output)
+    {
+        int b = input == "aid" ? 1 : 0;
+        var g = $"[{input}{t.Game + b}]volume={F(gameDb)}dB[ga];" +
+                $"[{input}{t.Mic + b}]volume={F(micDb)}dB,aformat=channel_layouts=stereo[ma];";
+        if (t.Discord is int d)
+            return g + $"[{input}{d + b}]volume={F(discordDb)}dB[da];[ga][ma][da]amix=inputs=3:normalize=0,alimiter=limit=0.95:level=0{output}";
+        return g + $"[ga][ma]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0{output}";
+    }
+
     static bool CanStreamCopy(ClipInfo clip, ClipEdit edit, double seconds, long target)
     {
-        bool defaultAudio = Math.Abs(edit.GameVolumeDb) < 0.01 && Math.Abs(edit.MicVolumeDb) < 0.01;
+        bool defaultAudio = Math.Abs(edit.GameVolumeDb) < 0.01 && Math.Abs(edit.MicVolumeDb) < 0.01 && Math.Abs(edit.DiscordVolumeDb) < 0.01;
         if (!defaultAudio || clip.Duration <= 0 || clip.AudioTracks == 2) return false; // 2-track clips have no mixed track
         if (!string.Equals(ProbeVideoCodec(clip.Path), "h264", StringComparison.OrdinalIgnoreCase)) return false;
         double estimate = clip.SizeBytes * (seconds + 2) / clip.Duration; // +2 s: may start a keyframe early
@@ -238,14 +252,12 @@ public static class DiscordExporter
             vf.Add("format=yuv420p");
         }
 
-        // Audio: mix the separate game and mic tracks with the chosen volumes into one track.
+        // Audio: mix the separate game, mic (and Discord) tracks with the chosen volumes into one track.
         string? audioGraph = null;
         string audioMap;
         if (clip.SeparateTracks is { } t)
         {
-            audioGraph = $"[0:a:{t.Game}]volume={F(edit.GameVolumeDb)}dB[ga];" +
-                         $"[0:a:{t.Mic}]volume={F(edit.MicVolumeDb)}dB,aformat=channel_layouts=stereo[ma];" +
-                         "[ga][ma]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0[aout]";
+            audioGraph = MixGraph("0:a:", t, edit.GameVolumeDb, edit.MicVolumeDb, edit.DiscordVolumeDb, "[aout]");
             audioMap = "[aout]";
         }
         else if (clip.AudioTracks > 0)

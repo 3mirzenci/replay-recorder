@@ -26,30 +26,32 @@ sealed class TrimTimeline : FrameworkElement
     }
 
     /// <summary>
-    /// Sound bars: game (+ chat) loudness in the top bar, mic in the bottom one; a single-track
-    /// clip gets one bar. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
+    /// Sound bars: game (+ chat) loudness in the top bar, mic below it, Discord (when the clip has it)
+    /// at the bottom; a single-track clip gets one bar. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
     /// </summary>
-    public void SetLevels(float[]? game, float[]? mic, int perSecond)
+    public void SetLevels(float[]? game, float[]? mic, float[]? discord, int perSecond)
     {
-        _game = game; _mic = mic; _levelsPerSecond = perSecond;
+        _game = game; _mic = mic; _discord = discord; _levelsPerSecond = perSecond;
         // Each bar is scaled to its own clip (its loudest moment fills it), but only sound at least FullDb loud
         // can fill it: keyboard clicks on a mic (around -45 dB) stay small instead of looking like talk (-10 dB).
         _gameTop = game is { Length: > 0 } ? Math.Max(game.Max(), FullDb) : 0;
         _micTop = mic is { Length: > 0 } ? Math.Max(mic.Max(), FullDb) : 0;
+        _discordTop = discord is { Length: > 0 } ? Math.Max(discord.Max(), FullDb) : 0;
         InvalidateVisual();
     }
 
     /// <summary>The mix sliders' gains (dB), so the bars show what you'll hear.</summary>
-    public void SetGains(double gameDb, double micDb)
+    public void SetGains(double gameDb, double micDb, double discordDb)
     {
-        _gameGain = gameDb; _micGain = micDb;
+        _gameGain = gameDb; _micGain = micDb; _discordGain = discordDb;
         InvalidateVisual();
     }
 
-    float[]? _game, _mic;
+    float[]? _game, _mic, _discord;
     int _levelsPerSecond = 10;
-    double _gameGain, _micGain;
-    double _gameTop, _micTop; // loudest level of each track (dBFS)
+    double _gameGain, _micGain, _discordGain;
+    double _gameTop, _micTop, _discordTop; // loudest level of each track (dBFS)
+    static readonly Brush DiscordBrush = Frozen(Color.FromRgb(0x58, 0x65, 0xF2));
     const double RangeDb = 30; // a bar is empty this far below its track's loudest moment
     const double FullDb = -20; // quietest level that can still fill a bar
 
@@ -90,13 +92,13 @@ sealed class TrimTimeline : FrameworkElement
     double X(double t) => Pad + (_duration > 0 ? t / _duration : 0) * (ActualWidth - 2 * Pad);
     double T(double x) => _duration <= 0 ? 0 : Math.Clamp((x - Pad) / (ActualWidth - 2 * Pad), 0, 1) * _duration;
 
-    // Game (+ chat) and mic as two separate bars; one bar for a single-track clip.
+    // Game (+ chat), mic and Discord as separate bars; one bar for a single-track clip.
     Rect[] Strips(double w)
     {
         double width = Math.Max(0, w - 2 * Pad);
-        if (_game != null && _mic == null) return new[] { new Rect(Pad, 0, width, BarH) };
-        double h = (BarH - StripGap) / 2;
-        return new[] { new Rect(Pad, 0, width, h), new Rect(Pad, h + StripGap, width, h) };
+        int n = _game != null && _mic == null ? 1 : _discord != null ? 3 : 2;
+        double h = (BarH - (n - 1) * StripGap) / n;
+        return Enumerable.Range(0, n).Select(i => new Rect(Pad, i * (h + StripGap), width, h)).ToArray();
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -119,6 +121,7 @@ sealed class TrimTimeline : FrameworkElement
             foreach (var s in strips) dc.DrawRectangle(Range, null, new Rect(xi, s.Top, Math.Max(0, xo - xi), s.Height));
         DrawLevels(dc, strips[0], _game, _gameGain + RangeDb - _gameTop, Frozen(Color.FromArgb(0xd0, sub.R, sub.G, sub.B)));
         if (strips.Length > 1) DrawLevels(dc, strips[1], _mic, _micGain + RangeDb - _micTop, Frozen(accent));
+        if (strips.Length > 2) DrawLevels(dc, strips[2], _discord, _discordGain + RangeDb - _discordTop, DiscordBrush);
         foreach (var s in strips)
         {
             dc.DrawRectangle(Dim, null, new Rect(Pad, s.Top, Math.Max(0, xi - Pad), s.Height));
