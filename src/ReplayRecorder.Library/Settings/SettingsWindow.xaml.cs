@@ -87,7 +87,7 @@ public partial class SettingsWindow : Window
         NotifyBox.IsChecked = _s.ShowNotifications;
         SoundBox.IsChecked = _s.PlaySaveSound;
         Fill(LanguageBox, _s.Language, ("en", "English"), ("tr", "Türkçe"));
-        Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("aurora", "Aurora"), ("windows", "Classic (grey)"), ("amber", "Classic (blue-grey)"));
+        Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("aurora", "Modern"), ("windows", "Classic (grey)"), ("amber", "Classic (blue-grey)"));
         _accent = _s.AccentColor;
         foreach (var rb in AccentSwatches.Children.OfType<RadioButton>())
             rb.IsChecked = string.Equals((string)rb.Tag, _accent, StringComparison.OrdinalIgnoreCase);

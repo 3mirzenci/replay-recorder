@@ -221,6 +221,7 @@ public static class Lang
         ["Custom…"] = "Özel…",
         ["Amber"] = "Kehribar", ["Blue"] = "Mavi", ["Cyan"] = "Camgöbeği", ["Green"] = "Yeşil", ["Orange"] = "Turuncu",
         ["Pink"] = "Pembe", ["Red"] = "Kırmızı", ["Violet"] = "Mor",
+        ["Modern"] = "Modern",
         ["Classic (grey)"] = "Klasik (gri)", ["Classic (blue-grey)"] = "Klasik (mavi-gri)",
         ["Language"] = "Dil",
         ["Applies when you save"] = "Kaydedince uygulanır",
