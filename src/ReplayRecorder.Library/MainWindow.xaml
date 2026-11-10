@@ -134,11 +134,11 @@
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:GameEntry}">
                                     <DockPanel>
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" FontFamily="{DynamicResource NumFont}"
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" FontFamily="{DynamicResource NumFont}" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource Subtle}"/>
                                         <TextBlock x:Name="star" DockPanel.Dock="Left" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                                    Foreground="{DynamicResource Star}" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                     </DockPanel>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsFavorites}" Value="True">
@@ -391,8 +391,8 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <!-- Sticky day header: shows the current day while its own header is scrolled away -->
-                    <Border x:Name="StickyHeader" VerticalAlignment="Top" Margin="16,0,30,0" Visibility="Collapsed"
-                            Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                    <Border x:Name="StickyHeader" VerticalAlignment="Top" Margin="4,0,30,0" Visibility="Collapsed"
+                            Background="{DynamicResource StickyBg}" BorderBrush="{DynamicResource StickyLine}" BorderThickness="0,0,0,1">
                         <ContentControl x:Name="StickyContent" ContentTemplate="{StaticResource DayHeaderTemplate}" Margin="0,-10,0,8"/>
                     </Border>
                     <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">

@@ -40,6 +40,14 @@
     <CornerRadius x:Key="ButtonRadius">16</CornerRadius>
     <!-- Tabs are 26 px tall: half of that makes a pill -->
     <CornerRadius x:Key="TabRadius">13</CornerRadius>
+    <!-- Sticky day header: no box; the clips fade out under it instead (StickyFade masks the list) -->
+    <SolidColorBrush x:Key="StickyBg" Color="Transparent"/>
+    <SolidColorBrush x:Key="StickyLine" Color="Transparent"/>
+    <LinearGradientBrush x:Key="StickyFade" MappingMode="Absolute" StartPoint="0,0" EndPoint="0,70">
+        <GradientStop Color="Transparent" Offset="0"/>
+        <GradientStop Color="Transparent" Offset="0.6"/>
+        <GradientStop Color="Black" Offset="1"/>
+    </LinearGradientBrush>
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0.10</sys:Double>
     <sys:Double x:Key="HaloOpacity">0.30</sys:Double>
