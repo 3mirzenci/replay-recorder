@@ -1,5 +1,4 @@
 using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using ReplayRecorder.Core;
 
@@ -31,7 +30,7 @@ static class TrayMenu
         menu.ForeColor = Fore;
         menu.Font = new Font("Segoe UI", 9.75f);
         menu.ShowImageMargin = true;
-        menu.ImageScalingSize = new Size(16, 16);
+        menu.ImageScalingSize = new Size(20, 20); // width of the icon margin
         menu.Padding = new Padding(4, 6, 4, 6);
         foreach (ToolStripItem item in menu.Items)
             if (item is ToolStripMenuItem) item.Padding = new Padding(4, 5, 12, 5);
@@ -45,18 +44,15 @@ static class TrayMenu
 
     public static void SetAccent(ContextMenuStrip menu, Color accent) => menu.Renderer = new Renderer(accent);
 
-    /// <summary>A Segoe Fluent Icons glyph as a menu image (Segoe MDL2 Assets on Windows 10).</summary>
-    public static Image Icon(char glyph, Color? color = null)
-    {
-        var bmp = new Bitmap(32, 32);
-        using var g = Graphics.FromImage(bmp);
-        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-        using var font = new Font(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 15f, GraphicsUnit.Pixel);
-        using var brush = new SolidBrush(color ?? Fore);
-        var size = g.MeasureString(glyph.ToString(), font);
-        g.DrawString(glyph.ToString(), font, brush, (32 - size.Width) / 2, (32 - size.Height) / 2);
-        return bmp;
-    }
+    /// <summary>Gives a menu item an icon: a Segoe Fluent Icons glyph the renderer draws beside its text.</summary>
+    public static T WithIcon<T>(this T item, char glyph) where T : ToolStripItem { item.Tag = glyph; return item; }
+
+    // Drawn as font text, not a bitmap: sharp at any display scaling, and centred on the text line.
+    static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 10.5f);
+
+    static void DrawGlyph(Graphics g, char glyph, Rectangle box, Color color) =>
+        TextRenderer.DrawText(g, glyph.ToString(), IconFont, box, color,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
 
     sealed class Renderer(Color accent) : ToolStripProfessionalRenderer(new Colors())
     {
@@ -82,12 +78,15 @@ static class TrayMenu
         {
             e.TextColor = e.Item.Enabled ? Fore : Dim;
             base.OnRenderItemText(e);
+            // The icon sits in the margin left of the text, on the same centre line (not for the shortcut text).
+            if (e.Item.Tag is char glyph && e.Text == e.Item.Text)
+                DrawGlyph(e.Graphics, glyph, new Rectangle(0, e.TextRectangle.Y, e.TextRectangle.Left - 4, e.TextRectangle.Height), e.TextColor);
         }
 
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
         {
-            using var check = Icon('', accent); // CheckMark
-            e.Graphics.DrawImage(check, new Rectangle(e.ImageRectangle.X - 8, e.ImageRectangle.Y - 8, 32, 32));
+            var r = e.ImageRectangle; // centred where an icon would sit
+            DrawGlyph(e.Graphics, '', new Rectangle(r.X - 6, 0, r.Width + 12, e.Item.Height), accent); // CheckMark
         }
 
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)

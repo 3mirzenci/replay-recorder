@@ -38,11 +38,11 @@ sealed class TrayApp : ApplicationContext
         _iconLive = MakeIcon(Green); _iconRec = MakeIcon(Red); _iconPaused = MakeIcon(Grey);
 
         _statusItem = new ToolStripMenuItem("Starting…".T()) { Enabled = false };
-        _saveItem = new ToolStripMenuItem("Save clip".T(), TrayMenu.Icon(''), (_, _) => SaveClip());
-        _recordItem = new ToolStripMenuItem("Start recording".T(), TrayMenu.Icon(''), (_, _) => ToggleRecording());
-        _pauseItem = new ToolStripMenuItem("Pause".T(), TrayMenu.Icon(''), (_, _) => TogglePause());
+        _saveItem = new ToolStripMenuItem("Save clip".T(), null, (_, _) => SaveClip()).WithIcon('\uE74E');
+        _recordItem = new ToolStripMenuItem("Start recording".T(), null, (_, _) => ToggleRecording()).WithIcon('\uE7C8');
+        _pauseItem = new ToolStripMenuItem("Pause".T(), null, (_, _) => TogglePause()).WithIcon('\uE769');
         _startupItem = new ToolStripMenuItem("Start with Windows".T(), null, (_, _) => ToggleStartup()) { Checked = Autostart.IsEnabled };
-        _updateItem = new ToolStripMenuItem("Install update".T(), TrayMenu.Icon('', TrayMenu.Accent(_settings)), (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
+        _updateItem = new ToolStripMenuItem("Install update".T(), null, (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) }.WithIcon('\uE896');
 
         var menu = new ContextMenuStrip();
         menu.Items.AddRange(new ToolStripItem[]
@@ -52,13 +52,13 @@ sealed class TrayApp : ApplicationContext
             new ToolStripSeparator(),
             _saveItem, _recordItem, _pauseItem,
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Open library".T(), TrayMenu.Icon(''), (_, _) => OpenLibrary()),
-            new ToolStripMenuItem("Open clips folder".T(), TrayMenu.Icon(''), (_, _) => OpenFolder(_settings.ClipsFolder)),
-            new ToolStripMenuItem("Settings…".T(), TrayMenu.Icon(''), (_, _) => OpenSettings()),
+            new ToolStripMenuItem("Open library".T(), null, (_, _) => OpenLibrary()).WithIcon('\uE8F1'),
+            new ToolStripMenuItem("Open clips folder".T(), null, (_, _) => OpenFolder(_settings.ClipsFolder)).WithIcon('\uE8B7'),
+            new ToolStripMenuItem("Settings…".T(), null, (_, _) => OpenSettings()).WithIcon('\uE713'),
             _startupItem,
-            new ToolStripMenuItem("Open log".T(), TrayMenu.Icon(''), (_, _) => Shell(Log.CurrentFile)),
+            new ToolStripMenuItem("Open log".T(), null, (_, _) => Shell(Log.CurrentFile)).WithIcon('\uE8A5'),
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Quit Replay Recorder".T(), TrayMenu.Icon(''), (_, _) => Quit()),
+            new ToolStripMenuItem("Quit Replay Recorder".T(), null, (_, _) => Quit()).WithIcon('\uE7E8'),
         });
         TrayMenu.Style(menu, TrayMenu.Accent(_settings));
 
