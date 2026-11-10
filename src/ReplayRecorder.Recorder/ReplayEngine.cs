@@ -192,13 +192,8 @@ sealed class ReplayEngine : IDisposable
         SetStatus(StatusLine());
     }
 
-    string StatusLine()
-    {
-        var name = Display?.DeviceName.TrimStart('\\', '.');
-        return _bufferedSeconds < _s.BufferSeconds
-            ? "Recording {0} · buffer {1} of {2}s ready".T(name, _bufferedSeconds, _s.BufferSeconds)
-            : "Recording {0} · buffer {1}s".T(name, _s.BufferSeconds);
-    }
+    // The buffer figure counts up while it fills, so an early save isn't a surprise.
+    string StatusLine() => "Recording {0} · buffer {1}s".T(Display?.DeviceName.TrimStart('\\', '.'), Math.Min(_bufferedSeconds, _s.BufferSeconds));
 
     int _bufferedSeconds; // how much a save would hold right now, until the buffer is full
 

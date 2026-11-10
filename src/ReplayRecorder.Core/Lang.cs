@@ -335,7 +335,6 @@ public static class Lang
         ["Error"] = "Hata",
         ["● Full recording in progress"] = "● Tam kayıt sürüyor",
         ["Recording {0} · buffer {1}s"] = "{0} kaydediliyor · arabellek {1} sn",
-        ["Recording {0} · buffer {1} of {2}s ready"] = "{0} kaydediliyor · arabellek {1}/{2} sn hazır",
         ["Clip saved"] = "Klip kaydedildi",
         ["{0} · last {1}s"] = "{0} · son {1} sn",
         ["Clip not saved"] = "Klip kaydedilmedi",
