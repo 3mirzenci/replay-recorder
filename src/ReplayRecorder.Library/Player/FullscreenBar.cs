@@ -146,6 +146,7 @@ sealed class FullscreenBar : Window
             Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = System.Windows.Input.Cursors.Hand,
             VerticalAlignment = VerticalAlignment.Center,
         };
+        System.Windows.Automation.AutomationProperties.SetName(b, tip); // icon-only: name it after its tooltip
         // Plain template: the default one pads the content, which cut the 40 px play disc
         var face = new FrameworkElementFactory(typeof(Border));
         face.SetValue(Border.BackgroundProperty, Brushes.Transparent); // whole square stays clickable

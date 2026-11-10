@@ -23,7 +23,7 @@
     <SolidColorBrush x:Key="Glass" Color="#0FFFFFFF"/>
     <SolidColorBrush x:Key="Glass2" Color="#1AFFFFFF"/>
     <SolidColorBrush x:Key="Edge" Color="#262628"/>
-    <SolidColorBrush x:Key="Faint" Color="#85858B"/>
+    <SolidColorBrush x:Key="Faint" Color="#8A8A90"/> <!-- 4.6:1 on CardHover -->
     <SolidColorBrush x:Key="GameTrack" Color="#B9B9C0"/>
     <SolidColorBrush x:Key="DiscordTrack" Color="#7B86FF"/>
     <SolidColorBrush x:Key="Good" Color="#2ECC71"/>

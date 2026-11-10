@@ -159,6 +159,9 @@ public partial class App : Application
         else if (e is System.Windows.Controls.HeaderedItemsControl h && h.Header is string hs) h.Header = Lang.Retranslate(hs);
         else if (e is System.Windows.Controls.ContentControl c && c.Content is string cs && !Bound(c, System.Windows.Controls.ContentControl.ContentProperty)) c.Content = Lang.Retranslate(cs);
         if (e.ToolTip is string tip) e.ToolTip = Lang.Retranslate(tip);
+        var an = System.Windows.Automation.AutomationProperties.GetName(e); // fixed screen-reader names follow the language too
+        if (an.Length > 0 && !Bound(e, System.Windows.Automation.AutomationProperties.NameProperty))
+            System.Windows.Automation.AutomationProperties.SetName(e, Lang.Retranslate(an));
     }
 
     public static void ApplyTheme(string theme, string accent = "")

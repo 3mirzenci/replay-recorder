@@ -9,6 +9,8 @@
     <Window.Resources>
         <!-- Round buttons for the header's action row -->
         <Style x:Key="RoundBtn" TargetType="Button">
+            <!-- Icon-only: screen readers say the tooltip, not the icon character -->
+            <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}"/>
             <Setter Property="Width" Value="40"/>
             <Setter Property="Height" Value="40"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -132,7 +134,7 @@
                         <TextBlock x:Name="StorageText" Visibility="Collapsed"/>
                         <TextBlock x:Name="VersionText" Visibility="Collapsed"/>
                         <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" Margin="0,0,10,0" TextChanged="SearchBox_TextChanged"/>
-                        <Button x:Name="OpenFolderBtn" Style="{StaticResource RoundBtn}" Click="OpenFolder_Click"
+                        <Button x:Name="OpenFolderBtn" Style="{StaticResource RoundBtn}" Click="OpenFolder_Click" AutomationProperties.Name="Open clips folder"
                                 ToolTip="{Binding Text, ElementName=StorageText}" ToolTipService.ShowDuration="20000">
                             <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
                         </Button>
@@ -200,7 +202,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Style="{StaticResource GhostBtn}" Padding="8,6" Click="ClearSelection_Click" ToolTip="Clear selection (Esc)">
+                            <Button Style="{StaticResource GhostBtn}" Padding="8,6" Click="ClearSelection_Click" ToolTip="Clear selection (Esc)" AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}">
                                 <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"/>
                             </Button>
                             <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
@@ -632,7 +634,7 @@
                                 ToolTip="Then press Ctrl+V in Discord"/>
                         <Button x:Name="OpenExportBtn" Content="Open folder" Click="OpenExport_Click" Margin="0,0,6,0" IsEnabled="False"/>
                         <Button x:Name="CancelExportBtn" Content="Cancel" Click="CancelExport_Click" Style="{StaticResource GhostBtn}"/>
-                        <Button x:Name="CloseExportBtn" Click="CloseExport_Click" Style="{StaticResource GhostBtn}" Padding="8,6" Visibility="Collapsed">
+                        <Button x:Name="CloseExportBtn" Click="CloseExport_Click" Style="{StaticResource GhostBtn}" Padding="8,6" Visibility="Collapsed" ToolTip="Close" AutomationProperties.Name="Close">
                             <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"/>
                         </Button>
                     </StackPanel>
