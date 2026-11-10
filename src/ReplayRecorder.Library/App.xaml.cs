@@ -45,6 +45,7 @@ public partial class App : Application
             new System.Windows.Controls.ToolTipEventHandler((s, _) => { if (s is FrameworkElement { ToolTip: string tip } fe) fe.ToolTip = Lang.Retranslate(tip); }));
         EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.ContextMenuOpeningEvent,
             new System.Windows.Controls.ContextMenuEventHandler((s, _) => { if (s is FrameworkElement { ContextMenu: { } m }) TranslateTree(m); }));
+        KeepFocusOnMouseClicks();
         StartRecorderIfNeeded();
         base.OnStartup(e);
         // "ReplayRecorder.exe --open <clip>" opens that clip straight in the player.
@@ -64,6 +65,27 @@ public partial class App : Application
         ThreadPool.RegisterWaitForSingleObject(settings, (_, _) => Dispatcher.BeginInvoke(() => { Front(); win.OpenSettings(); }),
             null, Timeout.Infinite, false);
         if (wantSettings) win.Dispatcher.BeginInvoke(win.OpenSettings, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+    }
+
+    /// <summary>
+    /// Buttons can take keyboard focus (Tab), but a mouse click hands focus back to where it was, as when
+    /// buttons couldn't take focus at all: arrow keys keep moving through the clips after clicking a button.
+    /// </summary>
+    static void KeepFocusOnMouseClicks()
+    {
+        IInputElement? before = null;
+        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.Primitives.ButtonBase), UIElement.PreviewMouseLeftButtonDownEvent,
+            new System.Windows.Input.MouseButtonEventHandler((_, _) => before = System.Windows.Input.Keyboard.FocusedElement), true);
+        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.Primitives.ButtonBase), System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
+            new RoutedEventHandler((s, _) =>
+            {
+                var prev = before; before = null;
+                if (System.Windows.Input.InputManager.Current.MostRecentInputDevice is not System.Windows.Input.MouseDevice) return;
+                if (prev is not UIElement p || ReferenceEquals(p, s) || Window.GetWindow(p) != Window.GetWindow((DependencyObject)s)) return;
+                // After the click's own handlers ran; skipped if the click closed or covered that window.
+                p.Dispatcher.BeginInvoke(() => { if (p.IsVisible && Window.GetWindow(p)?.IsActive == true) p.Focus(); },
+                    System.Windows.Threading.DispatcherPriority.Input);
+            }), true);
     }
 
     protected override void OnExit(ExitEventArgs e)

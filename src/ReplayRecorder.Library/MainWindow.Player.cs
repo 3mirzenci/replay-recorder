@@ -200,6 +200,9 @@ public partial class MainWindow
         if (PlayerView.Visibility != Visibility.Visible)
         {
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { SearchBox.Focus(); e.Handled = true; }
+            // Del and F2 act on the selected clips even when Tab has moved focus to a top-bar control (not while typing).
+            else if (e.Key is Key.Delete or Key.F2 && !ClipGrid.IsKeyboardFocusWithin
+                     && Keyboard.FocusedElement is not System.Windows.Controls.Primitives.TextBoxBase) ClipGrid_KeyDown(ClipGrid, e);
             return;
         }
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
