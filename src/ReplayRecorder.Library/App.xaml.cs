@@ -170,11 +170,30 @@ public partial class App : Application
         // Faint accent light: along the top edge (glow) and around the video (halo); 0 in Classic.
         dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.95, 0.6);
         dict["AccentHalo"] = Light(c, (double)dict["HaloOpacity"], new(0.5, 0.5), 0.5, 0.5);
+        dict["Grain"] = Grain;
         Current.Resources.MergedDictionaries[0] = dict;
         foreach (Window w in Current.Windows) UseDarkTitleBar(w);
     }
 
     static System.Windows.Media.SolidColorBrush Frozen(System.Windows.Media.Color c) { var b = new System.Windows.Media.SolidColorBrush(c); b.Freeze(); return b; }
+
+    /// <summary>128×128 grey noise, tiled 1:1; shown faintly over the glow so its few colour steps don't form rings.</summary>
+    static readonly System.Windows.Media.ImageBrush Grain = MakeGrain();
+
+    static System.Windows.Media.ImageBrush MakeGrain()
+    {
+        const int n = 128;
+        var px = new byte[n * n];
+        new Random(7).NextBytes(px);
+        var img = System.Windows.Media.Imaging.BitmapSource.Create(n, n, 96, 96, System.Windows.Media.PixelFormats.Gray8, null, px, n);
+        var b = new System.Windows.Media.ImageBrush(img)
+        {
+            TileMode = System.Windows.Media.TileMode.Tile, Stretch = System.Windows.Media.Stretch.None,
+            Viewport = new Rect(0, 0, n, n), ViewportUnits = System.Windows.Media.BrushMappingMode.Absolute,
+        };
+        b.Freeze();
+        return b;
+    }
 
     /// <summary>The accent fading from <paramref name="opacity"/> at <paramref name="center"/> to nothing at the rim.</summary>
     static System.Windows.Media.RadialGradientBrush Light(System.Windows.Media.Color c, double opacity, Point center, double rx, double ry)

@@ -59,16 +59,16 @@
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
-                        <Border Background="Transparent" Cursor="Hand" Padding="8,16,8,2" HorizontalAlignment="Left"
+                        <Border Background="Transparent" Cursor="Hand" Padding="8,22,8,4" HorizontalAlignment="Left"
                                 MouseLeftButtonDown="DayHeader_Click" ToolTip="Select every clip from this day">
                             <StackPanel Orientation="Horizontal">
-                                <Border x:Name="chk" Width="20" Height="20" CornerRadius="10" BorderThickness="1.5"
-                                        BorderBrush="{DynamicResource Subtle}" Background="Transparent" VerticalAlignment="Center">
+                                <Border x:Name="chk" Width="18" Height="18" CornerRadius="9" BorderThickness="1.5"
+                                        BorderBrush="{DynamicResource Faint}" Background="Transparent" VerticalAlignment="Center">
                                     <TextBlock x:Name="mark" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
                                                Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
-                                <TextBlock Text="{Binding Name.Label}" FontFamily="{DynamicResource DisplayFont}" FontSize="19" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Name.Summary}" Foreground="{DynamicResource Subtle}" FontSize="12.5" Margin="10,2,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name.Label}" FontFamily="{DynamicResource DisplayFont}" FontSize="18" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name.Summary}" Foreground="{DynamicResource Subtle}" FontSize="13" Margin="10,2,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <DataTemplate.Triggers>
@@ -94,8 +94,20 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Top bar: app, game filter, sort, search, folder and settings -->
-            <Border CornerRadius="8" Background="{DynamicResource Panel}" Padding="14,10">
+            <!-- Faint accent light from the top edge; tiled grain over it hides gradient banding -->
+            <Rectangle Grid.RowSpan="3" Margin="-8" Fill="{DynamicResource AccentGlow}" IsHitTestVisible="False"/>
+            <Rectangle Grid.RowSpan="3" Margin="-8" Fill="{DynamicResource Grain}" Opacity="{DynamicResource GrainOpacity}"
+                       RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False">
+                <Rectangle.OpacityMask>
+                    <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusX="0.95" RadiusY="0.6">
+                        <GradientStop Color="Black" Offset="0"/>
+                        <GradientStop Color="Transparent" Offset="1"/>
+                    </RadialGradientBrush>
+                </Rectangle.OpacityMask>
+            </Rectangle>
+
+            <!-- Top bar: app, game filter, search, folder and settings (a box in Classic only) -->
+            <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="14,10">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
                         <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Accent}">
@@ -135,23 +147,17 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <StackPanel Orientation="Horizontal" Margin="14,0,14,0">
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
-                            <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
-                        </StackPanel>
-                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" TextChanged="SearchBox_TextChanged"/>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" Margin="14,0,0,0" TextChanged="SearchBox_TextChanged"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
             <!-- Main panel -->
-            <Border Grid.Row="2" CornerRadius="8" Background="{DynamicResource Panel}">
+            <Border Grid.Row="2" CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}">
             <DockPanel>
-                <!-- Header: accent wash, big title, then the newest clip's actions -->
+                <!-- Header: accent wash (Classic only; Aurora has the glow), big title, sort tabs -->
                 <Grid DockPanel.Dock="Top">
-                    <Border CornerRadius="8,8,0,0" Background="{DynamicResource AccentSoft}">
+                    <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource AccentSoft}" Opacity="{DynamicResource WashOpacity}">
                         <Border.OpacityMask>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                 <GradientStop Color="Black" Offset="0"/>
@@ -159,12 +165,18 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
                     </Border>
-                    <!-- One slim row: title and count -->
-                    <DockPanel Margin="24,16,20,8">
+                    <!-- One row: title and count, sort tabs at the right end -->
+                    <DockPanel Margin="24,14,20,0">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Longest" Tag="longest" Checked="Sort_Checked" GroupName="sort"/>
+                            <RadioButton Style="{StaticResource SegRadio}" Content="Largest" Tag="largest" Checked="Sort_Checked" GroupName="sort"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="26" FontWeight="Bold"
+                            <TextBlock x:Name="HeaderText" Text="All clips" FontFamily="{DynamicResource DisplayFont}" FontSize="36" FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="13.5" Margin="14,4,0,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CountText" Foreground="{DynamicResource Subtle}" FontSize="14" Margin="14,8,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DockPanel>
                 </Grid>

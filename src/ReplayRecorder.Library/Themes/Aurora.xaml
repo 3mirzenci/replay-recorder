@@ -41,5 +41,7 @@
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0.10</sys:Double>
     <sys:Double x:Key="HaloOpacity">0.30</sys:Double>
+    <!-- Accent wash behind the library title -->
+    <sys:Double x:Key="WashOpacity">0</sys:Double>
     <sys:Double x:Key="GrainOpacity">0.03</sys:Double>
 </ResourceDictionary>
