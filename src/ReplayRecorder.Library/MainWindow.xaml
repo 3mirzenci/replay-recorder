@@ -134,7 +134,7 @@
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:GameEntry}">
                                     <DockPanel>
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" FontFamily="{DynamicResource NumFont}" VerticalAlignment="Center"
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" Typography.NumeralAlignment="Tabular" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource Subtle}"/>
                                         <TextBlock x:Name="star" DockPanel.Dock="Left" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                                    Foreground="{DynamicResource Star}" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
