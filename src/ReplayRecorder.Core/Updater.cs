@@ -22,6 +22,16 @@ public static class Updater
     public const string AssetName = "ReplayRecorder-Setup.exe";
     public static string ReleasesPage => $"https://github.com/{Repo}/releases";
 
+    /// <summary>Named event the recorder holds open while a full recording runs: the installer would kill it.</summary>
+    public const string RecordingSignal = @"Local\ReplayRecorder.FullRecording";
+
+    public static bool RecorderIsRecording()
+    {
+        if (!EventWaitHandle.TryOpenExisting(RecordingSignal, out var h)) return false;
+        h.Dispose();
+        return true;
+    }
+
     public static Version Current { get; } = Normalize(Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0, 0));
 
     /// <summary>

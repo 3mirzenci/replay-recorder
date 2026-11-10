@@ -333,7 +333,7 @@ public static class DiscordExporter
     static async Task<int> EncodeX264TwoPass(ClipInfo clip, ClipEdit edit, double start, double seconds, ExportPlan plan,
         string output, string label, IProgress<(double, string)>? progress, CancellationToken ct)
     {
-        var log = Path.Combine(Path.GetTempPath(), $"replayrecorder-2pass-{Environment.ProcessId}");
+        var log = Path.Combine(Path.GetTempPath(), $"replayrecorder-2pass-{Guid.NewGuid():N}"); // one per export: two can run at once
         try
         {
             int c1 = await RunFfmpeg(EncodeArgs(clip, edit, start, seconds, plan, false, output, (1, log)), seconds,
@@ -402,13 +402,15 @@ public static class DiscordExporter
 
     static string UniquePath(string path)
     {
-        if (!File.Exists(path)) return path;
+        // A .part means another export (single and batch can run together) is writing that name right now.
+        static bool Taken(string p) => File.Exists(p) || File.Exists(p + ".part");
+        if (!Taken(path)) return path;
         var dir = Path.GetDirectoryName(path)!;
         var name = Path.GetFileNameWithoutExtension(path);
         for (int i = 2; ; i++)
         {
             var p = Path.Combine(dir, $"{name} ({i}).mp4");
-            if (!File.Exists(p)) return p;
+            if (!Taken(p)) return p;
         }
     }
 

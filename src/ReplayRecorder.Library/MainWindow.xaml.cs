@@ -686,6 +686,11 @@ public partial class MainWindow : Window
             UpdateText.Text = "Wait for the export to finish, then update.".T();
             return;
         }
+        if (Updater.RecorderIsRecording()) // the installer closes the recorder, which would cut the recording off
+        {
+            UpdateText.Text = "Stop the full recording first, then install the update.".T();
+            return;
+        }
         UpdateBtn.IsEnabled = false;
         try
         {

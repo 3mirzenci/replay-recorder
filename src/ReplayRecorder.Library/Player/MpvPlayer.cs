@@ -58,6 +58,7 @@ sealed class MpvPlayer : IDisposable
         }) psi.ArgumentList.Add(a);
 
         _proc = Process.Start(psi)!;
+        ChildProcesses.Track(_proc); // closes with the library, even on a crash, so the clip isn't left locked
         _proc.OutputDataReceived += (_, _) => { };
         _proc.ErrorDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) Log.Info("[mpv] " + e.Data); };
         _proc.BeginOutputReadLine();

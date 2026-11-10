@@ -64,6 +64,7 @@ sealed class ReplayEngine : IDisposable
     int _restartCount;
     DateTime _lastStart;
     double? _recordingStart; // timeline seconds; segments after this are kept until recording stops
+    EventWaitHandle? _recordingSignal; // tells the library not to update meanwhile (Updater.RecordingSignal)
     string _recordingGame = "";
 
     public bool Running => _ffmpeg is { HasExited: false };
@@ -622,6 +623,7 @@ sealed class ReplayEngine : IDisposable
         if (!Running || IsRecording) return;
         _recordingStart = Now;
         _recordingGame = game;
+        _recordingSignal ??= new EventWaitHandle(false, EventResetMode.ManualReset, Updater.RecordingSignal);
         Log.Info($"Full recording started ({game})");
         StatusChanged?.Invoke();
     }
@@ -635,6 +637,8 @@ sealed class ReplayEngine : IDisposable
         {
             var segs = await WaitForSegmentsAsync(stop, s => s.End > start);
             _recordingStart = null;
+            _recordingSignal?.Dispose();
+            _recordingSignal = null;
             StatusChanged?.Invoke();
             if (segs.Count == 0) return null;
             return (await JoinAsync(segs, _recordingGame, " (recording)", trimToSeconds: stop - start, endAt: stop))?.Path;
