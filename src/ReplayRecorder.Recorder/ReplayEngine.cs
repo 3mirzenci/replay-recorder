@@ -126,7 +126,7 @@ sealed class ReplayEngine : IDisposable
         CleanOldRuns();
         _runDir = Path.Combine(_s.BufferFolder, $"run_{DateTime.Now:yyyyMMdd_HHmmss}");
         Directory.CreateDirectory(_runDir);
-        lock (_segLock) { _segments.Clear(); _segListPos = 0; }
+        lock (_segLock) { _segments.Clear(); _segListPos = 0; _bufferedSeconds = 0; }
 
         // Audio sinks first: their pipes must exist before ffmpeg opens them.
         var tag = Guid.NewGuid().ToString("N"); // unguessable pipe names
@@ -192,7 +192,15 @@ sealed class ReplayEngine : IDisposable
         SetStatus(StatusLine());
     }
 
-    string StatusLine() => "Recording {0} · buffer {1}s".T(Display?.DeviceName.TrimStart('\\', '.'), _s.BufferSeconds);
+    string StatusLine()
+    {
+        var name = Display?.DeviceName.TrimStart('\\', '.');
+        return _bufferedSeconds < _s.BufferSeconds
+            ? "Recording {0} · buffer {1} of {2}s ready".T(name, _bufferedSeconds, _s.BufferSeconds)
+            : "Recording {0} · buffer {1}s".T(name, _s.BufferSeconds);
+    }
+
+    int _bufferedSeconds; // how much a save would hold right now, until the buffer is full
 
     void StopCore()
     {
@@ -476,6 +484,13 @@ sealed class ReplayEngine : IDisposable
                 {
                     if (_segments[0].Path is { } p) TryDelete(p);
                     _segments.RemoveAt(0); // RAM mode: the bytes go with it
+                }
+                // Tray status: "buffer 24 of 60s ready" while it fills, so an early save isn't a surprise.
+                int have = (int)Math.Min(newest - _segments[0].Start, _s.BufferSeconds);
+                if (have != _bufferedSeconds && _bufferedSeconds < _s.BufferSeconds)
+                {
+                    _bufferedSeconds = have;
+                    if (Running && !IsRecording) SetStatus(StatusLine());
                 }
             }
         }

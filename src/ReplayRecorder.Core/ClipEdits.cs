@@ -81,8 +81,10 @@ public static class ClipEdits
         catch (Exception ex)
         {
             // Keep the unreadable file: starting fresh would overwrite every favorite and trim on the next save.
-            Log.Warn($"Edits file unreadable, kept as edits.json.bad: {ex.Message}");
-            try { File.Move(File_, File_ + ".bad", true); } catch { }
+            // Dated, so a second corruption can't overwrite the first backup.
+            var bad = $"{File_}.{DateTime.Now:yyyyMMdd-HHmmss}.bad";
+            Log.Warn($"Edits file unreadable, kept as {Path.GetFileName(bad)}: {ex.Message}");
+            try { File.Move(File_, bad, true); } catch { }
         }
         _all = new Dictionary<string, ClipEdit>(_all ?? new(), StringComparer.OrdinalIgnoreCase);
     }

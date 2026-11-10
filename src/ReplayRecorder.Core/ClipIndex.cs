@@ -268,6 +268,7 @@ public sealed class ClipIndex
         foreach (var a in args) psi.ArgumentList.Add(a);
         using var p = System.Diagnostics.Process.Start(psi)!;
         ChildProcesses.Track(p);
+        try { p.PriorityClass = System.Diagnostics.ProcessPriorityClass.BelowNormal; } catch { } // a game running meanwhile goes first
         using var kill = ct.Register(() => { try { p.Kill(); } catch { } });
         _ = p.StandardError.ReadToEndAsync(ct);
 
