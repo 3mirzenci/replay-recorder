@@ -90,8 +90,8 @@ sealed class ClipItem : INotifyPropertyChanged
         new(@"\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}( \(recording\))?( \(\d+\))?$", System.Text.RegularExpressions.RegexOptions.Compiled);
     public string DisplayName => DefaultName.IsMatch(Title) ? Game : Title;
     public string TimeText => GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText;
-    public string Detail => string.Join("  ·  ", new[] { SizeText, QualityText }.Where(s => s.Length > 0));
-    public string Subtitle => string.Join("  ·  ", new[] { GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText, SizeText, QualityText }.Where(s => s.Length > 0));
+    public string Detail => string.Join(" · ", new[] { SizeText, QualityText }.Where(s => s.Length > 0));
+    public string Subtitle => string.Join(" · ", new[] { GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText, SizeText, QualityText }.Where(s => s.Length > 0));
 
     ImageSource? _thumb;
     public ImageSource? Thumb

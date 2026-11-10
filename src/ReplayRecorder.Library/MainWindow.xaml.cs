@@ -165,7 +165,7 @@ public partial class MainWindow : Window
         HeaderText.Text = _gameFilter.Length == 0 ? "All clips".T() : _gameFilter == FavKey ? "Favorites".T() : _gameFilter;
         var visible = _view.Cast<ClipItem>().ToList();
         int shown = visible.Count;
-        CountText.Text = (shown == 1 ? "1 clip" : "{0} clips").T(shown) + (shown > 0 ? $"  ·  {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
+        CountText.Text = (shown == 1 ? "1 clip" : "{0} clips").T(shown) + (shown > 0 ? $" · {ClipItem.FormatSize(visible.Sum(c => c.SizeBytes))}" : "");
         UpdateDayGroups();
         ScheduleViewUpdate();
         EmptyState.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -310,7 +310,7 @@ public partial class MainWindow : Window
         {
             if (g.Name is not DayGroup day) continue;
             var clips = g.Items.Cast<ClipItem>().ToList();
-            day.Summary = $"{(clips.Count == 1 ? "1 clip" : "{0} clips").T(clips.Count)}  ·  {ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))}";
+            day.Summary = $"{(clips.Count == 1 ? "1 clip" : "{0} clips").T(clips.Count)} · {ClipItem.FormatSize(clips.Sum(c => c.SizeBytes))}";
             int n = clips.Count(selected.Contains);
             day.State = n == 0 ? 0 : n == clips.Count ? 2 : 1;
         }

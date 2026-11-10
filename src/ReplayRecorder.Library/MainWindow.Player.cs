@@ -28,7 +28,7 @@ public partial class MainWindow
         // "Fortnite · today 03:49"; a renamed clip shows its own name.
         var when = c.DateText.Length > 0 ? char.ToLower(c.DateText[0], Lang.Culture) + c.DateText[1..] : "";
         PlayerTitle.Text = c.DisplayName == c.Game ? $"{c.Game} · {when}" : c.DisplayName;
-        PlayerSubtitle.Text = string.Join("  ·  ", new[] { c.DurationText, c.SizeText, c.QualityText }.Where(s => s.Length > 0));
+        PlayerSubtitle.Text = string.Join(" · ", new[] { c.DurationText, c.SizeText, c.QualityText }.Where(s => s.Length > 0));
         _videoAspect = c.Clip.Width > 0 && c.Clip.Height > 0 ? (double)c.Clip.Width / c.Clip.Height : 16.0 / 9;
         FitVideo();
         PlayerError.Visibility = Visibility.Collapsed;
@@ -167,7 +167,7 @@ public partial class MainWindow
         }
         ExportLineTop.Text = plan.StreamCopy ? "{0}p · original".T(plan.Height) : $"{plan.Height}p{plan.Fps}";
         double mb = DiscordExporter.PredictBytes(_current.Clip, plan, len) / 1e6;
-        ExportLineSub.Text = "{0} kept".T(TrimTimeline.Fmt(len)) + "  ·  " + mb.ToString("0.0", Lang.Culture) + " MB";
+        ExportLineSub.Text = "{0} kept".T(TrimTimeline.Fmt(len)) + " · " + mb.ToString("0.0", Lang.Culture) + " MB";
     }
 
     void UpdateTimeText(double t)
