@@ -84,24 +84,10 @@ public partial class App : Application
                 // Only buttons that took focus themselves: a dropdown's inner toggle can't, and moving focus would close the list.
                 if (s is not UIElement { IsKeyboardFocused: true }) return;
                 if (prev is not UIElement p || ReferenceEquals(p, s) || Window.GetWindow(p) != Window.GetWindow((DependencyObject)s)) return;
-                Restore(p);
+                // After the click's own handlers ran; skipped if the click closed or covered that window.
+                p.Dispatcher.BeginInvoke(() => { if (p.IsVisible && Window.GetWindow(p)?.IsActive == true) p.Focus(); },
+                    System.Windows.Threading.DispatcherPriority.Input);
             }), true);
-        // Dropdowns too: after picking with the mouse, arrow keys move through the clips, not the list's items.
-        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ComboBox), UIElement.PreviewMouseLeftButtonDownEvent,
-            new System.Windows.Input.MouseButtonEventHandler((s, _) =>
-            {
-                var cb = (System.Windows.Controls.ComboBox)s;
-                if (cb.IsDropDownOpen || System.Windows.Input.Keyboard.FocusedElement is not UIElement p || cb.IsAncestorOf(p) || ReferenceEquals(p, cb)
-                    || Window.GetWindow(p) != Window.GetWindow(cb)) return;
-                EventHandler? closed = null;
-                closed = (_, _) => { cb.DropDownClosed -= closed; if (cb.IsKeyboardFocusWithin) Restore(p); };
-                cb.DropDownClosed += closed;
-            }), true);
-
-        // After the click's own handlers ran; skipped if the click closed or covered that window.
-        static void Restore(UIElement p) =>
-            p.Dispatcher.BeginInvoke(() => { if (p.IsVisible && Window.GetWindow(p)?.IsActive == true) p.Focus(); },
-                System.Windows.Threading.DispatcherPriority.Input);
     }
 
     protected override void OnExit(ExitEventArgs e)

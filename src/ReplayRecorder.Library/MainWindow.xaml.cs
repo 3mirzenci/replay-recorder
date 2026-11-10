@@ -209,6 +209,10 @@ public partial class MainWindow : Window
         UpdateHeader();
     }
 
+    // After picking a game, arrow keys move through the clips again instead of switching games.
+    void GameList_DropDownClosed(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(() => ClipGrid.Focus(), System.Windows.Threading.DispatcherPriority.Input);
+
     void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         _search = SearchBox.Text.Trim();
