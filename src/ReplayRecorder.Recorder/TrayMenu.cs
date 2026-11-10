@@ -1,181 +1,152 @@
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using ReplayRecorder.Core;
 
 namespace ReplayRecorder.Recorder;
 
 /// <summary>
-/// Dark, rounded tray menu in the library's colours (Windows 11 style): icons from Segoe Fluent Icons,
-/// a rounded hover highlight and the accent colour for checks. Replaces WinForms' grey default look.
+/// The tray menu as a real Windows menu (TrackPopupMenuEx), in Windows' dark style with Segoe Fluent icons.
+/// A WinForms ContextMenuStrip is a normal window, and the taskbar's hidden-icons flyout closes as soon as
+/// the mouse moves onto one; real menus keep it open, like other apps' tray menus. The ToolStripMenuItems
+/// stay the model (text, shortcut, checked, enabled, visible); the native menu is built from them on each open.
 /// </summary>
 static class TrayMenu
 {
-    static readonly Color Bg = Color.FromArgb(0x20, 0x20, 0x24);
-    static readonly Color Hover = Color.FromArgb(0x33, 0x33, 0x39);
-    static readonly Color Fore = Color.FromArgb(0xF2, 0xF2, 0xF4);
-    static readonly Color Dim = Color.FromArgb(0x8E, 0x8E, 0x98);
-    static readonly Color Line = Color.FromArgb(0x3A, 0x3A, 0x42);
-
-    /// <summary>The accent picked in Settings, else the theme's (Amber or Windows blue).</summary>
-    public static Color Accent(Settings s)
-    {
-        try { if (s.AccentColor.Length > 0) return ColorTranslator.FromHtml(s.AccentColor); } catch { }
-        return s.Theme is "amber" or "booth" ? Color.FromArgb(0xFF, 0xB6, 0x27) : Color.FromArgb(0x4C, 0xC2, 0xFF);
-    }
-
-    public static void Style(ContextMenuStrip menu, Color accent)
-    {
-        menu.Renderer = new Renderer(accent);
-        menu.BackColor = Bg;
-        menu.ForeColor = Fore;
-        menu.Font = new Font("Segoe UI", 9f);
-        menu.ShowImageMargin = true;
-        menu.ImageScalingSize = new Size(16, 16); // width of the icon margin
-        menu.Padding = new Padding(3, 4, 3, 4);
-        foreach (ToolStripItem item in menu.Items)
-            if (item is ToolStripMenuItem) item.Padding = new Padding(2, 1, 8, 1);
-        // Windows 11 rounds menus it draws itself; ask the same for this one (ignored on Windows 10).
-        menu.HandleCreated += (_, _) =>
-        {
-            int round = 2; // DWMWCP_ROUND
-            DwmSetWindowAttribute(menu.Handle, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, ref round, sizeof(int));
-        };
-    }
-
-    /// <summary>
-    /// A menu that never takes focus, like native tray menus: hovering it must not deactivate the taskbar's
-    /// hidden-icons flyout it was opened from, or that flyout closes under the mouse. Clicks still work.
-    /// </summary>
-    public sealed class Menu : ContextMenuStrip
-    {
-        protected override CreateParams CreateParams
-        {
-            get
-            {
-                var cp = base.CreateParams;
-                cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
-                return cp;
-            }
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_MOUSEACTIVATE = 0x0021, MA_NOACTIVATE = 3;
-            if (m.Msg == WM_MOUSEACTIVATE) { m.Result = MA_NOACTIVATE; return; }
-            base.WndProc(ref m);
-        }
-    }
-
-    public static void SetAccent(ContextMenuStrip menu, Color accent) => menu.Renderer = new Renderer(accent);
-
-    /// <summary>Gives a menu item an icon: a Segoe Fluent Icons glyph the renderer draws beside its text.</summary>
+    /// <summary>Gives a menu item an icon: a Segoe Fluent Icons glyph.</summary>
     public static T WithIcon<T>(this T item, char glyph) where T : ToolStripItem { item.Tag = glyph; return item; }
 
-    // Drawn as font text, not a bitmap: sharp at any display scaling, and centred on the text line.
-    static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 9.5f);
-
-    /// <summary>
-    /// Draws the icon's actual shape centred in <paramref name="box"/> across and on <paramref name="centerY"/>
-    /// down. Centring the character box instead leaves it off the text line: icon and text fonts place
-    /// their shapes differently inside their boxes.
-    /// </summary>
-    static void DrawGlyph(Graphics g, char glyph, Rectangle box, float centerY, Color color)
+    /// <summary>Dark native menus for this app (Windows 10 1903+; the app is always dark). Undocumented uxtheme
+    /// calls that Notepad++ and many others use; harmless where missing.</summary>
+    public static void UseDarkMenus()
     {
-        using var path = new GraphicsPath();
-        path.AddString(glyph.ToString(), IconFont.FontFamily, (int)IconFont.Style, IconFont.SizeInPoints * g.DpiY / 72f, PointF.Empty, StringFormat.GenericTypographic);
-        var b = path.GetBounds();
-        using (var move = new Matrix())
-        {
-            move.Translate(box.X + box.Width / 2f - (b.X + b.Width / 2f), centerY - (b.Y + b.Height / 2f));
-            path.Transform(move);
-        }
-        var smoothing = g.SmoothingMode;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        using var brush = new SolidBrush(color);
-        g.FillPath(brush, path);
-        g.SmoothingMode = smoothing;
+        try { SetPreferredAppMode(2 /* ForceDark */); FlushMenuThemes(); } catch { }
     }
 
-    /// <summary>Middle of the capital letters of one line of <paramref name="font"/> drawn centred in <paramref name="r"/>.</summary>
-    static float CapCenter(Graphics g, Font font, Rectangle r)
+    static NativeWindow? _owner;
+
+    public static void Show(ToolStripItemCollection items)
     {
-        var ff = font.FontFamily;
-        float em = ff.GetEmHeight(font.Style), px = font.SizeInPoints * g.DpiY / 72f;
-        float line = px * ff.GetLineSpacing(font.Style) / em, ascent = px * ff.GetCellAscent(font.Style) / em;
-        const float CapHeight = 0.7f; // Segoe UI capitals are 0.7 em tall
-        return r.Y + (r.Height - line) / 2f + ascent - px * CapHeight / 2f;
-    }
-
-    sealed class Renderer(Color accent) : ToolStripProfessionalRenderer(new Colors())
-    {
-        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e) => e.Graphics.Clear(Bg);
-        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        if (_owner == null) { _owner = new NativeWindow(); _owner.CreateHandle(new CreateParams()); }
+        var hmenu = CreatePopupMenu();
+        var commands = new Dictionary<int, ToolStripMenuItem>();
+        var bitmaps = new List<IntPtr>();
+        try
         {
-            using var pen = new Pen(Line);
-            e.Graphics.DrawRectangle(pen, 0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1);
+            bool lastWasSeparator = true;
+            foreach (ToolStripItem item in items)
+            {
+                if (!item.Available) continue;
+                if (item is ToolStripSeparator)
+                {
+                    if (!lastWasSeparator) AppendMenu(hmenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                    lastWasSeparator = true;
+                    continue;
+                }
+                if (item is not ToolStripMenuItem mi) continue;
+                int id = commands.Count + 1;
+                commands[id] = mi;
+                var text = mi.Text?.Replace("&", "&&") ?? "";
+                if (!string.IsNullOrEmpty(mi.ShortcutKeyDisplayString)) text += "\t" + mi.ShortcutKeyDisplayString;
+                else if (!mi.Enabled) { int dot = text.IndexOf(" · "); if (dot > 0) text = text[..dot] + "\t" + text[(dot + 3)..]; } // status line: "buffer 60s" goes in the shortcut column, so it doesn't widen the menu
+                uint flags = MF_STRING | (mi.Enabled ? 0 : MF_GRAYED) | (mi.Checked ? MF_CHECKED : 0);
+                AppendMenu(hmenu, flags, (UIntPtr)id, text);
+                if (mi.Tag is char glyph)
+                {
+                    var bmp = GlyphBitmap(glyph);
+                    bitmaps.Add(bmp);
+                    var info = new MENUITEMINFO { cbSize = (uint)Marshal.SizeOf<MENUITEMINFO>(), fMask = MIIM_BITMAP, hbmpItem = bmp };
+                    SetMenuItemInfo(hmenu, (uint)id, false, ref info);
+                }
+                if (mi.Font.Bold) SetMenuDefaultItem(hmenu, (uint)id, 0); // bold, like "Install update"
+                lastWasSeparator = false;
+            }
+
+            GetCursorPos(out var pt);
+            SetForegroundWindow(_owner.Handle); // required, or the menu doesn't close when clicking elsewhere
+            int cmd = TrackPopupMenuEx(hmenu, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN | TPM_RIGHTALIGN, pt.X, pt.Y, _owner.Handle, IntPtr.Zero);
+            PostMessage(_owner.Handle, 0 /* WM_NULL */, IntPtr.Zero, IntPtr.Zero);
+            if (commands.TryGetValue(cmd, out var chosen)) chosen.PerformClick();
         }
-        protected override void OnRenderImageMargin(ToolStripRenderEventArgs e) { } // no grey strip behind icons
-
-        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        finally
         {
-            if (!e.Item.Selected || !e.Item.Enabled) return;
-            var r = new Rectangle(2, 1, e.Item.Width - 4, e.Item.Height - 2);
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using var path = Rounded(r, 5);
-            using var brush = new SolidBrush(Hover);
-            e.Graphics.FillPath(brush, path);
-        }
-
-        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
-        {
-            e.TextColor = e.Item.Enabled ? Fore : Dim;
-            base.OnRenderItemText(e);
-            // The icon sits in the margin left of the text, on the same centre line (not for the shortcut text).
-            if (e.Text != e.Item.Text) return; // the shortcut text
-            // Icon, or the check mark for a ticked item without one: same box, so they all line up.
-            var box = new Rectangle(4, e.TextRectangle.Y, e.TextRectangle.Left - 8, e.TextRectangle.Height);
-            float y = CapCenter(e.Graphics, e.TextFont ?? e.Item.Font, e.TextRectangle);
-            if (e.Item.Tag is char glyph) DrawGlyph(e.Graphics, glyph, box, y, e.TextColor);
-            else if (e.Item is ToolStripMenuItem { Checked: true }) DrawGlyph(e.Graphics, '', box, y, accent); // CheckMark
-        }
-
-        protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e) { } // drawn with the icons, in OnRenderItemText
-
-        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
-        {
-            using var pen = new Pen(Line);
-            int y = e.Item.Height / 2;
-            e.Graphics.DrawLine(pen, 10, y, e.Item.Width - 10, y);
-        }
-
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
-        {
-            e.ArrowColor = Fore;
-            base.OnRenderArrow(e);
-        }
-
-        static GraphicsPath Rounded(Rectangle r, int radius)
-        {
-            var p = new GraphicsPath();
-            int d = radius * 2;
-            p.AddArc(r.X, r.Y, d, d, 180, 90);
-            p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            p.CloseFigure();
-            return p;
+            DestroyMenu(hmenu);
+            foreach (var b in bitmaps) DeleteObject(b);
         }
     }
 
-    sealed class Colors : ProfessionalColorTable
+    static readonly string IconFontName = FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets";
+
+    /// <summary>A white glyph on transparent, as the premultiplied 32-bit bitmap native menus draw with alpha.</summary>
+    internal static IntPtr GlyphBitmap(char glyph)
     {
-        public override Color ToolStripDropDownBackground => Bg;
-        public override Color MenuBorder => Line;
-        public override Color MenuItemBorder => Color.Transparent;
-        public override Color SeparatorDark => Line;
-        public override Color SeparatorLight => Line;
+        using var probe = Graphics.FromHwnd(IntPtr.Zero);
+        int size = (int)Math.Round(16 * probe.DpiY / 96f);
+        using var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(bmp))
+        using (var path = new GraphicsPath())
+        using (var family = new FontFamily(IconFontName))
+        {
+            // The glyph's own outline, scaled to fit and centred: icon fonts sit oddly in their character box.
+            path.AddString(glyph.ToString(), family, 0, size, PointF.Empty, StringFormat.GenericTypographic);
+            var b = path.GetBounds();
+            float scale = size * 0.875f / Math.Max(b.Width, b.Height);
+            using var m = new Matrix();
+            m.Translate(size / 2f, size / 2f);
+            m.Scale(scale, scale);
+            m.Translate(-(b.X + b.Width / 2f), -(b.Y + b.Height / 2f));
+            path.Transform(m);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.FillPath(Brushes.White, path);
+        }
+
+        var bi = new BITMAPINFO { biSize = 40, biWidth = size, biHeight = -size, biPlanes = 1, biBitCount = 32 };
+        var hbmp = CreateDIBSection(IntPtr.Zero, ref bi, 0, out var bits, IntPtr.Zero, 0);
+        var data = bmp.LockBits(new Rectangle(0, 0, size, size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        var px = new byte[size * size * 4];
+        for (int y = 0; y < size; y++) Marshal.Copy(data.Scan0 + y * data.Stride, px, y * size * 4, size * 4);
+        bmp.UnlockBits(data);
+        for (int i = 0; i < px.Length; i += 4) // premultiply
+        {
+            int a = px[i + 3];
+            px[i] = (byte)(px[i] * a / 255); px[i + 1] = (byte)(px[i + 1] * a / 255); px[i + 2] = (byte)(px[i + 2] * a / 255);
+        }
+        Marshal.Copy(px, 0, bits, px.Length);
+        return hbmp;
     }
 
-    [DllImport("dwmapi.dll")]
-    static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+    const uint MF_STRING = 0, MF_GRAYED = 1, MF_CHECKED = 8, MF_SEPARATOR = 0x800, MIIM_BITMAP = 0x80;
+    const uint TPM_RIGHTBUTTON = 2, TPM_RIGHTALIGN = 8, TPM_BOTTOMALIGN = 0x20, TPM_RETURNCMD = 0x100;
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct MENUITEMINFO
+    {
+        public uint cbSize, fMask, fType, fState, wID;
+        public IntPtr hSubMenu, hbmpChecked, hbmpUnchecked, dwItemData, dwTypeData;
+        public uint cch;
+        public IntPtr hbmpItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct BITMAPINFO
+    {
+        public int biSize, biWidth, biHeight;
+        public short biPlanes, biBitCount;
+        public int biCompression, biSizeImage, biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant, bmiColors;
+    }
+
+    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
+
+    [DllImport("user32.dll")] static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll")] static extern bool DestroyMenu(IntPtr hMenu);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool AppendMenu(IntPtr hMenu, uint flags, UIntPtr id, string? text);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool SetMenuItemInfo(IntPtr hMenu, uint item, bool byPosition, ref MENUITEMINFO info);
+    [DllImport("user32.dll")] static extern bool SetMenuDefaultItem(IntPtr hMenu, uint item, uint byPos);
+    [DllImport("user32.dll")] static extern int TrackPopupMenuEx(IntPtr hMenu, uint flags, int x, int y, IntPtr hwnd, IntPtr tpm);
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr hwnd, int msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFO bmi, uint usage, out IntPtr bits, IntPtr section, uint offset);
+    [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr obj);
+    [DllImport("uxtheme.dll", EntryPoint = "#135")] static extern int SetPreferredAppMode(int mode);
+    [DllImport("uxtheme.dll", EntryPoint = "#136")] static extern void FlushMenuThemes();
 }

@@ -17,6 +17,7 @@ sealed class TrayApp : ApplicationContext
     readonly NotifyIcon _tray;
     readonly Hotkeys _hotkeys = new();
     readonly SynchronizationContext _ui;
+    readonly ContextMenuStrip _menu;
     readonly ToolStripMenuItem _saveItem, _recordItem, _pauseItem, _startupItem, _statusItem, _updateItem;
     UpdateInfo? _update;
     System.Threading.Timer? _updateTimer;
@@ -44,7 +45,8 @@ sealed class TrayApp : ApplicationContext
         _startupItem = new ToolStripMenuItem("Start with Windows".T(), null, (_, _) => ToggleStartup()) { Checked = Autostart.IsEnabled };
         _updateItem = new ToolStripMenuItem("Install update".T(), null, (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) }.WithIcon('\uE896');
 
-        var menu = new TrayMenu.Menu();
+        _menu = new ContextMenuStrip(); // the items' model; TrayMenu shows them as a real Windows menu
+        var menu = _menu;
         menu.Items.AddRange(new ToolStripItem[]
         {
             _statusItem,
@@ -60,9 +62,10 @@ sealed class TrayApp : ApplicationContext
             new ToolStripSeparator(),
             new ToolStripMenuItem("Quit Replay Recorder".T(), null, (_, _) => Quit()).WithIcon('\uE7E8'),
         });
-        TrayMenu.Style(menu, TrayMenu.Accent(_settings));
+        TrayMenu.UseDarkMenus();
 
-        _tray = new NotifyIcon { Icon = _iconPaused, Text = "Replay Recorder", ContextMenuStrip = menu, Visible = true };
+        _tray = new NotifyIcon { Icon = _iconPaused, Text = "Replay Recorder", Visible = true };
+        _tray.MouseUp += (_, e) => { if (e.Button == MouseButtons.Right) TrayMenu.Show(_menu.Items); };
         _tray.DoubleClick += (_, _) => OpenLibrary();
 
         _engine = CreateEngine();
@@ -328,10 +331,9 @@ sealed class TrayApp : ApplicationContext
         var next = Settings.Load();
         if (Lang.Use(next.Language))
         {
-            foreach (ToolStripItem item in _tray.ContextMenuStrip!.Items) item.Text = Lang.Retranslate(item.Text ?? "");
+            foreach (ToolStripItem item in _menu.Items) item.Text = Lang.Retranslate(item.Text ?? "");
             if (_update != null) _updateItem.Text = "Install update {0}".T(_update.Version);
         }
-        TrayMenu.SetAccent(_tray.ContextMenuStrip!, TrayMenu.Accent(next));
         if (!_settings.CaptureDiffers(next) && (_engine.Running || _paused))
         {
             // Nothing that capture depends on: apply in place and keep the replay buffer. (Capture that
