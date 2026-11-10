@@ -103,7 +103,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6">
                             <!-- a TextBlock of its own: the app-wide TextBlock style would swap the icon font -->
                             <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
                                        Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -122,7 +122,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6">
                             <!-- a TextBlock of its own: the app-wide TextBlock style would swap the icon font -->
                             <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
                                        Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -698,7 +698,8 @@
             </StackPanel>
         </Border>
         <!-- Window buttons over both views (hidden in fullscreen) -->
-        <StackPanel x:Name="CaptionButtons" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <!-- Centred on the 58 px header row (13 + 34/2 = 30) -->
+        <StackPanel x:Name="CaptionButtons" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,13,6,0">
             <Button Style="{StaticResource CaptionBtn}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimize"/>
             <Button x:Name="MaxBtn" Style="{StaticResource CaptionBtn}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximize"/>
             <Button Style="{StaticResource CloseBtn}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Close"/>
