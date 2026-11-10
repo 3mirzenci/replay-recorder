@@ -517,7 +517,9 @@ public partial class MainWindow : Window
 
         bool sticky = current != null && currentTop < -4;
         StickyHeader.Visibility = sticky ? Visibility.Visible : Visibility.Collapsed;
-        ClipGrid.OpacityMask = sticky ? TryFindResource("StickyFade") as System.Windows.Media.Brush : null; // Aurora only
+        // Aurora only: the clips fade out under the sticky header (the content only, not the scrollbar)
+        if (FindChild<ScrollContentPresenter>(_gridScroll) is { } content)
+            content.OpacityMask = sticky ? TryFindResource("StickyFade") as System.Windows.Media.Brush : null;
         if (sticky) StickyContent.Content = current;
 
         void Walk(DependencyObject d)
