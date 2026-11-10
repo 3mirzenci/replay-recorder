@@ -1,6 +1,6 @@
 # Replay Recorder
 
-A lightweight instant-replay recorder for Windows, an alternative to SteelSeries Moments and NVIDIA ShadowPlay. Press **Alt+.** to save the last 60 seconds. Clips keep your game and mic audio on separate tracks, and you can export any clip for Discord in one click: it's guaranteed to fit under the upload limit.
+A lightweight instant-replay recorder for Windows, an alternative to SteelSeries Moments and NVIDIA ShadowPlay. Press **Alt+.** to save the last 60 seconds. Clips keep your game, your mic and your Discord call on separate tracks, and you can export any clip for Discord in one click: it's guaranteed to fit under the upload limit.
 
 ![The Replay Recorder library with CS2 clips](assets/library-screenshot.png)
 
@@ -117,12 +117,16 @@ This is one game on one PC, so your numbers will differ. To measure on your own 
 - The replay buffer is 2-second segments on disk. Old segments are deleted automatically. Saving joins them without re-encoding, which takes 1–2 s during a game; recording carries on meanwhile.
 - **RAM buffer** (Settings → Instant replay): the segments are kept in memory instead, so nothing is written to the SSD until you save. It costs about 250 MB of RAM for a 60-second buffer. Full recordings still go to disk, because they can be long.
 - **A short chime** plays when a clip is saved, and a lower one if saving failed, because the pop-up can't show over exclusive-fullscreen games. You can turn it off in Settings → General. The chime is quiet, but the recorder hears it, so it ends up faintly in the buffer after a save.
-- Clips have three audio tracks:
-  1. **Everything**: game, voice chat and mic mixed together. Every normal player (Media Player, Discord, browsers) plays this one.
-  2. **Game + voice chat**: what you hear, Discord included.
+- Clips have four audio tracks:
+  1. **Everything**: game, Discord and mic mixed together. Every normal player (Media Player, Discord, browsers) plays this one.
+  2. **Game**: what you hear, without Discord.
   3. **Microphone**. **Mic leveling** (Settings → Audio) evens out quiet talk and shouting and cuts background noise between words. **Light** only tames shouting, **Medium** (default) keeps whispers quiet, **Strong** makes everything about as loud.
+  4. **Discord**: your friends' voices (Discord, Discord PTB or Canary).
 
-  Tracks 2 and 3 let the library rebalance game and mic later.
+  Tracks 2–4 let the library rebalance game, mic and Discord later, each with its own slider and sound bar. The 4th track adds about 1 MB per minute.
+- Discord gets its own track through Windows' *process loopback*, a normal Windows audio feature (Windows 10 2004 or later), so nothing touches Discord or the game. It records Discord's sound whichever output it plays on, so the output-device setting is only used while Discord isn't running. Discord starting late, restarting or updating is picked up within a few seconds. If you turn **Discord on its own track** off (Settings → Audio), or Windows refuses it, Discord stays in the game track as before and track 4 is silent.
+- Clips from older versions have three tracks (track 2 is game + Discord) and keep working as before.
+- Video and audio share one clock (Windows' performance counter), so a system-clock change doesn't put clips out of sync. Capture still restarts after the PC wakes from sleep.
 - Virtual audio devices (HyperX NGENUITY, SteelSeries Sonar, VB-Cable) are detected automatically. Replay Recorder records the real headset behind them, so you get everything you hear, not just one virtual channel.
 - Clips are saved as `Videos\Replay Recorder\<Game>\<Game> yyyy-MM-dd HH-mm-ss.mp4`.
 
@@ -135,7 +139,7 @@ Setup needs no admin rights and installs to `%LOCALAPPDATA%\Programs\Replay Reco
 
 Uninstalling stops both apps and removes the autostart entry. Your clips and settings stay.
 
-Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC, with a driver from 2023 or newer (531+) for the smooth capture (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer (setup installs a current one): NVIDIA recording uses the bundled capture ffmpeg, and the normal one handles thumbnails, export, AMD/Intel recording and the fallback. The .NET runtime is bundled.
+Requirements: Windows 10 2004 or later (needed for the separate Discord track), or Windows 11. An NVIDIA GPU for NVENC, with a driver from 2023 or newer (531+) for the smooth capture (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer (setup installs a current one): NVIDIA recording uses the bundled capture ffmpeg, and the normal one handles thumbnails, export, AMD/Intel recording and the fallback. The .NET runtime is bundled.
 
 ## Build from source
 
@@ -200,7 +204,8 @@ Open them from the tray menu (*Settings…*) or the ⚙ button at the top right 
 | `Quality` | NVENC CQ: 19 = high, 21 = default, 25 = smaller files |
 | `MaxBitrateMbps` | Bitrate cap (default 50) |
 | `SystemAudioDeviceId` / `MicDeviceId` | Endpoint ids from `--diag-audio`, or empty for automatic |
-| `SystemVolumeDb` / `MicVolumeDb` | Gain per track (-30 to +20 dB) |
+| `SystemVolumeDb` / `MicVolumeDb` / `DiscordVolumeDb` | Gain per track (-30 to +20 dB) |
+| `DiscordSeparate` | `true` (default): Discord on its own track 4; `false`: Discord stays in the game track |
 | `MicEnabled` | `false` keeps a silent mic track |
 | `MicLevelingStrength` | `Off`, `Light`, `Medium` (default) or `Strong`: evens out mic loudness and cuts background noise (Settings → Audio). Applies to tracks 1 and 3 |
 | `ClipsFolder` / `BufferFolder` | Where clips and the rolling buffer go |
