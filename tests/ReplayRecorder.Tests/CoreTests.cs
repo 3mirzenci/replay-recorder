@@ -186,3 +186,22 @@ public class TrackLayoutTests
         Assert.Contains("amix=inputs=2", mpv);
     }
 }
+
+public class AccentTextTests
+{
+    // Plan's accent test set: dark text on everything except the dark blue.
+    [Theory]
+    [InlineData("FFC21A", true)]
+    [InlineData("FF4545", true)]
+    [InlineData("3EDC6E", true)]
+    [InlineData("3FC8FF", true)]
+    [InlineData("FF5C8A", true)]
+    [InlineData("9B6BFF", true)]
+    [InlineData("EDEDED", true)]
+    [InlineData("3B5BFF", false)]
+    public void Picks_the_text_colour_with_more_contrast(string hex, bool dark)
+    {
+        byte C(int i) => Convert.ToByte(hex.Substring(i, 2), 16);
+        Assert.Equal(dark, ColorContrast.DarkTextOn(C(0), C(2), C(4)));
+    }
+}

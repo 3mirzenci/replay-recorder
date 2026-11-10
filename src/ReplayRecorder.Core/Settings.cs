@@ -82,7 +82,7 @@ public sealed class Settings
     /// <summary>Short chime when a clip is saved (the popup can't show over exclusive-fullscreen games).</summary>
     public bool PlaySaveSound { get; set; } = true;
     /// <summary>Library look: "windows" (neutral greys, Windows blue) or "amber".</summary>
-    public string Theme { get; set; } = "windows";
+    public string Theme { get; set; } = "aurora";
     /// <summary>Accent colour as "#RRGGBB"; empty = the look's own.</summary>
     public string AccentColor { get; set; } = "";
     /// <summary>UI language: "en" or "tr".</summary>

@@ -86,7 +86,7 @@ public partial class SettingsWindow : Window
         NotifyBox.IsChecked = _s.ShowNotifications;
         SoundBox.IsChecked = _s.PlaySaveSound;
         Fill(LanguageBox, _s.Language, ("en", "English"), ("tr", "Türkçe"));
-        Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("windows", "Windows (blue)"), ("amber", "Amber"));
+        Fill(ThemeBox, _s.Theme == "booth" ? "amber" : _s.Theme, ("aurora", "Aurora"), ("windows", "Classic (blue)"), ("amber", "Classic (amber)"));
         _accent = _s.AccentColor;
         foreach (var rb in AccentSwatches.Children.OfType<RadioButton>())
             rb.IsChecked = string.Equals((string)rb.Tag, _accent, StringComparison.OrdinalIgnoreCase);
@@ -245,7 +245,7 @@ public partial class SettingsWindow : Window
         _s.ShowNotifications = NotifyBox.IsChecked == true;
         _s.PlaySaveSound = SoundBox.IsChecked == true;
         _s.Language = Get(LanguageBox, "en");
-        _s.Theme = Get(ThemeBox, "windows");
+        _s.Theme = Get(ThemeBox, "aurora");
         _s.AccentColor = _accent;
         _s.BufferInRam = RamBox.IsChecked == true;
         _s.StartWithWindows = StartupBox.IsChecked == true;
@@ -285,7 +285,7 @@ public partial class SettingsWindow : Window
 
     // ---- Look and accent colour: previewed live, saved with Save, undone on Cancel
     string _accent = "";
-    void PreviewLook() => App.ApplyTheme(Get(ThemeBox, "windows"), _accent);
+    void PreviewLook() => App.ApplyTheme(Get(ThemeBox, "aurora"), _accent);
 
     void Swatch_Checked(object sender, RoutedEventArgs e)
     {

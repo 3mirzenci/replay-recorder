@@ -130,21 +130,38 @@ public partial class App : Application
 
     public static void ApplyTheme(string theme, string accent = "")
     {
-        var file = theme is "amber" or "booth" ? "Amber" : "Windows"; // "booth" = older name for amber
+        // "windows"/"amber" = the two Classic looks ("booth" = older name for amber); anything else is Aurora.
+        var file = theme switch { "windows" => "Windows", "amber" or "booth" => "Amber", _ => "Aurora" };
         var dict = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{file}.xaml") };
         if (TryParseColor(accent, out var c))
         {
             dict["Accent"] = Frozen(c);
             dict["AccentSoft"] = Frozen(System.Windows.Media.Color.FromArgb(0x2E, c.R, c.G, c.B));
-            // Dark text on light accents, white on dark ones (perceived brightness).
-            bool light = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B > 150;
-            dict["OnAccent"] = Frozen(light ? System.Windows.Media.Color.FromRgb(0x10, 0x10, 0x12) : System.Windows.Media.Colors.White);
+            // Dark or white text on the accent, whichever has more contrast.
+            dict["OnAccent"] = Frozen(ColorContrast.DarkTextOn(c.R, c.G, c.B)
+                ? System.Windows.Media.Color.FromRgb(ColorContrast.DarkR, ColorContrast.DarkG, ColorContrast.DarkB)
+                : System.Windows.Media.Colors.White);
         }
+        else c = ((System.Windows.Media.SolidColorBrush)dict["Accent"]).Color; // the look's own accent and its own text colour
+        // Faint accent light: along the top edge (glow) and around the video (halo); 0 in Classic.
+        dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.95, 0.6);
+        dict["AccentHalo"] = Light(c, (double)dict["HaloOpacity"], new(0.5, 0.5), 0.5, 0.5);
         Current.Resources.MergedDictionaries[0] = dict;
         foreach (Window w in Current.Windows) UseDarkTitleBar(w);
     }
 
     static System.Windows.Media.SolidColorBrush Frozen(System.Windows.Media.Color c) { var b = new System.Windows.Media.SolidColorBrush(c); b.Freeze(); return b; }
+
+    /// <summary>The accent fading from <paramref name="opacity"/> at <paramref name="center"/> to nothing at the rim.</summary>
+    static System.Windows.Media.RadialGradientBrush Light(System.Windows.Media.Color c, double opacity, Point center, double rx, double ry)
+    {
+        var b = new System.Windows.Media.RadialGradientBrush(
+            System.Windows.Media.Color.FromArgb((byte)Math.Round(255 * opacity), c.R, c.G, c.B),
+            System.Windows.Media.Color.FromArgb(0, c.R, c.G, c.B))
+        { Center = center, GradientOrigin = center, RadiusX = rx, RadiusY = ry };
+        b.Freeze();
+        return b;
+    }
 
     static bool TryParseColor(string s, out System.Windows.Media.Color c)
     {
