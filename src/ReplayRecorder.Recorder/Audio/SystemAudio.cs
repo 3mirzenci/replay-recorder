@@ -37,7 +37,8 @@ sealed class SystemAudio : IDisposable
         if (_separate && !ProcessLoopback.Supported)
             Log.Warn("Separate Discord track needs Windows 10 2004 or newer; Discord stays in the game track");
         if (!_separate || !ProcessLoopback.Supported) { Use(0); return; }
-        Check();
+        // MTA: COM objects made on the STA UI thread can't be used from ProcessLoopback's capture thread (E_NOINTERFACE)
+        Task.Run(Check).Wait();
         _timer = new System.Threading.Timer(_ => Check(), null, 3000, 3000);
     }
 
