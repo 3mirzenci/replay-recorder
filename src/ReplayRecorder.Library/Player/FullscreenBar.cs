@@ -146,7 +146,11 @@ sealed class FullscreenBar : Window
             Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = System.Windows.Input.Cursors.Hand,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        if (Application.Current.TryFindResource("RoundBtn") is Style s) b.Style = s;
+        // Plain template: the default one pads the content, which cut the 40 px play disc
+        var face = new FrameworkElementFactory(typeof(Border));
+        face.SetValue(Border.BackgroundProperty, Brushes.Transparent); // whole square stays clickable
+        face.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));
+        b.Template = new ControlTemplate(typeof(Button)) { VisualTree = face };
         b.Click += (_, _) => click();
         return b;
     }
