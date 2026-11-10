@@ -24,6 +24,42 @@ public class ExportSizeTests
         Assert.Equal((1280, 720, 30), (plan.Width, plan.Height, plan.Fps));
     }
 
+    // The export line in the player: the same plan the export starts with.
+    [Theory]
+    [InlineData(60, "copy")]       // whole small clip: cut as is
+    [InlineData(20, "copy")]
+    [InlineData(600, "")]          // 10 min of a big clip: re-encoded
+    public void Predict_matches_the_exporters_first_choice(double keptSeconds, string expected)
+    {
+        var clip = new ClipInfo { Path = "x.mp4", Game = "g", Created = DateTime.Now, Width = 1920, Height = 1080, Fps = 60,
+                                  Duration = 600, SizeBytes = keptSeconds == 600 ? 3_000_000_000 : 10_000_000 };
+        var plan = DiscordExporter.Predict(clip, new ClipEdit { Out = keptSeconds }, keptSeconds, 19_500_000);
+        Assert.NotNull(plan);
+        Assert.Equal(expected == "copy", plan!.StreamCopy);
+        if (!plan.StreamCopy)
+        {
+            var (v, a) = DiscordExporter.Budget(19_500_000, keptSeconds);
+            Assert.Equal(DiscordExporter.PlanFor(clip, v, a, "h264_nvenc"), plan);
+            Assert.True(DiscordExporter.PredictBytes(clip, plan, keptSeconds) <= 19_500_000);
+        }
+    }
+
+    [Fact]
+    public void Predict_says_no_when_far_too_long()
+    {
+        var clip = new ClipInfo { Path = "x.mp4", Game = "g", Created = DateTime.Now, Width = 1920, Height = 1080, Fps = 60,
+                                  Duration = 7200, SizeBytes = 30_000_000_000 };
+        Assert.Null(DiscordExporter.Predict(clip, new ClipEdit(), 7200, 10_000_000));
+    }
+
+    [Fact]
+    public void Volume_changes_rule_out_the_plain_cut()
+    {
+        var clip = new ClipInfo { Path = "x.mp4", Game = "g", Created = DateTime.Now, Width = 1920, Height = 1080, Fps = 60,
+                                  Duration = 60, SizeBytes = 5_000_000 };
+        Assert.False(DiscordExporter.Predict(clip, new ClipEdit { MicVolumeDb = 3 }, 60, 19_500_000)!.StreamCopy);
+    }
+
     [Fact]
     public void Low_bitrate_picks_a_smaller_size()
     {

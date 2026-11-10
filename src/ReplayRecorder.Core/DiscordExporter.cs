@@ -39,6 +39,8 @@ public static class DiscordExporter
 
     const int MaxAttempts = 4;
     const double ContainerOverhead = 0.02;
+    /// <summary>Below this video bitrate a clip is too long to export watchably.</summary>
+    const int MinVideoKbps = 150;
 
     public static long TargetBytes(Settings s) => (long)(s.DiscordTargetMB * 1_000_000);
 
@@ -87,6 +89,24 @@ public static class DiscordExporter
             catch { } // still uploading/open somewhere: try again next time
         }
     }
+    /// <summary>
+    /// What an export of <paramref name="seconds"/> will most likely be: the original cut (when it fits as is) or the
+    /// first encode's plan; null when it is too long to fit. The player shows this beside Export; ExportAsync makes
+    /// the same decisions (it also checks the codec before copying, and retries smaller if a file comes out too big).
+    /// </summary>
+    public static ExportPlan? Predict(ClipInfo clip, ClipEdit edit, double seconds, long target)
+    {
+        if (CopyFits(clip, edit, seconds, target))
+            return new ExportPlan(clip.Width, clip.Height, (int)Math.Round(clip.Fps), 0, 0, "copy", StreamCopy: true);
+        var (videoKbps, audioKbps) = Budget(target, seconds);
+        return videoKbps < MinVideoKbps ? null : PlanFor(clip, videoKbps, audioKbps, "h264_nvenc");
+    }
+
+    /// <summary>Expected file size: a cut keeps the clip's own bitrate; an encode fills its budget.</summary>
+    public static long PredictBytes(ClipInfo clip, ExportPlan plan, double seconds) => plan.StreamCopy
+        ? (long)(clip.SizeBytes * seconds / Math.Max(clip.Duration, 0.1))
+        : (long)((plan.VideoKbps + plan.AudioKbps) * 1000.0 / 8 * seconds / (1 - ContainerOverhead));
+
 
     public static async Task<ExportResult> ExportAsync(ClipInfo clip, ClipEdit edit, Settings s,
         IProgress<(double Fraction, string Status)>? progress = null, CancellationToken ct = default)
@@ -120,10 +140,10 @@ public static class DiscordExporter
             }
 
             var (videoKbps, audioKbps) = Budget(target, seconds);
-            if (videoKbps < 150)
+            if (videoKbps < MinVideoKbps)
                 throw new InvalidOperationException(
                     $"{Fmt(seconds)} is too long to fit in {s.DiscordTargetMB:0.#} MB with watchable quality. " +
-                    $"Trim it to under {Fmt(target * 8.0 * (1 - ContainerOverhead) / 1000 / (150 + audioKbps))}.");
+                    $"Trim it to under {Fmt(target * 8.0 * (1 - ContainerOverhead) / 1000 / (MinVideoKbps + audioKbps))}.");
 
             string encoder = "h264_nvenc";
             bool gpuDecode = true;
@@ -207,11 +227,14 @@ public static class DiscordExporter
         return g + $"[ga][ma]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0{output}";
     }
 
-    static bool CanStreamCopy(ClipInfo clip, ClipEdit edit, double seconds, long target)
+    static bool CanStreamCopy(ClipInfo clip, ClipEdit edit, double seconds, long target) =>
+        CopyFits(clip, edit, seconds, target) && string.Equals(ProbeVideoCodec(clip.Path), "h264", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A plain cut would do: untouched volumes, a mixed track to copy, and comfortably under the target.</summary>
+    static bool CopyFits(ClipInfo clip, ClipEdit edit, double seconds, long target)
     {
         bool defaultAudio = Math.Abs(edit.GameVolumeDb) < 0.01 && Math.Abs(edit.MicVolumeDb) < 0.01 && Math.Abs(edit.DiscordVolumeDb) < 0.01;
         if (!defaultAudio || clip.Duration <= 0 || clip.AudioTracks == 2) return false; // 2-track clips have no mixed track
-        if (!string.Equals(ProbeVideoCodec(clip.Path), "h264", StringComparison.OrdinalIgnoreCase)) return false;
         double estimate = clip.SizeBytes * (seconds + 2) / clip.Duration; // +2 s: may start a keyframe early
         return estimate < target * 0.9;
     }

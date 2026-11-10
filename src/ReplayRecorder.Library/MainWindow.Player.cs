@@ -146,6 +146,27 @@ public partial class MainWindow
         double dur = Timeline.Duration;
         double len = _edit.EffectiveOut(dur) - _edit.In;
         TrimText.Text = _edit.IsTrimmed(dur) ? "Trimmed: {0} of {1}".T(TrimTimeline.Fmt(len), TrimTimeline.Fmt(dur)) : "";
+        UpdateExportLine();
+    }
+
+    /// <summary>"720p60" over "0:42 kept · 19.5 MB": what Export will make of the kept range (DiscordExporter.Predict).</summary>
+    void UpdateExportLine()
+    {
+        double dur = Timeline.Duration > 0 ? Timeline.Duration : _current?.Duration ?? 0;
+        double len = _edit.EffectiveOut(dur) - _edit.In;
+        ExportLine.Visibility = _current == null || dur <= 0 || len < 0.3 ? Visibility.Collapsed : Visibility.Visible;
+        if (ExportLine.Visibility != Visibility.Visible) return;
+        var target = DiscordExporter.TargetBytes(_settings);
+        var plan = DiscordExporter.Predict(_current!.Clip, _edit, len, target);
+        if (plan == null)
+        {
+            ExportLineTop.Text = "Too long".T();
+            ExportLineSub.Text = "{0} kept".T(TrimTimeline.Fmt(len));
+            return;
+        }
+        ExportLineTop.Text = plan.StreamCopy ? "{0}p · original".T(plan.Height) : $"{plan.Height}p{plan.Fps}";
+        double mb = DiscordExporter.PredictBytes(_current.Clip, plan, len) / 1e6;
+        ExportLineSub.Text = "{0} kept".T(TrimTimeline.Fmt(len)) + "  ·  " + mb.ToString("0.0", Lang.Culture) + " MB";
     }
 
     void UpdateTimeText(double t)
@@ -344,6 +365,7 @@ public partial class MainWindow
         _edit.DiscordVolumeDb = DiscordVol.Value;
         Timeline.SetGains(GameVol.Value, MicVol.Value, DiscordVol.Value);
         ClipEdits.Set(_current.Path, _edit);
+        UpdateExportLine(); // changed volumes need a re-encode instead of a plain cut
         _mixDebounce.Stop(); _mixDebounce.Start();
     }
 

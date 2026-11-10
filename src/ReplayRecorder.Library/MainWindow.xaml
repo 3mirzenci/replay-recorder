@@ -566,6 +566,12 @@
                                     ValueChanged="Volume_ValueChanged" MouseDoubleClick="DiscordVol_DoubleClick" Width="150"/>
                         </StackPanel>
                     </StackPanel>
+                    <!-- What the export will be: resolution, then the kept length and expected size -->
+                    <StackPanel x:Name="ExportLine" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock x:Name="ExportLineTop" HorizontalAlignment="Right" FontFamily="{DynamicResource NumFont}" FontSize="16" FontWeight="SemiBold"
+                                   Typography.NumeralAlignment="Tabular"/>
+                        <TextBlock x:Name="ExportLineSub" HorizontalAlignment="Right" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,1,0,0"/>
+                    </StackPanel>
                     <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" Padding="14,8" Click="Export_Click"
                             ToolTip="Export the trimmed range as an MP4 under the Discord size limit (E)">
                         <StackPanel Orientation="Horizontal">
