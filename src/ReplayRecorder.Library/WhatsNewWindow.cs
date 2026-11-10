@@ -63,19 +63,18 @@ static partial class WhatsNewWindow
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ShowInTaskbar = false,
-            Background = (Brush)owner.FindResource("Panel"),
-            Content = new StackPanel
-            {
-                Margin = new Thickness(20),
-                Children =
-                {
-                    new TextBlock { Text = "What's new in {0}".T(version), Foreground = text, FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) },
-                    new ScrollViewer { Content = body, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
-                    ok,
-                },
-            },
         };
-        win.SourceInitialized += (_, _) => App.UseDarkTitleBar(win);
+        var title = new TextBlock { Text = "What's new in {0}".T(version), Foreground = text, FontSize = 24, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) };
+        title.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+        DialogFrame.Apply(win, new StackPanel
+        {
+            Children =
+            {
+                title,
+                new ScrollViewer { Content = body, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+                ok,
+            },
+        });
         ok.Click += (_, _) => win.Close();
         win.Show();
     }

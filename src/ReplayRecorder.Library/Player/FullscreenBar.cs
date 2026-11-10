@@ -20,7 +20,7 @@ sealed class FullscreenBar : Window
 
     readonly MpvPlayer _mpv;
     readonly Slider _seek = new() { Minimum = 0, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 14, 0) };
-    readonly TextBlock _time = new() { Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, FontSize = 13 };
+    readonly TextBlock _time = new() { Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
     readonly TextBlock _playIcon = Icon("", 16);
     readonly Border _bar;
     readonly DispatcherTimer _mouseTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
@@ -40,15 +40,19 @@ sealed class FullscreenBar : Window
         ShowActivated = false;
         ResizeMode = ResizeMode.NoResize;
 
-        var play = RoundButton(_playIcon, "Play / pause (Space)".T(), () => _mpv.TogglePause());
+        // Play on an accent circle, as in the player
+        _playIcon.SetResourceReference(TextBlock.ForegroundProperty, "OnAccent");
+        var playDisc = new Border { Width = 40, Height = 40, CornerRadius = new CornerRadius(20), Child = _playIcon };
+        playDisc.SetResourceReference(Border.BackgroundProperty, "Accent");
+        var play = RoundButton(playDisc, "Play / pause (Space)".T(), () => _mpv.TogglePause());
         var exit = RoundButton(Icon("", 14), "Exit fullscreen (Esc)".T(), exitFullscreen);
         DockPanel.SetDock(play, Dock.Left);
         DockPanel.SetDock(exit, Dock.Right);
         DockPanel.SetDock(_time, Dock.Right);
         _time.Margin = new Thickness(0, 0, 12, 0);
         var mix = new StackPanel { Orientation = Orientation.Horizontal, IsEnabled = mixEnabled, Margin = new Thickness(0, 0, 8, 0),
-            Children = { VolumeSlider((discordVol != null ? "Game" : "Game + chat").T(), gameVol), VolumeSlider("Your mic".T(), micVol) } };
-        if (discordVol != null) mix.Children.Add(VolumeSlider("Discord", discordVol));
+            Children = { VolumeSlider((discordVol != null ? "Game" : "Game + chat").T(), gameVol, "GameTrack"), VolumeSlider("Mic".T(), micVol, "Accent") } };
+        if (discordVol != null) mix.Children.Add(VolumeSlider("Discord", discordVol, "DiscordTrack"));
         DockPanel.SetDock(mix, Dock.Right);
 
         _bar = new Border
@@ -57,8 +61,8 @@ sealed class FullscreenBar : Window
             MaxWidth = 1100,
             Margin = new Thickness(BarMargin, 0, BarMargin, BarMargin),
             VerticalAlignment = VerticalAlignment.Bottom,
-            CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(12, 0, 12, 0),
+            CornerRadius = new CornerRadius(BarHeight / 2), // a pill
+            Padding = new Thickness(12, 0, 16, 0),
             Background = (Brush)Application.Current.FindResource("Overlay"),
             Child = new DockPanel { LastChildFill = true, Children = { play, exit, mix, _time, _seek } },
         };
@@ -114,9 +118,10 @@ sealed class FullscreenBar : Window
         SetWindowLong(h, GWL_EXSTYLE, GetWindowLong(h, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
     }
 
-    static FrameworkElement VolumeSlider(string label, Slider source)
+    static FrameworkElement VolumeSlider(string label, Slider source, string colour)
     {
         var s = new Slider { Minimum = source.Minimum, Maximum = source.Maximum, SmallChange = 1, LargeChange = 3, Width = 110, Focusable = false };
+        s.SetResourceReference(ForegroundProperty, colour); // the track's colour, as on the timeline
         s.SetBinding(RangeBase.ValueProperty, new System.Windows.Data.Binding(nameof(Slider.Value)) { Source = source, Mode = System.Windows.Data.BindingMode.TwoWay });
         s.MouseDoubleClick += (_, _) => source.Value = 0;
         return new StackPanel

@@ -52,24 +52,23 @@ static class SetupWindow
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ShowInTaskbar = false,
-            Background = (Brush)owner.FindResource("Panel"),
-            Content = new StackPanel
-            {
-                Margin = new Thickness(24, 20, 24, 20),
-                Children =
-                {
-                    new TextBlock { Text = "Welcome to Replay Recorder".T(), Foreground = text, FontSize = 20, FontWeight = FontWeights.SemiBold },
-                    Hint("It's already recording in the background. Three quick checks, all changeable later in Settings.".T()),
-                    Step("1. Save-clip hotkey".T()), hotkey,
-                    Hint("Click the box and press the keys you want. Avoid Alt+F10 / Alt+F9 / Alt+Z: the NVIDIA overlay uses them.".T()),
-                    Step("2. Screen to record".T()), monitor,
-                    Step("3. Microphone".T()), mic, track,
-                    Hint("Say something: the bar should move. If it doesn't, pick another mic.".T()),
-                    new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 20, 0, 0), Children = { skip, done } },
-                },
-            },
         };
-        win.SourceInitialized += (_, _) => App.UseDarkTitleBar(win);
+        var welcome = new TextBlock { Text = "Welcome to Replay Recorder".T(), Foreground = text, FontSize = 24, FontWeight = FontWeights.SemiBold };
+        welcome.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+        DialogFrame.Apply(win, new StackPanel
+        {
+            Children =
+            {
+                welcome,
+                Hint("It's already recording in the background. Three quick checks, all changeable later in Settings.".T()),
+                Step("1. Save-clip hotkey".T()), hotkey,
+                Hint("Click the box and press the keys you want. Avoid Alt+F10 / Alt+F9 / Alt+Z: the NVIDIA overlay uses them.".T()),
+                Step("2. Screen to record".T()), monitor,
+                Step("3. Microphone".T()), mic, track,
+                Hint("Say something: the bar should move. If it doesn't, pick another mic.".T()),
+                new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 22, 0, 0), Children = { skip, done } },
+            },
+        });
         win.Loaded += (_, _) => { Listen(); timer.Start(); };
         win.Closed += (_, _) =>
         {

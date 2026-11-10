@@ -13,9 +13,9 @@ static class RenameDialog
     {
         var box = new TextBox { Text = current, Style = (Style)owner.FindResource("Field"), Margin = new Thickness(0, 8, 0, 0) };
         var error = new TextBlock { Foreground = (Brush)owner.FindResource("Danger"), FontSize = 12, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
-        var ok = new Button { Content = "Rename".T(), Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, MinWidth = 90, Margin = new Thickness(0, 0, 8, 0) };
-        var cancel = new Button { Content = "Cancel".T(), IsCancel = true, MinWidth = 90 };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0), Children = { ok, cancel } };
+        var ok = new Button { Content = "Rename".T(), Style = (Style)owner.FindResource("AccentBtn"), IsDefault = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0) };
+        var cancel = new Button { Content = "Cancel".T(), Style = (Style)owner.FindResource("GhostBtn"), IsCancel = true, MinWidth = 90 };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0), Children = { cancel, ok } };
 
         var win = new Window
         {
@@ -26,18 +26,15 @@ static class RenameDialog
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ShowInTaskbar = false,
-            Background = (Brush)owner.FindResource("Panel"),
-            Content = new StackPanel
-            {
-                Margin = new Thickness(20),
-                Children =
-                {
-                    new TextBlock { Text = "New name".T(), Foreground = (Brush)owner.FindResource("Subtle"), FontSize = 12.5 },
-                    box, error, buttons,
-                },
-            },
         };
-        win.SourceInitialized += (_, _) => App.UseDarkTitleBar(win);
+        DialogFrame.Apply(win, new StackPanel
+        {
+            Children =
+            {
+                new TextBlock { Text = "New name".T(), Foreground = (Brush)owner.FindResource("Subtle"), FontSize = 12.5 },
+                box, error, buttons,
+            },
+        });
         win.Loaded += (_, _) => { box.Focus(); box.SelectAll(); };
         ok.Click += (_, _) =>
         {
