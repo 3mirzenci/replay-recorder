@@ -348,7 +348,10 @@
                     <ControlTemplate TargetType="ContextMenu">
                         <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
                                 CornerRadius="8" Padding="4" MinWidth="200">
-                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            <!-- Scrolls when long (the game list under More can have dozens of games) -->
+                            <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </ScrollViewer>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
