@@ -154,7 +154,8 @@ public partial class App : Application
     {
         static bool Bound(DependencyObject o, DependencyProperty p) => System.Windows.Data.BindingOperations.IsDataBound(o, p);
         if (e is Window w) w.Title = Lang.Retranslate(w.Title);
-        else if (e is System.Windows.Controls.TextBlock t && !Bound(t, System.Windows.Controls.TextBlock.TextProperty)) t.Text = Lang.Retranslate(t.Text);
+        // Text built from Runs reads as "" here: writing that back would wipe it.
+        else if (e is System.Windows.Controls.TextBlock { Text.Length: > 0 } t && !Bound(t, System.Windows.Controls.TextBlock.TextProperty)) t.Text = Lang.Retranslate(t.Text);
         else if (e is System.Windows.Controls.HeaderedItemsControl h && h.Header is string hs) h.Header = Lang.Retranslate(hs);
         else if (e is System.Windows.Controls.ContentControl c && c.Content is string cs && !Bound(c, System.Windows.Controls.ContentControl.ContentProperty)) c.Content = Lang.Retranslate(cs);
         if (e.ToolTip is string tip) e.ToolTip = Lang.Retranslate(tip);

@@ -142,16 +142,12 @@ public partial class MainWindow : Window
 
     void RefreshSidebar()
     {
-        var selected = _gameFilter;
-        var games = _items.GroupBy(i => i.Game).OrderBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase)
-            .Select(g => new GameEntry(g.Key, g.Count())).ToList();
-        games.Insert(0, new GameEntry("", _items.Count, IsAll: true));
-        games.Insert(1, new GameEntry(FavKey, _items.Count(i => i.IsFavorite), IsFavorites: true));
-        GameList.SelectionChanged -= GameList_SelectionChanged;
-        GameList.ItemsSource = games;
-        GameList.SelectedItem = games.FirstOrDefault(g => g.Name == selected) ?? games[0];
-        GameList.SelectionChanged += GameList_SelectionChanged;
-        if (GameList.SelectedItem is GameEntry ge && ge.Name != _gameFilter) { _gameFilter = ge.Name; _view.Refresh(); }
+        // Most clips first.
+        var games = _items.GroupBy(i => i.Game).Select(g => new GameEntry(g.Key, g.Count()))
+            .OrderByDescending(g => g.Count).ThenBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        // The filtered game's last clip is gone: back to all clips.
+        if (_gameFilter.Length > 0 && _gameFilter != FavKey && !games.Any(g => g.Name == _gameFilter)) { _gameFilter = ""; _view.Refresh(); }
+        BuildGamePills(games, _items.Count, _items.Count(i => i.IsFavorite));
 
         long total = _items.Sum(i => i.SizeBytes);
         StorageText.Text = "{0} clips · {1}\n{2}".T(_items.Count, ClipItem.FormatSize(total), _settings.ClipsFolder);
@@ -201,17 +197,6 @@ public partial class MainWindow : Window
         ApplySort((string)((FrameworkElement)sender).Tag);
         UpdateDayGroups();
     }
-
-    void GameList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        _gameFilter = (GameList.SelectedItem as GameEntry)?.Name ?? "";
-        _view.Refresh();
-        UpdateHeader();
-    }
-
-    // After picking a game, arrow keys move through the clips again instead of switching games.
-    void GameList_DropDownClosed(object? sender, EventArgs e) =>
-        Dispatcher.BeginInvoke(() => ClipGrid.Focus(), System.Windows.Threading.DispatcherPriority.Input);
 
     void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {

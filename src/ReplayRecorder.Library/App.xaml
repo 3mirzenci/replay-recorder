@@ -97,6 +97,40 @@
         </Style>
         <Style x:Key="SegRadio" TargetType="RadioButton" BasedOn="{StaticResource Seg}"/>
 
+        <!-- Game pill in the library's top row: a filter tab as tall as the search box -->
+        <Style x:Key="GamePill" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="11,0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ButtonRadius}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" Margin="0,0,0,1">
+                                <!-- Blocks the app-wide text style, so the label takes the pill's grey/white -->
+                                <ContentPresenter.Resources><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="{DynamicResource BodyFont}"/></Style></ContentPresenter.Resources>
+                            </ContentPresenter>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource Glass2}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="GamePillRadio" TargetType="RadioButton" BasedOn="{StaticResource GamePill}"/>
+
         <!-- Search box -->
         <Style x:Key="Search" TargetType="TextBox">
             <Setter Property="Foreground" Value="{DynamicResource Text}"/>

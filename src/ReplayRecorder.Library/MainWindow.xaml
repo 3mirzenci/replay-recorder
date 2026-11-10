@@ -129,26 +129,10 @@
                             <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
                         </Button>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ComboBox x:Name="GameList" Width="230" SelectionChanged="GameList_SelectionChanged" DropDownClosed="GameList_DropDownClosed" ToolTip="Show clips from one game">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type local:GameEntry}">
-                                    <DockPanel>
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" Typography.NumeralAlignment="Tabular" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource Subtle}"/>
-                                        <TextBlock x:Name="star" DockPanel.Dock="Left" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                   Foreground="{DynamicResource Star}" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                    </DockPanel>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsFavorites}" Value="True">
-                                            <Setter TargetName="star" Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
+                    <!-- Game pills (MainWindow.Games.cs); the host takes the room left between logo and search -->
+                    <Border x:Name="GameHost" ClipToBounds="True" SizeChanged="GameHost_SizeChanged">
+                        <StackPanel x:Name="GamePills" Orientation="Horizontal" VerticalAlignment="Center"/>
+                    </Border>
                 </DockPanel>
             </Border>
 
