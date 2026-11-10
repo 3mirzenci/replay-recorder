@@ -26,8 +26,8 @@ Two safety nets, both required:
 | Setting value | Label | What it is |
 |---|---|---|
 | `aurora` | Aurora | The new look. Default for new installs. |
-| `windows` | Classic (blue) | Today's default colours |
-| `amber` | Classic (amber) | Today's Amber colours |
+| `windows` | Classic (grey) | Today's default colours (neutral grey background) |
+| `amber` | Classic (blue-grey) | Today's Amber colours (blue-grey background); named by background, since most people set their own accent |
 
 A saved `windows` or `amber` value is respected; nobody is switched automatically.
 

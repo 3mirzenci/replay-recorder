@@ -207,7 +207,7 @@ public static class Lang
         ["Custom…"] = "Özel…",
         ["Amber"] = "Kehribar", ["Blue"] = "Mavi", ["Cyan"] = "Camgöbeği", ["Green"] = "Yeşil", ["Orange"] = "Turuncu",
         ["Pink"] = "Pembe", ["Red"] = "Kırmızı", ["Violet"] = "Mor",
-        ["Classic (blue)"] = "Klasik (mavi)", ["Classic (amber)"] = "Klasik (kehribar)",
+        ["Classic (grey)"] = "Klasik (gri)", ["Classic (blue-grey)"] = "Klasik (mavi-gri)",
         ["Language"] = "Dil",
         ["Applies when you save"] = "Kaydedince uygulanır",
         ["Start recorder with Windows"] = "Kaydediciyi Windows ile başlat",
