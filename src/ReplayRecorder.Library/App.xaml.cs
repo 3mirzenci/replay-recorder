@@ -81,6 +81,8 @@ public partial class App : Application
             {
                 var prev = before; before = null;
                 if (System.Windows.Input.InputManager.Current.MostRecentInputDevice is not System.Windows.Input.MouseDevice) return;
+                // Only buttons that took focus themselves: a dropdown's inner toggle can't, and moving focus would close the list.
+                if (s is not UIElement { IsKeyboardFocused: true }) return;
                 if (prev is not UIElement p || ReferenceEquals(p, s) || Window.GetWindow(p) != Window.GetWindow((DependencyObject)s)) return;
                 // After the click's own handlers ran; skipped if the click closed or covered that window.
                 p.Dispatcher.BeginInvoke(() => { if (p.IsVisible && Window.GetWindow(p)?.IsActive == true) p.Focus(); },
