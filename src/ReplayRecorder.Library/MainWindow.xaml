@@ -133,7 +133,7 @@
                         <!-- Not shown: their text feeds the two buttons' hover text -->
                         <TextBlock x:Name="StorageText" Visibility="Collapsed"/>
                         <TextBlock x:Name="VersionText" Visibility="Collapsed"/>
-                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" Margin="0,0,10,0" TextChanged="SearchBox_TextChanged"/>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" AutomationProperties.Name="Search clips" Width="230" Margin="0,0,10,0" TextChanged="SearchBox_TextChanged"/>
                         <Button x:Name="OpenFolderBtn" Style="{StaticResource RoundBtn}" Click="OpenFolder_Click" AutomationProperties.Name="Open clips folder"
                                 ToolTip="{Binding Text, ElementName=StorageText}" ToolTipService.ShowDuration="20000">
                             <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
@@ -283,6 +283,7 @@
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="AutomationProperties.Name" Value="{Binding SpokenName}"/> <!-- screen readers say the clip's name and time -->
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
@@ -461,7 +462,7 @@
 
             <!-- Header -->
             <DockPanel x:Name="PlayerHeader" Height="58" Margin="30,1,30,0">
-                <Button DockPanel.Dock="Left" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,0,12,0" Height="32" VerticalAlignment="Center"
+                <Button DockPanel.Dock="Left" Click="Back_Click" ToolTip="Back to library (Esc)" AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}" Padding="8,0,12,0" Height="32" VerticalAlignment="Center"
                         WindowChrome.IsHitTestVisibleInChrome="True">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center"/>
@@ -506,19 +507,19 @@
                     <DockPanel Height="{x:Static player:TrimTimeline.LaneHeight}">
                         <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
                                    Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
-                        <Slider x:Name="GameVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                        <Slider x:Name="GameVol" AutomationProperties.Name="Game" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
                                 Foreground="{DynamicResource GameTrack}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="GameVol_DoubleClick"/>
                     </DockPanel>
                     <DockPanel Height="{x:Static player:TrimTimeline.LaneHeight}" Margin="0,6,0,0">
                         <TextBlock x:Name="MicVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
                                    Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
-                        <Slider x:Name="MicVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                        <Slider x:Name="MicVol" AutomationProperties.Name="Mic" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
                                 Foreground="{DynamicResource Accent}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="MicVol_DoubleClick"/>
                     </DockPanel>
                     <DockPanel x:Name="DiscordMix" Height="{x:Static player:TrimTimeline.LaneHeight}" Margin="0,6,0,0" Visibility="Collapsed">
                         <TextBlock x:Name="DiscordVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
                                    Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
-                        <Slider x:Name="DiscordVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                        <Slider x:Name="DiscordVol" AutomationProperties.Name="Discord" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
                                 Foreground="{DynamicResource DiscordTrack}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="DiscordVol_DoubleClick"/>
                     </DockPanel>
                 </StackPanel>
@@ -581,7 +582,7 @@
                                    Typography.NumeralAlignment="Tabular"/>
                         <TextBlock x:Name="ExportLineSub" HorizontalAlignment="Right" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,1,0,0"/>
                     </StackPanel>
-                    <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" Padding="14,8" Click="Export_Click"
+                    <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" AutomationProperties.Name="Export for Discord" Padding="14,8" Click="Export_Click"
                             ToolTip="Export the trimmed range as an MP4 under the Discord size limit (E)">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource OnAccent}" VerticalAlignment="Center"/>

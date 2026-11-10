@@ -92,6 +92,7 @@ sealed class ClipItem : INotifyPropertyChanged
     public string TimeText => GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText;
     public string Detail => string.Join(" · ", new[] { SizeText, QualityText }.Where(s => s.Length > 0));
     public string Subtitle => string.Join(" · ", new[] { GroupedByDay ? Clip.Created.ToString("HH:mm") : DateText, SizeText, QualityText }.Where(s => s.Length > 0));
+    public string SpokenName => $"{DisplayName}, {Subtitle}"; // screen readers: tells clips of the same game apart
 
     ImageSource? _thumb;
     public ImageSource? Thumb

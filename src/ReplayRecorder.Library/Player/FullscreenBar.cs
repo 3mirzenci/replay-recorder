@@ -68,6 +68,7 @@ sealed class FullscreenBar : Window
         };
         Content = _bar;
 
+        System.Windows.Automation.AutomationProperties.SetName(_seek, "Position".T());
         _seek.ValueChanged += (_, e) => { if (!_updating) _mpv.Seek(e.NewValue, exact: !_dragging); };
         _seek.AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, _) => _dragging = true));
         _seek.AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, _) => { _dragging = false; _mpv.Seek(_seek.Value); }));
@@ -122,6 +123,7 @@ sealed class FullscreenBar : Window
     {
         var s = new Slider { Minimum = source.Minimum, Maximum = source.Maximum, SmallChange = 1, LargeChange = 3, Width = 110, Focusable = false };
         s.SetResourceReference(ForegroundProperty, colour); // the track's colour, as on the timeline
+        System.Windows.Automation.AutomationProperties.SetName(s, label);
         s.SetBinding(RangeBase.ValueProperty, new System.Windows.Data.Binding(nameof(Slider.Value)) { Source = source, Mode = System.Windows.Data.BindingMode.TwoWay });
         s.MouseDoubleClick += (_, _) => source.Value = 0;
         return new StackPanel

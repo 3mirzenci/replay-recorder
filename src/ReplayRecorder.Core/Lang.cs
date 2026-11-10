@@ -65,6 +65,7 @@ public static class Lang
 
 
         ["Mic"] = "Mik",
+        ["Position"] = "Konum",
         ["{0} kept"] = "{0} kalıyor",
         ["{0}p · original"] = "{0}p · orijinal",
         ["More"] = "Daha fazla",
