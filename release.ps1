@@ -40,10 +40,10 @@ git add -A
 # Messages go through files: Windows PowerShell mangles quotes inside arguments to git.
 $commitFile = [IO.Path]::GetTempFileName()
 [IO.File]::WriteAllText($commitFile, "Release v$Version`n`n$Notes")
-git commit -F $commitFile
+git commit --cleanup=verbatim -F $commitFile
 Remove-Item $commitFile
 if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
-git tag -a "v$Version" -F $notesFile
+git tag -a "v$Version" --cleanup=verbatim -F $notesFile # verbatim: keep "## Heading" lines, git drops them as comments otherwise
 if ($LASTEXITCODE -ne 0) { throw "git tag failed" }
 Remove-Item $notesFile
 git push origin HEAD --follow-tags
