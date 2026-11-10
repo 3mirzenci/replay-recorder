@@ -72,6 +72,7 @@ sealed class TrayApp : ApplicationContext
         Log.Info($"Replay Recorder started (ffmpeg: {Ffmpeg.FfmpegPath ?? "NOT FOUND"})");
         Displays.LogAll();
         _engine.Start();
+        if (!_settings.SetupDone) OpenLibrary(); // first run: the library shows the setup
         Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
         Microsoft.Win32.SystemEvents.TimeChanged += OnTimeChanged;
         _storageTimer = new System.Threading.Timer(_ => CheckStorage(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));

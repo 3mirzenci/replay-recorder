@@ -59,7 +59,11 @@ public partial class MainWindow : Window
         Timeline.TrimCommitted += (i, o) => { _edit.In = i; _edit.Out = o; TrimEdited(); TogglePreview(true); };
 
         SourceInitialized += (_, _) => App.UseDarkTitleBar(this);
-        Loaded += (_, _) => LoadLibrary();
+        Loaded += (_, _) =>
+        {
+            LoadLibrary();
+            if (!_settings.SetupDone) { SetupWindow.Show(this); _settings = Settings.Load(); }
+        };
         // Scrolling, resizing and filtering all change the scroll extent/offset: recheck which cards are near the viewport.
         ClipGrid.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler((_, _) => ScheduleViewUpdate()));
         Closing += (_, _) => { FinishPendingDelete(); Shutdown(); };

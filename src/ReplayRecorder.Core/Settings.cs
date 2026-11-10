@@ -64,6 +64,8 @@ public sealed class Settings
     /// <summary>Auto-delete: clips older than AutoDeleteDays are deleted for good (favorites kept). Off by default.</summary>
     public bool AutoDelete { get; set; }
     public int AutoDeleteDays { get; set; } = 30;
+    /// <summary>False only in a brand-new settings file: the library then shows the first-run setup once.</summary>
+    public bool SetupDone { get; set; } = true;
 
     // --- Discord export ---
     /// <summary>Exports are guaranteed to be at most this many MB (1 MB = 1,000,000 bytes, so it is
@@ -122,7 +124,7 @@ public sealed class Settings
         var d = new Settings();
         // Only create the file when there is none: a file that failed to parse (a typo from a hand
         // edit, or read mid-save) is kept so it can be fixed instead of being wiped with defaults.
-        if (!File.Exists(Paths.SettingsFile)) d.Save();
+        if (!File.Exists(Paths.SettingsFile)) { d.SetupDone = false; d.Save(); } // first run ever
         return d;
     }
 
