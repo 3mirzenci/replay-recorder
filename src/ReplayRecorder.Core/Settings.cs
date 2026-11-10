@@ -29,6 +29,7 @@ public sealed class Settings
     /// <summary>Output height: 0 = native (capped at MaxNativeHeight), otherwise 1080, 720, ...</summary>
     public int Height { get; set; } = 0;
     public int MaxNativeHeight { get; set; } = 1440;
+    /// <summary>30, 60, or 0 = native: the monitor's refresh rate.</summary>
     public int Fps { get; set; } = 60;
     public VideoCodec Codec { get; set; } = VideoCodec.H264;
     public EncoderBackend Encoder { get; set; } = EncoderBackend.Auto;
@@ -60,6 +61,9 @@ public sealed class Settings
     public string ExportFolder { get; set; } = Paths.DefaultExportFolder;
     /// <summary>Warn when the clips folder grows past this many GB (0 = never warn).</summary>
     public double ClipsFolderLimitGB { get; set; } = 50;
+    /// <summary>Auto-delete: clips older than AutoDeleteDays are deleted for good (favorites kept). Off by default.</summary>
+    public bool AutoDelete { get; set; }
+    public int AutoDeleteDays { get; set; } = 30;
 
     // --- Discord export ---
     /// <summary>Exports are guaranteed to be at most this many MB (1 MB = 1,000,000 bytes, so it is
@@ -133,7 +137,8 @@ public sealed class Settings
     Settings Normalized()
     {
         BufferSeconds = Math.Clamp(BufferSeconds, 15, 300);
-        Fps = Fps >= 45 ? 60 : 30;
+        Fps = Fps == 0 ? 0 : Fps >= 45 ? 60 : 30;
+        AutoDeleteDays = Math.Clamp(AutoDeleteDays, 1, 3650);
         Quality = Math.Clamp(Quality, 10, 40);
         MaxBitrateMbps = Math.Clamp(MaxBitrateMbps, 5, 150);
         SystemVolumeDb = Math.Clamp(SystemVolumeDb, -30, 20);

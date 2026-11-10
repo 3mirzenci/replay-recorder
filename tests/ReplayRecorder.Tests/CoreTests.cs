@@ -145,3 +145,18 @@ public class SoundLevelTests
         Assert.Equal(-100, acc.Finish()[0][0], 3);
     }
 }
+
+public class AutoDeleteTests
+{
+    static ReplayRecorder.Core.ClipInfo Clip(string name, DateTime created) =>
+        new() { Path = name, Game = "CS2", Created = created };
+
+    [Fact]
+    public void OnlyOldClipsThatAreNotFavoritesAreDue()
+    {
+        var now = new DateTime(2026, 11, 10, 12, 0, 0);
+        var clips = new[] { Clip("new", now.AddDays(-2)), Clip("old", now.AddDays(-31)), Clip("oldStar", now.AddDays(-90)), Clip("edge", now.AddDays(-29.9)) };
+        var due = ReplayRecorder.Core.AutoDelete.Due(clips, 30, p => p == "oldStar", now);
+        Assert.Equal(new[] { "old" }, due.Select(c => c.Path));
+    }
+}

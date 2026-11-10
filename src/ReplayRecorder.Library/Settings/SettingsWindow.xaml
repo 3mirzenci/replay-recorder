@@ -346,6 +346,16 @@
                             <TextBox x:Name="LimitBox" Grid.Column="1" Style="{StaticResource Field}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="UsageText" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         </Grid>
+                        <Grid Style="{StaticResource Row}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="90"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Delete clips older than" Style="{StaticResource Label}"/>
+                                <TextBlock Text="days · deleted for good, favorites are kept" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,12,0"/>
+                            </StackPanel>
+                            <TextBox x:Name="AutoDeleteDaysBox" Grid.Column="1" Style="{StaticResource Field}" VerticalAlignment="Center"
+                                     IsEnabled="{Binding IsChecked, ElementName=AutoDeleteBox}"/>
+                            <CheckBox x:Name="AutoDeleteBox" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

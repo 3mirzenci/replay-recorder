@@ -61,6 +61,9 @@ public static class ClipEdits
         }
     }
 
+    /// <summary>Drops the cached copy, so the next call reads what the library saved meanwhile.</summary>
+    public static void Reload() { lock (Gate) _all = null; }
+
     public static void Remove(string clipPath)
     {
         lock (Gate)

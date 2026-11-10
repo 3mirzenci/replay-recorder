@@ -50,7 +50,7 @@ public partial class SettingsWindow : Window
             string.Equals(c.Value, _s.Monitor, StringComparison.OrdinalIgnoreCase)));
 
         Fill(ResolutionBox, _s.Height, (0, "Native (up to 1440p) · recommended"), (1080, "1080p"), (720, "720p"));
-        Fill(FpsBox, _s.Fps, (60, "60 fps"), (30, "30 fps"));
+        Fill(FpsBox, _s.Fps, (60, "60 fps"), (30, "30 fps"), (0, "Native: your screen's refresh rate (bigger files)"));
         Fill(QualityBox, _s.Quality, (19, "High (bigger files)"), (21, "Balanced · recommended"), (25, "Smaller files"));
         Fill(EncoderBox, _s.Encoder, (EncoderBackend.Auto, "Automatic (NVENC on the NVIDIA GPU)"), (EncoderBackend.Nvenc, "NVIDIA NVENC"),
             (EncoderBackend.Qsv, "Intel Quick Sync"), (EncoderBackend.X264, "CPU x264 (heavy, last resort)"));
@@ -75,6 +75,8 @@ public partial class SettingsWindow : Window
         ExportFolderBox.Text = _s.ExportFolder;
         BufferFolderBox.Text = _s.BufferFolder;
         LimitBox.Text = _s.ClipsFolderLimitGB.ToString("0.#", CultureInfo.CurrentCulture);
+        AutoDeleteBox.IsChecked = _s.AutoDelete;
+        AutoDeleteDaysBox.Text = _s.AutoDeleteDays.ToString(CultureInfo.CurrentCulture);
         TargetBox.Text = _s.DiscordTargetMB.ToString("0.#", CultureInfo.CurrentCulture);
         _ = ShowUsageAsync();
 
@@ -196,6 +198,7 @@ public partial class SettingsWindow : Window
     void Save_Click(object sender, RoutedEventArgs e)
     {
         if (!TryNumber(LimitBox.Text, 0, 100000, out var limit)) { Error("Storage warning must be a number of GB (0 = off).".T()); return; }
+        if (!TryNumber(AutoDeleteDaysBox.Text, 1, 3650, out var days)) { Error("Auto-delete needs a number of days (1 or more).".T()); return; }
         if (!TryNumber(TargetBox.Text, 1, 500, out var target)) { Error("Maximum file size must be between 1 and 500 MB.".T()); return; }
         if (string.IsNullOrWhiteSpace(SaveHotkey.Value)) { Error("Set a save-clip hotkey.".T()); return; }
         if (SaveHotkey.Value == RecordHotkey.Value) { Error("The two hotkeys must be different.".T()); return; }
@@ -231,6 +234,8 @@ public partial class SettingsWindow : Window
         _s.ExportFolder = ExportFolderBox.Text.Trim();
         _s.BufferFolder = BufferFolderBox.Text.Trim();
         _s.ClipsFolderLimitGB = limit;
+        _s.AutoDelete = AutoDeleteBox.IsChecked == true;
+        _s.AutoDeleteDays = (int)Math.Round(days);
         _s.DiscordTargetMB = target;
         _s.ShowNotifications = NotifyBox.IsChecked == true;
         _s.PlaySaveSound = SoundBox.IsChecked == true;

@@ -371,10 +371,14 @@ sealed class TrayApp : ApplicationContext
     void CheckStorage()
     {
         double limit = _settings.ClipsFolderLimitGB;
-        if (limit <= 0) return;
         var folder = _settings.ClipsFolder;
+        bool autoDelete = _settings.AutoDelete;
+        int days = _settings.AutoDeleteDays;
         Task.Run(() =>
         {
+            if (autoDelete)
+                try { AutoDelete.Run(folder, days); } catch (Exception ex) { Log.Warn($"Auto-delete: {ex.Message}"); }
+            if (limit <= 0) return;
             double gb = Paths.FolderSize(folder) / 1e9;
             _ui.Post(_ =>
             {

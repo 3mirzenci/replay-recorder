@@ -334,7 +334,7 @@ sealed class ReplayEngine : IDisposable
 
     List<string> BuildArgs(DisplayInfo d, string encoder)
     {
-        int fps = _s.Fps;
+        int fps = _s.Fps > 0 ? _s.Fps : d.RefreshHz > 0 ? d.RefreshHz : 60; // 0 = native
         int gop = (int)(fps * SegmentSeconds);
         var (w, h) = OutputSize(d);
         bool scale = w != d.Width || h != d.Height;
