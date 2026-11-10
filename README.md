@@ -30,7 +30,7 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
 
 - **Clips are grouped by day**, newest first. While you scroll, the current day's header stays at the top.
 - **Click a clip to open it.** Hover over a thumbnail and move the mouse across it to preview the clip.
-- **The ☆ in the corner** stars a clip. Pick **Favorites** in the game dropdown at the top to see only starred clips.
+- **The ☆ in the corner** stars a clip. Click the **★ Favorites** pill at the top to see only starred clips.
 - **Selecting:**
   - Click a clip's corner circle, or a day header to select that whole day. Ctrl+click and Shift+click also work.
   - While anything is selected, a click selects or unselects a clip instead of opening it.
