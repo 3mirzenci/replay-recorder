@@ -45,7 +45,8 @@
     <!-- Sticky day header: no box; the clips fade out under it instead (StickyFade masks the list) -->
     <SolidColorBrush x:Key="StickyBg" Color="Transparent"/>
     <SolidColorBrush x:Key="StickyLine" Color="Transparent"/>
-    <LinearGradientBrush x:Key="StickyFade" MappingMode="Absolute" StartPoint="0,0" EndPoint="0,70">
+    <!-- Fully visible from 51 px: where the clips start the moment the header sticks (61 px header, 10 px up) -->
+    <LinearGradientBrush x:Key="StickyFade" MappingMode="Absolute" StartPoint="0,0" EndPoint="0,51">
         <GradientStop Color="Transparent" Offset="0"/>
         <GradientStop Color="Transparent" Offset="0.6"/>
         <GradientStop Color="Black" Offset="1"/>

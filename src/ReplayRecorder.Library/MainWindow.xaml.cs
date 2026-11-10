@@ -515,7 +515,8 @@ public partial class MainWindow : Window
         Walk(_gridScroll);
         foreach (var item in _items) item.InView = near.Contains(item);
 
-        bool sticky = current != null && currentTop < -4;
+        // Switch once the real header has scrolled up to where the sticky copy sits, so the text doesn't hop.
+        bool sticky = current != null && currentTop <= StickyContent.Margin.Top;
         StickyHeader.Visibility = sticky ? Visibility.Visible : Visibility.Collapsed;
         // Aurora only: the clips fade out under the sticky header (the content only, not the scrollbar)
         if (FindChild<ScrollContentPresenter>(_gridScroll) is { } content)
