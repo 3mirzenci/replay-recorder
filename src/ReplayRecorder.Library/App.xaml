@@ -202,6 +202,8 @@
         <Style TargetType="Slider">
             <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
             <Setter Property="IsMoveToPointEnabled" Value="True"/>
+            <!-- The filled part's colour -->
+            <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
@@ -212,7 +214,7 @@
                                     <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
                                         <RepeatButton.Template>
                                             <ControlTemplate TargetType="RepeatButton">
-                                                <Border Height="4" CornerRadius="2" Background="{DynamicResource Accent}"/>
+                                                <Border Height="4" CornerRadius="2" Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Slider}}"/>
                                             </ControlTemplate>
                                         </RepeatButton.Template>
                                     </RepeatButton>

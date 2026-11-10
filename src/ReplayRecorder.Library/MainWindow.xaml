@@ -487,7 +487,31 @@
             </Grid>
 
             <!-- Timeline -->
-            <player:TrimTimeline x:Name="Timeline" Grid.Row="2" Margin="30,26,30,0"/>
+            <!-- Timeline; each volume slider sits at the right end of its own lane (TrimTimeline.SliderColumn) -->
+            <Grid x:Name="TimelineArea" Grid.Row="2" Margin="30,26,30,0">
+                <player:TrimTimeline x:Name="Timeline"/>
+                <StackPanel x:Name="MixPanel" HorizontalAlignment="Right" VerticalAlignment="Top" Width="150"
+                            Margin="0,8,0,0"> <!-- TrimTimeline.LaneTop -->
+                    <DockPanel Height="{x:Static player:TrimTimeline.LaneHeight}">
+                        <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
+                        <Slider x:Name="GameVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                                Foreground="{DynamicResource GameTrack}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="GameVol_DoubleClick"/>
+                    </DockPanel>
+                    <DockPanel Height="{x:Static player:TrimTimeline.LaneHeight}" Margin="0,6,0,0">
+                        <TextBlock x:Name="MicVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
+                        <Slider x:Name="MicVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                                Foreground="{DynamicResource Accent}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="MicVol_DoubleClick"/>
+                    </DockPanel>
+                    <DockPanel x:Name="DiscordMix" Height="{x:Static player:TrimTimeline.LaneHeight}" Margin="0,6,0,0" Visibility="Collapsed">
+                        <TextBlock x:Name="DiscordVolText" DockPanel.Dock="Right" Width="38" TextAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Subtle}" FontSize="11.5" FontFamily="{DynamicResource NumFont}" Typography.NumeralAlignment="Tabular"/>
+                        <Slider x:Name="DiscordVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3" Margin="0,0,10,0" VerticalAlignment="Center"
+                                Foreground="{DynamicResource DiscordTrack}" ValueChanged="Volume_ValueChanged" MouseDoubleClick="DiscordVol_DoubleClick"/>
+                    </DockPanel>
+                </StackPanel>
+            </Grid>
 
             <!-- Controls: trim tools left, transport centred, mix + export right -->
             <Grid x:Name="PlayerControls" Grid.Row="3" Margin="30,14,30,30" SizeChanged="PlayerControls_SizeChanged">
@@ -502,12 +526,12 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Both sides share one width, so the play button sits exactly in the middle. -->
-                <Grid x:Name="Transport" Grid.Column="1" VerticalAlignment="Center" Margin="16,0" Grid.IsSharedSizeScope="True">
+                <!-- The transport group is centred as a whole (as in the mock-up), leaving the trim buttons room on one line -->
+                <Grid x:Name="Transport" Grid.Column="1" VerticalAlignment="Center" Margin="16,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="TransportSide"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="TransportSide"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Button Style="{StaticResource TransportBtn}" Click="StepBack_Click" ToolTip="Previous frame (←)" HorizontalAlignment="Right">
                         <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"/>
@@ -530,7 +554,7 @@
                     </StackPanel>
                 </Grid>
 
-                <WrapPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <WrapPanel Grid.Column="0" VerticalAlignment="Center">
                     <Button Content="Set start  (I)" Click="SetIn_Click" Padding="12,0" Height="33" Margin="0,0,6,0"/>
                     <Button Content="Set end  (O)" Click="SetOut_Click" Padding="12,0" Height="33" Margin="0,0,6,0"/>
                     <ToggleButton x:Name="PreviewToggle" Style="{StaticResource GamePill}" Content="Preview trim  (P)" Click="Preview_Click"
@@ -540,32 +564,6 @@
                 </WrapPanel>
 
                 <StackPanel x:Name="RightControls" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <StackPanel x:Name="MixPanel" Orientation="Horizontal">
-                        <StackPanel Margin="0,0,16,0">
-                            <DockPanel Width="150">
-                                <TextBlock x:Name="GameVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
-                                <TextBlock x:Name="GameVolLabel" Text="Game + chat" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
-                            </DockPanel>
-                            <Slider x:Name="GameVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
-                                    ValueChanged="Volume_ValueChanged" MouseDoubleClick="GameVol_DoubleClick" Width="150"/>
-                        </StackPanel>
-                        <StackPanel Margin="0,0,16,0">
-                            <DockPanel Width="150">
-                                <TextBlock x:Name="MicVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
-                                <TextBlock Text="Your mic" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
-                            </DockPanel>
-                            <Slider x:Name="MicVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
-                                    ValueChanged="Volume_ValueChanged" MouseDoubleClick="MicVol_DoubleClick" Width="150"/>
-                        </StackPanel>
-                        <StackPanel x:Name="DiscordMix" Margin="0,0,16,0" Visibility="Collapsed">
-                            <DockPanel Width="150">
-                                <TextBlock x:Name="DiscordVolText" DockPanel.Dock="Right" Foreground="{DynamicResource Subtle}" FontSize="11.5"/>
-                                <TextBlock Text="Discord" FontSize="11.5" Foreground="{DynamicResource Subtle}"/>
-                            </DockPanel>
-                            <Slider x:Name="DiscordVol" Minimum="-30" Maximum="20" Value="0" SmallChange="1" LargeChange="3"
-                                    ValueChanged="Volume_ValueChanged" MouseDoubleClick="DiscordVol_DoubleClick" Width="150"/>
-                        </StackPanel>
-                    </StackPanel>
                     <!-- What the export will be: resolution, then the kept length and expected size -->
                     <StackPanel x:Name="ExportLine" VerticalAlignment="Center" Margin="0,0,14,0">
                         <TextBlock x:Name="ExportLineTop" HorizontalAlignment="Right" FontFamily="{DynamicResource NumFont}" FontSize="16" FontWeight="SemiBold"

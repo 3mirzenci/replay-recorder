@@ -35,11 +35,12 @@ public partial class MainWindow
         PreviewToggle.IsChecked = false;
 
         var tracks = c.Clip.SeparateTracks;
+        // One lane per audio track; a single mixed track has nothing to balance, so no sliders.
         MixPanel.IsEnabled = tracks != null;
-        MixPanel.ToolTip = tracks == null ? "This clip has a single audio track".T() : null;
+        MixPanel.Visibility = tracks != null ? Visibility.Visible : Visibility.Collapsed;
         bool discord = tracks?.Discord != null;
         DiscordMix.Visibility = discord ? Visibility.Visible : Visibility.Collapsed;
-        GameVolLabel.Text = (discord ? "Game" : "Game + chat").T();
+        Timeline.Lanes = tracks == null ? 1 : discord ? 3 : 2;
         _loadingClip = true;
         GameVol.Value = _edit.GameVolumeDb;
         MicVol.Value = _edit.MicVolumeDb;
@@ -297,7 +298,7 @@ public partial class MainWindow
     {
         if (on == (_fullscreen != null)) return;
         var hide = on ? Visibility.Collapsed : Visibility.Visible;
-        foreach (var el in new UIElement[] { PlayerHeader, Timeline, PlayerControls, PlayerTopPanel, PlayerBottomPanel }) el.Visibility = hide;
+        foreach (var el in new UIElement[] { PlayerHeader, TimelineArea, PlayerControls, PlayerTopPanel, PlayerBottomPanel }) el.Visibility = hide;
         VideoStage.Margin = on ? new Thickness(0) : new Thickness(30, 14, 30, 0);
         VideoHalo.Visibility = hide;
         if (on)

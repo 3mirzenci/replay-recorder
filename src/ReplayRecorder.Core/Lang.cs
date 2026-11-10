@@ -57,6 +57,9 @@ public static class Lang
         ["All"] = "Tümü",
         ["NEW"] = "YENİ",
         ["Too long"] = "Çok uzun",
+
+
+        ["Mic"] = "Mik",
         ["{0} kept"] = "{0} kalıyor",
         ["{0}p · original"] = "{0}p · orijinal",
         ["More"] = "Daha fazla",

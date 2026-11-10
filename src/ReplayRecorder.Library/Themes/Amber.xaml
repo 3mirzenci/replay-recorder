@@ -29,6 +29,8 @@
     <SolidColorBrush x:Key="Warn" Color="#E5A84B"/>
     <SolidColorBrush x:Key="Bad" Color="#E5534B"/>
     <SolidColorBrush x:Key="Star" Color="#FFC83D"/>
+    <!-- Timeline lane behind the sound stripes -->
+    <SolidColorBrush x:Key="LaneBg" Color="#2A2F3A"/>
     <SolidColorBrush x:Key="Tick" Color="#6B6F7A"/>
     <!-- Fullscreen bar over the video: the same in every look -->
     <SolidColorBrush x:Key="Overlay" Color="#960C0C10"/>

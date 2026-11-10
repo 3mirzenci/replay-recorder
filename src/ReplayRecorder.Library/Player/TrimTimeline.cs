@@ -2,12 +2,18 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using ReplayRecorder.Core;
 
 namespace ReplayRecorder.Library.Player;
 
 /// <summary>
-/// Timeline with a playhead and two trim handles. Click or drag on the bar to seek; drag the
-/// handles to set in/out. Everything outside the trim range is dimmed.
+/// Timeline with a playhead and two trim handles. Click or drag on the tracks to seek; drag the
+/// handles to set in/out, or drag inside a trimmed range to slide it.
+///
+/// Layout (docs/aurora/mockup.html): track names on the left, one lane per audio track drawn as thin
+/// vertical stripes that follow the loudness, the kept range framed in the accent with a grip on each
+/// side; the right <see cref="SliderColumn"/> px are left free for the volume sliders, which the
+/// window lines up with the lanes (<see cref="LaneTop"/>, <see cref="LaneHeight"/>, <see cref="LaneGap"/>).
 /// </summary>
 sealed class TrimTimeline : FrameworkElement
 {
@@ -26,13 +32,22 @@ sealed class TrimTimeline : FrameworkElement
     }
 
     /// <summary>
-    /// Sound bars: game (+ chat) loudness in the top bar, mic below it, Discord (when the clip has it)
-    /// at the bottom; a single-track clip gets one bar. dBFS per 1/<paramref name="perSecond"/> s; null clears them.
+    /// Lanes: 1 = a single mixed track ("Audio"), 2 = game (+ chat) and mic, 3 = game, mic and Discord.
+    /// Set from the clip's track layout when it opens, so the sliders beside the lanes line up before the levels load.
+    /// </summary>
+    public int Lanes
+    {
+        get => _lanes;
+        set { _lanes = Math.Clamp(value, 1, 3); Height = LaneTop + LanesHeight + 26; InvalidateVisual(); }
+    }
+
+    /// <summary>
+    /// Loudness per lane, in dBFS per 1/<paramref name="perSecond"/> s: game (+ chat), mic, Discord; null clears them.
     /// </summary>
     public void SetLevels(float[]? game, float[]? mic, float[]? discord, int perSecond)
     {
         _game = game; _mic = mic; _discord = discord; _levelsPerSecond = perSecond;
-        // Each bar is scaled to its own clip (its loudest moment fills it), but only sound at least FullDb loud
+        // Each lane is scaled to its own clip (its loudest moment fills it), but only sound at least FullDb loud
         // can fill it: keyboard clicks on a mic (around -45 dB) stay small instead of looking like talk (-10 dB).
         _gameTop = game is { Length: > 0 } ? Math.Max(game.Max(), FullDb) : 0;
         _micTop = mic is { Length: > 0 } ? Math.Max(mic.Max(), FullDb) : 0;
@@ -40,7 +55,7 @@ sealed class TrimTimeline : FrameworkElement
         InvalidateVisual();
     }
 
-    /// <summary>The mix sliders' gains (dB), so the bars show what you'll hear.</summary>
+    /// <summary>The mix sliders' gains (dB), so the stripes show what you'll hear.</summary>
     public void SetGains(double gameDb, double micDb, double discordDb)
     {
         _gameGain = gameDb; _micGain = micDb; _discordGain = discordDb;
@@ -48,11 +63,11 @@ sealed class TrimTimeline : FrameworkElement
     }
 
     float[]? _game, _mic, _discord;
-    int _levelsPerSecond = 10;
+    int _levelsPerSecond = 10, _lanes = 2;
     double _gameGain, _micGain, _discordGain;
     double _gameTop, _micTop, _discordTop; // loudest level of each track (dBFS)
-    const double RangeDb = 30; // a bar is empty this far below its track's loudest moment
-    const double FullDb = -20; // quietest level that can still fill a bar
+    const double RangeDb = 30; // a stripe is empty this far below its track's loudest moment
+    const double FullDb = -20; // quietest level that can still fill a lane
 
     /// <summary>User asked to seek (seconds).</summary>
     public event Action<double>? SeekRequested;
@@ -61,11 +76,12 @@ sealed class TrimTimeline : FrameworkElement
     /// <summary>A trim drag finished (in, out): handles or the whole range.</summary>
     public event Action<double, double>? TrimCommitted;
 
+    public const double LaneTop = 8, LaneHeight = 26, LaneGap = 6;
+    /// <summary>Room at the right for the volume sliders and their dB values.</summary>
+    public const double SliderColumn = 170;
     const double MinLength = 0.5;
-    const double Pad = 10;      // horizontal padding so handles at the ends stay grabbable
-    const double BarH = 48; // both sound bars
-    const double StripGap = 4;
     const double MoveThreshold = 4; // px before a press inside the range becomes a move
+    double LanesHeight => _lanes * LaneHeight + (_lanes - 1) * LaneGap;
     double _duration, _position, _in, _out;
     // PressRange: pressed inside a trimmed range; becomes Move once dragged, or a seek click on release.
     enum Drag { None, Seek, In, Out, PressRange, Move }
@@ -75,110 +91,107 @@ sealed class TrimTimeline : FrameworkElement
     bool IsTrimmed => _in > 0.01 || _out < _duration - 0.01;
     bool InsideRange(double x) => IsTrimmed && x > X(_in) + 8 && x < X(_out) - 8;
 
-    static readonly Brush Head = Frozen(Colors.White);
     // Theme colours, looked up on each render so a theme switch shows on the next frame.
     Color Res(string key) => ((SolidColorBrush)FindResource(key)).Color;
-    static readonly Typeface Face = new("Segoe UI");
+    static readonly Typeface Face = new(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
 
     public TrimTimeline()
     {
-        Height = BarH + 22;
+        Lanes = 2;
         Cursor = Cursors.Hand;
         Focusable = false;
     }
 
-    double X(double t) => Pad + (_duration > 0 ? t / _duration : 0) * (ActualWidth - 2 * Pad);
-    double T(double x) => _duration <= 0 ? 0 : Math.Clamp((x - Pad) / (ActualWidth - 2 * Pad), 0, 1) * _duration;
-
-    // Game (+ chat), mic and Discord as separate bars; one bar for a single-track clip.
-    Rect[] Strips(double w)
+    string[] Labels => _lanes switch
     {
-        double width = Math.Max(0, w - 2 * Pad);
-        int n = _game != null && _mic == null ? 1 : _discord != null ? 3 : 2;
-        double h = (BarH - (n - 1) * StripGap) / n;
-        return Enumerable.Range(0, n).Select(i => new Rect(Pad, i * (h + StripGap), width, h)).ToArray();
-    }
+        1 => new[] { "Audio".T() },
+        2 => new[] { "Game + chat".T(), "Mic".T() },
+        _ => new[] { "Game".T(), "Mic".T(), "Discord" },
+    };
+
+    double _left = 64; // where the lanes start: right of the widest track name
+    double Right => Math.Max(_left + 20, ActualWidth - (Lanes > 1 ? SliderColumn : 6)); // one track: no sliders, full width (6 px for the grip)
+    double X(double t) => _left + (_duration > 0 ? t / _duration : 0) * (Right - _left);
+    double T(double x) => _duration <= 0 ? 0 : Math.Clamp((x - _left) / (Right - _left), 0, 1) * _duration;
 
     protected override void OnRender(DrawingContext dc)
     {
-        double w = ActualWidth, top = 0;
-        var strips = Strips(w);
-        var card = Frozen(Res("CardHover"));
-        foreach (var s in strips) dc.DrawRoundedRectangle(card, null, s, 5, 5);
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var subtle = Frozen(Res("Subtle"));
+        var names = Labels.Select(s => new FormattedText(s, Lang.Culture, FlowDirection.LeftToRight, Face, 11, subtle, dpi)).ToArray();
+        _left = Math.Max(64, names.Max(n => n.Width) + 14);
+        double right = Right, bottom = LaneTop + LanesHeight;
+        var lane = Frozen(Res("LaneBg"));
+        for (int i = 0; i < _lanes; i++)
+        {
+            double y = LaneTop + i * (LaneHeight + LaneGap);
+            dc.DrawText(names[i], new Point(0, y + (LaneHeight - names[i].Height) / 2));
+            dc.DrawRoundedRectangle(lane, null, new Rect(_left, y, right - _left, LaneHeight), 6, 6);
+        }
         if (_duration <= 0) return;
 
         var accent = Res("Accent");
-        var game = Res("GameTrack");
-        var Tick = Frozen(Res("Tick"));
-        var bg = Res("Bg");
-        var Range = Frozen(Color.FromArgb(0x38, accent.R, accent.G, accent.B));
-        var Dim = Frozen(Color.FromArgb(0xb0, bg.R, bg.G, bg.B));
-        var handlePen = FrozenPen(accent, 3);
+        var colours = new[] { _lanes == 1 ? accent : Res("GameTrack"), accent, Res("DiscordTrack") };
+        var levels = new[] { _game, _mic, _discord };
+        var shifts = new[] { _gameGain + RangeDb - _gameTop, _micGain + RangeDb - _micTop, _discordGain + RangeDb - _discordTop };
+        for (int i = 0; i < _lanes; i++)
+            DrawStripes(dc, LaneTop + i * (LaneHeight + LaneGap), levels[i], shifts[i], colours[i]);
+
+        // The kept range: a rounded accent frame round all lanes, a grip on each side.
         double xi = X(_in), xo = X(_out);
-        // The kept range is tinted only once you've trimmed; the sound bars go on top of it, the dimming over them.
-        if (IsTrimmed)
-            foreach (var s in strips) dc.DrawRectangle(Range, null, new Rect(xi, s.Top, Math.Max(0, xo - xi), s.Height));
-        DrawLevels(dc, strips[0], _game, _gameGain + RangeDb - _gameTop, Frozen(Color.FromArgb(0xd0, game.R, game.G, game.B)));
-        if (strips.Length > 1) DrawLevels(dc, strips[1], _mic, _micGain + RangeDb - _micTop, Frozen(accent));
-        if (strips.Length > 2) DrawLevels(dc, strips[2], _discord, _discordGain + RangeDb - _discordTop, Frozen(Res("DiscordTrack")));
-        foreach (var s in strips)
+        var accentBrush = Frozen(accent);
+        dc.DrawRoundedRectangle(null, FrozenPen(accent, 2), new Rect(xi, LaneTop - 4, Math.Max(0, xo - xi), LanesHeight + 8), 8, 8);
+        double gripH = Math.Max(18, LanesHeight * 0.5), gripY = LaneTop + (LanesHeight - gripH) / 2;
+        var onAccent = Frozen(Res("OnAccent"));
+        foreach (var x in new[] { xi, xo })
         {
-            dc.DrawRectangle(Dim, null, new Rect(Pad, s.Top, Math.Max(0, xi - Pad), s.Height));
-            dc.DrawRectangle(Dim, null, new Rect(xo, s.Top, Math.Max(0, w - Pad - xo), s.Height));
+            dc.DrawRoundedRectangle(accentBrush, null, new Rect(x - 5, gripY, 10, gripH), 5, 5);
+            dc.DrawRectangle(onAccent, null, new Rect(x - 1, gripY + gripH / 2 - 7, 2, 14));
         }
 
-        // Second ticks + labels below the bars.
-        double step = NiceStep(_duration, w);
-        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        // Time labels under the lanes.
+        var faint = Frozen(Res("Faint"));
+        double step = NiceStep(_duration, right - _left);
         for (double t = 0; t <= _duration + 0.001; t += step)
         {
+            var ft = new FormattedText(Fmt(t), CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Face, 11, faint, dpi);
             double x = X(t);
-            dc.DrawRectangle(Tick, null, new Rect(x, BarH + 2, 1, 4));
-            var ft = new FormattedText(Fmt(t), CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Face, 10, Tick, dpi);
-            dc.DrawText(ft, new Point(Math.Clamp(x - ft.Width / 2, 0, w - ft.Width), BarH + 6));
+            dc.DrawText(ft, new Point(Math.Clamp(x - ft.Width / 2, _left - 4, right - ft.Width), bottom + 8));
         }
 
-        // Trim handles: brackets across both bars.
-        DrawHandle(dc, handlePen, xi, true);
-        DrawHandle(dc, handlePen, xo, false);
-
-        // Playhead.
+        // Playhead: a white line with a dot on top.
         double xp = X(Math.Clamp(_position, 0, _duration));
-        dc.DrawRectangle(Head, null, new Rect(xp - 1, top - 3, 2, BarH + 6));
+        dc.DrawRectangle(Brushes.White, null, new Rect(xp - 1, LaneTop - 8, 2, LanesHeight + 14));
+        dc.DrawEllipse(Brushes.White, null, new Point(xp, LaneTop - 8), 5, 5);
     }
 
     /// <summary>
-    /// One sound bar: the loudest moment under each column, centred. <paramref name="shift"/> (dB) maps the
-    /// track's loudest moment, at slider 0, to full height.
+    /// One lane: a 2 px stripe every 4 px, as tall as the loudest moment under it, centred; bright in the kept
+    /// range, faded outside it. <paramref name="shift"/> (dB) maps the track's loudest moment, at slider 0, to full height.
     /// </summary>
-    void DrawLevels(DrawingContext dc, Rect strip, float[]? lv, double shift, Brush brush)
+    void DrawStripes(DrawingContext dc, double top, float[]? lv, double shift, Color colour)
     {
-        if (lv == null || strip.Width < 10) return;
-        const double Edge = 4, Step = 4, Width = 2.5;
-        double mid = strip.Top + strip.Height / 2, maxH = strip.Height - 2 * Edge;
-        for (double x = strip.Left + 3; x + Width <= strip.Right - 3; x += Step)
+        if (lv == null) return;
+        const double Step = 4, W = 2, Edge = 2;
+        var kept = Frozen(Color.FromArgb(0xF2, colour.R, colour.G, colour.B));
+        var cut = Frozen(Color.FromArgb(0x38, colour.R, colour.G, colour.B));
+        double mid = top + LaneHeight / 2, maxH = LaneHeight - 2 * Edge, xi = X(_in), xo = X(_out);
+        for (double x = _left + 1; x + W <= Right - 2; x += Step)
         {
             int a = (int)(T(x) * _levelsPerSecond), b = Math.Max(a + 1, (int)Math.Ceiling(T(x + Step) * _levelsPerSecond));
             float max = float.MinValue;
             for (int i = Math.Max(0, a); i < Math.Min(lv.Length, b); i++) max = Math.Max(max, lv[i]);
             if (max == float.MinValue) continue;
             double h = Math.Clamp((max + shift) / RangeDb, 0, 1) * maxH;
-            if (h >= 1) dc.DrawRoundedRectangle(brush, null, new Rect(x, mid - h / 2, Width, h), Width / 2, Width / 2);
+            if (h >= 1) dc.DrawRoundedRectangle(x >= xi && x <= xo ? kept : cut, null, new Rect(x, mid - h / 2, W, h), 1, 1);
         }
-    }
-
-    static void DrawHandle(DrawingContext dc, Pen pen, double x, bool left)
-    {
-        double d = left ? 1 : -1;
-        dc.DrawLine(pen, new Point(x, 0), new Point(x, BarH));
-        dc.DrawLine(pen, new Point(x, 1.5), new Point(x + 7 * d, 1.5));
-        dc.DrawLine(pen, new Point(x, BarH - 1.5), new Point(x + 7 * d, BarH - 1.5));
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         if (_duration <= 0) return;
         var x = e.GetPosition(this).X;
+        if (x < _left - 10 || x > Right + 10) return; // the names and the slider column aren't timeline
         _pressX = x;
         if (Math.Abs(x - X(_in)) <= 8) _drag = Drag.In;
         else if (Math.Abs(x - X(_out)) <= 8) _drag = Drag.Out;
@@ -193,7 +206,8 @@ sealed class TrimTimeline : FrameworkElement
         var x = e.GetPosition(this).X;
         if (_drag == Drag.None)
         {
-            Cursor = Math.Abs(x - X(_in)) <= 8 || Math.Abs(x - X(_out)) <= 8 ? Cursors.SizeWE
+            Cursor = x < _left - 10 || x > Right + 10 ? Cursors.Arrow
+                   : Math.Abs(x - X(_in)) <= 8 || Math.Abs(x - X(_out)) <= 8 ? Cursors.SizeWE
                    : InsideRange(x) ? Cursors.SizeAll : Cursors.Hand;
             return;
         }
