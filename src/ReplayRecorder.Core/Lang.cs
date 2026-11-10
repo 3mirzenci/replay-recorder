@@ -362,6 +362,7 @@ public static class Lang
         ["See the log for details"] = "Ayrıntılar için günlüğe bak",
         ["Recording started"] = "Kayıt başladı",
         ["{0} · press {1} to stop"] = "{0} · durdurmak için {1}",
+        ["Capture restarted during your recording. The part so far was saved, and recording carries on in a new file."] = "Kayıt sırasında yakalama yeniden başladı. O ana kadarki kısım kaydedildi, kayıt yeni bir dosyada devam ediyor.",
         ["Saving recording…"] = "Kayıt kaydediliyor…",
         ["Recording saved"] = "Kayıt kaydedildi",
         ["Recording not saved"] = "Kayıt kaydedilmedi",

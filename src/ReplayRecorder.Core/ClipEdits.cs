@@ -62,8 +62,10 @@ public static class ClipEdits
         }
     }
 
-    /// <summary>Drops the cached copy, so the next call reads what the library saved meanwhile.</summary>
-    public static void Reload() { lock (Gate) _all = null; }
+    /// <summary>Re-reads the file now (stars the library saved meanwhile). False if it was unreadable, so favorites are unknown.</summary>
+    public static bool Reload() { lock (Gate) { _all = null; Load(); return !_recovered; } }
+
+    static bool _recovered; // the last load found the file broken and started empty
 
     public static void Remove(string clipPath)
     {
@@ -77,18 +79,28 @@ public static class ClipEdits
     static void Load()
     {
         if (_all != null) return;
-        try
+        _recovered = false;
+        for (int attempt = 0; ; attempt++)
         {
-            if (File.Exists(File_))
-                _all = JsonSerializer.Deserialize<Dictionary<string, ClipEdit>>(File.ReadAllText(File_));
-        }
-        catch (Exception ex)
-        {
-            // Keep the unreadable file: starting fresh would overwrite every favorite and trim on the next save.
-            // Dated, so a second corruption can't overwrite the first backup.
-            var bad = $"{File_}.{DateTime.Now:yyyyMMdd-HHmmss}.bad";
-            Log.Warn($"Edits file unreadable, kept as {Path.GetFileName(bad)}: {ex.Message}");
-            try { File.Move(File_, bad, true); } catch { }
+            try
+            {
+                if (File.Exists(File_))
+                    _all = JsonSerializer.Deserialize<Dictionary<string, ClipEdit>>(File.ReadAllText(File_));
+                break;
+            }
+            // Briefly locked (antivirus, the other app saving) isn't broken: retry, and if it stays locked
+            // throw rather than carry on with no favorites (auto-delete would then delete starred clips).
+            catch (IOException) when (attempt < 5) { Thread.Sleep(100); }
+            catch (JsonException ex)
+            {
+                // Keep the unreadable file: starting fresh would overwrite every favorite and trim on the next save.
+                // Dated, so a second corruption can't overwrite the first backup.
+                var bad = $"{File_}.{DateTime.Now:yyyyMMdd-HHmmss}.bad";
+                Log.Warn($"Edits file unreadable, kept as {Path.GetFileName(bad)}: {ex.Message}");
+                try { File.Move(File_, bad, true); } catch { }
+                _recovered = true;
+                break;
+            }
         }
         _all = new Dictionary<string, ClipEdit>(_all ?? new(), StringComparer.OrdinalIgnoreCase);
     }

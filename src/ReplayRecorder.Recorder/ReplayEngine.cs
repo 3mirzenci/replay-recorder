@@ -256,6 +256,13 @@ sealed class ReplayEngine : IDisposable
         int gen = Volatile.Read(ref _generation);
         ThreadPool.QueueUserWorkItem(_ =>
         {
+            // The restart empties the pieces folder: save a full recording so far, then carry on in a new file.
+            string? recGame = IsRecording ? _recordingGame : null;
+            if (recGame != null)
+            {
+                var saved = StopRecordingAsync().GetAwaiter().GetResult();
+                Log.Warn($"Capture stopped during a full recording; saved the part so far: {saved ?? "(nothing on disk)"}");
+            }
             StopCore();
             if (_restartCount >= 3)
             {
@@ -266,6 +273,11 @@ sealed class ReplayEngine : IDisposable
             // Paused, resumed, or replaced (settings change) meanwhile: that call owns capture now.
             if (gen != Volatile.Read(ref _generation)) { Log.Info("ffmpeg restart skipped: capture was stopped or restarted meanwhile"); return; }
             StartCore();
+            if (recGame != null && Running)
+            {
+                StartRecording(recGame);
+                Problem?.Invoke("Capture restarted during your recording. The part so far was saved, and recording carries on in a new file.".T());
+            }
         });
     }
 

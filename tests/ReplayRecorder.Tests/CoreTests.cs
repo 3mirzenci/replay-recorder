@@ -191,9 +191,16 @@ public class AutoDeleteTests
     public void OnlyOldClipsThatAreNotFavoritesAreDue()
     {
         var now = new DateTime(2026, 11, 10, 12, 0, 0);
-        var clips = new[] { Clip("new", now.AddDays(-2)), Clip("old", now.AddDays(-31)), Clip("oldStar", now.AddDays(-90)), Clip("edge", now.AddDays(-29.9)) };
-        var due = ReplayRecorder.Core.AutoDelete.Due(clips, 30, p => p == "oldStar", now);
-        Assert.Equal(new[] { "old" }, due.Select(c => c.Path));
+        const string Old = @"C:\Clips\CS2\CS2 2026-10-01 20-00-00.mp4", Star = @"C:\Clips\CS2\CS2 2026-08-01 20-00-00.mp4";
+        var clips = new[]
+        {
+            Clip(@"C:\Clips\CS2\CS2 2026-11-08 20-00-00.mp4", now.AddDays(-2)), Clip(Old, now.AddDays(-31)), Clip(Star, now.AddDays(-90)),
+            Clip(@"C:\Clips\CS2\CS2 2026-10-11 14-00-00.mp4", now.AddDays(-29.9)),
+            Clip(@"C:\Clips\holiday.mp4", now.AddDays(-400)),      // not made by the recorder
+            Clip(@"C:\Clips\CS2\my ace.mp4", now.AddDays(-400)),   // renamed by the user
+        };
+        var due = ReplayRecorder.Core.AutoDelete.Due(clips, 30, p => p == Star, now);
+        Assert.Equal(new[] { Old }, due.Select(c => c.Path));
     }
 }
 

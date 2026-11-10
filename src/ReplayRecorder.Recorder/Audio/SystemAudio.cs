@@ -48,7 +48,8 @@ sealed class SystemAudio : IDisposable
         {
             int pid = FindDiscord();
             if (pid == _failedPid) pid = 0; // refused once for this Discord: device loopback until it restarts
-            lock (_gate) if (pid != _pid) Use(pid); // timer ticks can overlap a slow activation
+            lock (_gate) // timer ticks can overlap a slow activation
+                if (pid != _pid || _exclude?.Dead == true || _include?.Dead == true) Use(pid);
         }
         catch (Exception ex) { Log.Warn($"Discord check: {ex.Message}"); }
     }

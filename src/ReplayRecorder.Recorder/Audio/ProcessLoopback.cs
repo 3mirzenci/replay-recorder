@@ -19,6 +19,9 @@ sealed class ProcessLoopback : IDisposable
     readonly Thread _thread;
     volatile bool _stop;
 
+    /// <summary>The capture loop hit an error and stopped (e.g. the audio service restarted); open a new one.</summary>
+    public bool Dead { get; private set; }
+
     /// <summary>Starts capturing; throws when Windows refuses (too old, process gone...).</summary>
     public ProcessLoopback(int pid, bool include, ClockedAudioSink sink)
     {
@@ -57,7 +60,7 @@ sealed class ProcessLoopback : IDisposable
                 }
             }
         }
-        catch (Exception ex) when (!_stop) { Log.Warn($"Process loopback stopped: {ex.Message}"); }
+        catch (Exception ex) when (!_stop) { Log.Warn($"Process loopback stopped: {ex.Message}"); Dead = true; }
         catch { }
     }
 

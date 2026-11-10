@@ -49,7 +49,7 @@ public sealed class ClipIndex
     readonly SemaphoreSlim _storyboardGate = new(1);
     static string CacheFile => System.IO.Path.Combine(Paths.CacheFolder, "index.json");
 
-    static readonly Regex DateInName = new(@"(\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})", RegexOptions.Compiled);
+    internal static readonly Regex DateInName = new(@"(\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})", RegexOptions.Compiled);
 
     public ClipIndex(string clipsRoot)
     {
