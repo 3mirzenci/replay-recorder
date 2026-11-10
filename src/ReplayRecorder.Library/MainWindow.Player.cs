@@ -25,8 +25,12 @@ public partial class MainWindow
         _edit = ClipEdits.Get(c.Path);
         LibraryView.Visibility = Visibility.Collapsed;
         PlayerView.Visibility = Visibility.Visible;
-        PlayerTitle.Text = c.Title;
-        PlayerSubtitle.Text = $"{c.Game}  ·  {c.Subtitle}";
+        // "Fortnite · today 03:49"; a renamed clip shows its own name.
+        var when = c.DateText.Length > 0 ? char.ToLower(c.DateText[0], Lang.Culture) + c.DateText[1..] : "";
+        PlayerTitle.Text = c.DisplayName == c.Game ? $"{c.Game} · {when}" : c.DisplayName;
+        PlayerSubtitle.Text = string.Join("  ·  ", new[] { c.DurationText, c.SizeText, c.QualityText }.Where(s => s.Length > 0));
+        _videoAspect = c.Clip.Width > 0 && c.Clip.Height > 0 ? (double)c.Clip.Width / c.Clip.Height : 16.0 / 9;
+        FitVideo();
         PlayerError.Visibility = Visibility.Collapsed;
         PreviewToggle.IsChecked = false;
 
@@ -144,8 +148,37 @@ public partial class MainWindow
         TrimText.Text = _edit.IsTrimmed(dur) ? "Trimmed: {0} of {1}".T(TrimTimeline.Fmt(len), TrimTimeline.Fmt(dur)) : "";
     }
 
-    void UpdateTimeText(double t) =>
-        TimeText.Text = $"{TrimTimeline.Fmt(t)}.{(int)(Math.Max(0, t) * 10 % 10)}  /  {TrimTimeline.Fmt(Timeline.Duration)}";
+    void UpdateTimeText(double t)
+    {
+        TimeText.Text = $"{TrimTimeline.Fmt(t)}.{(int)(Math.Max(0, t) * 10 % 10)}";
+        TimeTotal.Text = $" / {TrimTimeline.Fmt(Timeline.Duration)}";
+    }
+
+    double _videoAspect = 16.0 / 9;
+
+    /// <summary>
+    /// The video takes the clip's shape (at most 86% of the width) so the halo glows around the picture itself;
+    /// the video is a native window, so nothing can be drawn over it. Fullscreen: edge to edge.
+    /// </summary>
+    void FitVideo()
+    {
+        bool full = _fullscreen != null;
+        VideoFrame.HorizontalAlignment = full ? HorizontalAlignment.Stretch : HorizontalAlignment.Center;
+        VideoFrame.VerticalAlignment = full ? VerticalAlignment.Stretch : VerticalAlignment.Center;
+        if (full) { VideoFrame.Width = VideoFrame.Height = double.NaN; return; }
+        double maxW = VideoStage.ActualWidth * 0.86, maxH = VideoStage.ActualHeight;
+        if (maxW <= 0 || maxH <= 0) return;
+        double w = Math.Floor(Math.Min(maxW, maxH * _videoAspect)), h = Math.Floor(w / _videoAspect);
+        VideoFrame.Width = w;
+        VideoFrame.Height = h;
+        const double spread = 120, drop = 30;
+        VideoHalo.RenderTransform = new System.Windows.Media.TransformGroup
+        {
+            Children = { new System.Windows.Media.ScaleTransform((w + 2 * spread) / w, (h + 2 * spread) / h), new System.Windows.Media.TranslateTransform(0, drop) },
+        };
+    }
+
+    void VideoStage_SizeChanged(object sender, SizeChangedEventArgs e) => FitVideo();
 
     void UpdateVolumeLabels()
     {
@@ -244,7 +277,8 @@ public partial class MainWindow
         if (on == (_fullscreen != null)) return;
         var hide = on ? Visibility.Collapsed : Visibility.Visible;
         foreach (var el in new UIElement[] { PlayerHeader, Timeline, PlayerControls, PlayerTopPanel, PlayerBottomPanel }) el.Visibility = hide;
-        VideoFrame.Margin = on ? new Thickness(0) : new Thickness(20, 0, 20, 20);
+        VideoStage.Margin = on ? new Thickness(0) : new Thickness(30, 14, 30, 0);
+        VideoHalo.Visibility = hide;
         if (on)
         {
             _fullscreen = (WindowState, WindowStyle, ResizeMode);

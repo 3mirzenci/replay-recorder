@@ -178,7 +178,16 @@ public partial class App : Application
         else c = ((System.Windows.Media.SolidColorBrush)dict["Accent"]).Color; // the look's own accent and its own text colour
         // Faint accent light: along the top edge (glow) and around the video (halo); 0 in Classic.
         dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.71, 0.6);
-        dict["AccentHalo"] = Light(c, (double)dict["HaloOpacity"], new(0.5, 0.5), 0.5, 0.5);
+        // Halo: even light right around the video, fading out over the outer part (like a soft box-shadow).
+        var haloA = (byte)Math.Round(255 * (double)dict["HaloOpacity"] / 2);
+        var haloBrush = new System.Windows.Media.RadialGradientBrush(new System.Windows.Media.GradientStopCollection
+        {
+            new(System.Windows.Media.Color.FromArgb(haloA, c.R, c.G, c.B), 0),
+            new(System.Windows.Media.Color.FromArgb(haloA, c.R, c.G, c.B), 0.62),
+            new(System.Windows.Media.Color.FromArgb(0, c.R, c.G, c.B), 1),
+        });
+        haloBrush.Freeze();
+        dict["AccentHalo"] = haloBrush;
         dict["Grain"] = Grain;
         // Card hover: a soft shadow below, tinted by the accent in Aurora, plain in Classic.
         var glow = (double)dict["GlowOpacity"] > 0;

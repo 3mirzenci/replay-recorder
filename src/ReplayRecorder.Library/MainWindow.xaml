@@ -33,9 +33,14 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="TransportBtn" TargetType="Button" BasedOn="{StaticResource RoundBtn}">
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Background" Value="{DynamicResource Glass}"/>
+        </Style>
         <Style x:Key="PlayCircle" TargetType="Button" BasedOn="{StaticResource RoundBtn}">
-            <Setter Property="Width" Value="56"/>
-            <Setter Property="Height" Value="56"/>
+            <Setter Property="Width" Value="54"/>
+            <Setter Property="Height" Value="54"/>
             <Setter Property="Background" Value="{DynamicResource Accent}"/>
             <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
             <Setter Property="Template">
@@ -433,43 +438,59 @@
             </Grid.RowDefinitions>
 
             <!-- Panels behind the rows: header + video on top, timeline + controls below -->
-            <Border x:Name="PlayerTopPanel" Grid.RowSpan="2" Margin="8,8,8,0" CornerRadius="8" Background="{DynamicResource Panel}"/>
-            <Border x:Name="PlayerBottomPanel" Grid.Row="2" Grid.RowSpan="2" Margin="8" CornerRadius="8" Background="{DynamicResource Panel}"/>
+            <Rectangle Grid.RowSpan="5" Fill="{DynamicResource AccentGlow}" IsHitTestVisible="False"/>
+            <Rectangle Grid.RowSpan="5" Fill="{DynamicResource Grain}" Opacity="{DynamicResource GrainOpacity}"
+                       RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False">
+                <Rectangle.OpacityMask>
+                    <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusX="0.71" RadiusY="0.6">
+                        <GradientStop Color="Black" Offset="0"/>
+                        <GradientStop Color="Transparent" Offset="1"/>
+                    </RadialGradientBrush>
+                </Rectangle.OpacityMask>
+            </Rectangle>
+            <Border x:Name="PlayerTopPanel" Grid.RowSpan="2" Margin="8,8,8,0" CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}"/>
+            <Border x:Name="PlayerBottomPanel" Grid.Row="2" Grid.RowSpan="2" Margin="8" CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}"/>
 
             <!-- Header -->
-            <DockPanel x:Name="PlayerHeader" Margin="20,18,20,12">
-                <Button DockPanel.Dock="Left" Style="{StaticResource GhostBtn}" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,6">
+            <DockPanel x:Name="PlayerHeader" Height="58" Margin="30,1,30,0">
+                <Button DockPanel.Dock="Left" Click="Back_Click" ToolTip="Back to library (Esc)" Padding="8,0,12,0" Height="32" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"/>
-                        <TextBlock Text="Library" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Library" Margin="8,0,0,0" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Show in folder" Click="PlayerShow_Click" Margin="0,0,8,0"/>
-                    <Button Click="PlayerDelete_Click" ToolTip="Delete for good (Del)">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Show in folder" Click="PlayerShow_Click" Padding="15,0" Height="34" Margin="0,0,8,0"/>
+                    <Button Click="PlayerDelete_Click" ToolTip="Delete for good (Del)" Padding="15,0" Height="34">
                         <TextBlock Text="Delete" Foreground="{DynamicResource Danger}"/>
                     </Button>
                 </StackPanel>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12.5"/>
+                <StackPanel Margin="18,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="PlayerTitle" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="PlayerSubtitle" Foreground="{DynamicResource Subtle}" FontSize="12.5" Margin="0,1,0,0"/>
                 </StackPanel>
             </DockPanel>
 
             <!-- Video -->
-            <Border x:Name="VideoFrame" Grid.Row="1" Background="#000" Margin="20,0,20,20">
-                <Grid>
-                    <player:VideoHost x:Name="Video"/>
-                    <TextBlock x:Name="PlayerError" Visibility="Collapsed" Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40"/>
-                </Grid>
-            </Border>
+            <Grid x:Name="VideoStage" Grid.Row="1" Margin="30,14,30,0" SizeChanged="VideoStage_SizeChanged">
+                <!-- Accent halo: the video's size, scaled out 120 px each way and 30 px down in FitVideo (a render
+                     transform, so the stage doesn't clip it) -->
+                <Rectangle x:Name="VideoHalo" Fill="{DynamicResource AccentHalo}" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5"
+                           Width="{Binding ActualWidth, ElementName=VideoFrame}" Height="{Binding ActualHeight, ElementName=VideoFrame}"/>
+                <Border x:Name="VideoFrame" Background="#000">
+                    <Grid>
+                        <player:VideoHost x:Name="Video"/>
+                        <TextBlock x:Name="PlayerError" Visibility="Collapsed" Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40"/>
+                    </Grid>
+                </Border>
+            </Grid>
 
             <!-- Timeline -->
-            <player:TrimTimeline x:Name="Timeline" Grid.Row="2" Margin="24,22,24,0"/>
+            <player:TrimTimeline x:Name="Timeline" Grid.Row="2" Margin="30,26,30,0"/>
 
             <!-- Controls: trim tools left, transport centred, mix + export right -->
-            <Grid x:Name="PlayerControls" Grid.Row="3" Margin="24,6,24,26" SizeChanged="PlayerControls_SizeChanged">
+            <Grid x:Name="PlayerControls" Grid.Row="3" Margin="30,14,30,30" SizeChanged="PlayerControls_SizeChanged">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -488,28 +509,32 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="TransportSide"/>
                     </Grid.ColumnDefinitions>
-                    <Button Style="{StaticResource RoundBtn}" Click="StepBack_Click" ToolTip="Previous frame (←)" HorizontalAlignment="Right">
-                        <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                    <Button Style="{StaticResource TransportBtn}" Click="StepBack_Click" ToolTip="Previous frame (←)" HorizontalAlignment="Right">
+                        <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"/>
                     </Button>
-                    <Button x:Name="PlayBtn" Grid.Column="1" Style="{StaticResource PlayCircle}" Width="48" Height="48" Margin="10,0" Click="Play_Click" ToolTip="Play / pause (Space)">
+                    <Button x:Name="PlayBtn" Grid.Column="1" Style="{StaticResource PlayCircle}" Margin="12,0" Click="Play_Click" ToolTip="Play / pause (Space)">
                         <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource OnAccent}"/>
                     </Button>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Left">
-                        <Button Style="{StaticResource RoundBtn}" Click="StepFwd_Click" ToolTip="Next frame (→)">
-                            <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                        <Button Style="{StaticResource TransportBtn}" Click="StepFwd_Click" ToolTip="Next frame (→)">
+                            <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"/>
                         </Button>
-                        <Button Style="{StaticResource RoundBtn}" Click="Fullscreen_Click" Margin="10,0,0,0" ToolTip="Fullscreen (F)">
-                            <TextBlock Text="&#xE740;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                        <Button Style="{StaticResource TransportBtn}" Click="Fullscreen_Click" Margin="12,0,0,0" ToolTip="Fullscreen (F)">
+                            <TextBlock Text="&#xE740;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"/>
                         </Button>
-                        <TextBlock x:Name="TimeText" Margin="14,0,0,0" VerticalAlignment="Center" FontSize="14" FontFamily="{DynamicResource NumFont}"/>
+                        <!-- Position bright, length grey; same font, so one baseline -->
+                        <TextBlock x:Name="TimeText" Margin="16,0,0,0" VerticalAlignment="Center" FontSize="16" FontFamily="{DynamicResource NumFont}"
+                                   Typography.NumeralAlignment="Tabular"/>
+                        <TextBlock x:Name="TimeTotal" VerticalAlignment="Center" FontSize="16" FontFamily="{DynamicResource NumFont}"
+                                   Foreground="{DynamicResource Subtle}" Typography.NumeralAlignment="Tabular"/>
                     </StackPanel>
                 </Grid>
 
                 <WrapPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <Button Content="Set start  (I)" Click="SetIn_Click" Margin="0,0,6,0"/>
-                    <Button Content="Set end  (O)" Click="SetOut_Click" Margin="0,0,6,0"/>
-                    <ToggleButton x:Name="PreviewToggle" Style="{StaticResource Seg}" Content="Preview trim  (P)" Click="Preview_Click"
-                                  Background="{DynamicResource Card}" Padding="12,7" Margin="0,0,6,0"/>
+                    <Button Content="Set start  (I)" Click="SetIn_Click" Padding="12,0" Height="33" Margin="0,0,6,0"/>
+                    <Button Content="Set end  (O)" Click="SetOut_Click" Padding="12,0" Height="33" Margin="0,0,6,0"/>
+                    <ToggleButton x:Name="PreviewToggle" Style="{StaticResource GamePill}" Content="Preview trim  (P)" Click="Preview_Click"
+                                  Background="{DynamicResource Glass}" Foreground="{DynamicResource Text}" Padding="12,0" Height="33" Margin="0,0,6,0"/>
                     <Button Content="Reset" Click="ResetTrim_Click" Style="{StaticResource GhostBtn}"/>
                     <TextBlock x:Name="TrimText" Foreground="{DynamicResource Subtle}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12.5"/>
                 </WrapPanel>
