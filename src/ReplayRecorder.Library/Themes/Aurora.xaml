@@ -48,6 +48,8 @@
         <GradientStop Color="Transparent" Offset="0.6"/>
         <GradientStop Color="Black" Offset="1"/>
     </LinearGradientBrush>
+    <!-- Library top row: Aurora has no box, so it sits closer to the window top as in the mock-up -->
+    <Thickness x:Key="TopInset">0,-7,0,0</Thickness>
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>
     <sys:Double x:Key="GlowOpacity">0.10</sys:Double>
     <sys:Double x:Key="HaloOpacity">0.30</sys:Double>

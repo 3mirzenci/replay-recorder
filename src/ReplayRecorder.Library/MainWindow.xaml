@@ -59,7 +59,7 @@
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
-                        <Border Background="Transparent" Cursor="Hand" Padding="18,22,8,4" HorizontalAlignment="Left"
+                        <Border Background="Transparent" Cursor="Hand" Padding="18,24,8,2" HorizontalAlignment="Left"
                                 MouseLeftButtonDown="DayHeader_Click" ToolTip="Select every clip from this day">
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="chk" Width="18" Height="18" CornerRadius="9" BorderThickness="1.5"
@@ -99,7 +99,7 @@
             <Rectangle Grid.RowSpan="3" Margin="-8" Fill="{DynamicResource Grain}" Opacity="{DynamicResource GrainOpacity}"
                        RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False">
                 <Rectangle.OpacityMask>
-                    <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusX="0.95" RadiusY="0.6">
+                    <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusX="0.71" RadiusY="0.6">
                         <GradientStop Color="Black" Offset="0"/>
                         <GradientStop Color="Transparent" Offset="1"/>
                     </RadialGradientBrush>
@@ -107,7 +107,7 @@
             </Rectangle>
 
             <!-- Top bar: app, game filter, search, folder and settings (a box in Classic only) -->
-            <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="22,12">
+            <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="22,9" Margin="{DynamicResource TopInset}">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
                         <Border Width="26" Height="26" CornerRadius="8" Background="{DynamicResource Accent}">
@@ -166,7 +166,7 @@
                         </Border.OpacityMask>
                     </Border>
                     <!-- One row: title and count, sort tabs at the right end -->
-                    <DockPanel Margin="22,22,22,0">
+                    <DockPanel Margin="22,15,22,0">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
                             <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
                             <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Margin="4,0,0,0" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>

@@ -83,10 +83,18 @@ public partial class App : Application
                 if (System.Windows.Input.InputManager.Current.MostRecentInputDevice is not System.Windows.Input.MouseDevice) return;
                 // Only buttons that took focus themselves: a dropdown's inner toggle can't, and moving focus would close the list.
                 if (s is not UIElement { IsKeyboardFocused: true }) return;
-                if (prev is not UIElement p || ReferenceEquals(p, s) || Window.GetWindow(p) != Window.GetWindow((DependencyObject)s)) return;
-                // After the click's own handlers ran; skipped if the click closed or covered that window.
-                p.Dispatcher.BeginInvoke(() => { if (p.IsVisible && Window.GetWindow(p)?.IsActive == true) p.Focus(); },
-                    System.Windows.Threading.DispatcherPriority.Input);
+                if (Window.GetWindow((DependencyObject)s) is not { } win || ReferenceEquals(prev, s)) return;
+                // Back to what had focus; if nothing in this window did, to the window itself (no focus ring left behind).
+                UIElement p = prev is UIElement u && Window.GetWindow(u) == win ? u : win;
+                void Back() { if (p.IsVisible) p.Focus(); }
+                // After the click's own handlers ran. If the click opened a dialog, once that closes.
+                p.Dispatcher.BeginInvoke(() =>
+                {
+                    if (win.IsActive) { Back(); return; }
+                    EventHandler? back = null;
+                    back = (_, _) => { win.Activated -= back; p.Dispatcher.BeginInvoke(Back, System.Windows.Threading.DispatcherPriority.Input); };
+                    win.Activated += back;
+                }, System.Windows.Threading.DispatcherPriority.Input);
             }), true);
     }
 
@@ -168,7 +176,7 @@ public partial class App : Application
         }
         else c = ((System.Windows.Media.SolidColorBrush)dict["Accent"]).Color; // the look's own accent and its own text colour
         // Faint accent light: along the top edge (glow) and around the video (halo); 0 in Classic.
-        dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.95, 0.6);
+        dict["AccentGlow"] = Light(c, (double)dict["GlowOpacity"], new(0.5, 0), 0.71, 0.6);
         dict["AccentHalo"] = Light(c, (double)dict["HaloOpacity"], new(0.5, 0.5), 0.5, 0.5);
         dict["Grain"] = Grain;
         Current.Resources.MergedDictionaries[0] = dict;
