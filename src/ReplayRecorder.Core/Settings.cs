@@ -47,6 +47,10 @@ public sealed class Settings
     /// </summary>
     public string SystemAudioDeviceId { get; set; } = "";
     public double SystemVolumeDb { get; set; } = 0;
+    /// <summary>Discord voice on its own track (4), out of the game track. Uses process loopback (Windows 10 2004+),
+    /// which isn't tied to SystemAudioDeviceId; falls back to the device loopback (Discord in the game track).</summary>
+    public bool DiscordSeparate { get; set; } = true;
+    public double DiscordVolumeDb { get; set; } = 0;
     public bool MicEnabled { get; set; } = true;
     /// <summary>WASAPI endpoint id, or empty for the Windows default communications microphone.</summary>
     public string MicDeviceId { get; set; } = "";
@@ -97,7 +101,7 @@ public sealed class Settings
         CaptureCursor != other.CaptureCursor || BufferInRam != other.BufferInRam ||
         !string.Equals(BufferFolder, other.BufferFolder, StringComparison.OrdinalIgnoreCase) ||
         SystemAudioDeviceId != other.SystemAudioDeviceId || MicDeviceId != other.MicDeviceId ||
-        MicLevelingStrength != other.MicLevelingStrength;
+        MicLevelingStrength != other.MicLevelingStrength || DiscordSeparate != other.DiscordSeparate;
 
     static readonly JsonSerializerOptions Json = new()
     {
@@ -145,6 +149,7 @@ public sealed class Settings
         MaxBitrateMbps = Math.Clamp(MaxBitrateMbps, 5, 150);
         SystemVolumeDb = Math.Clamp(SystemVolumeDb, -30, 20);
         MicVolumeDb = Math.Clamp(MicVolumeDb, -30, 20);
+        DiscordVolumeDb = Math.Clamp(DiscordVolumeDb, -30, 20);
         DiscordTargetMB = Math.Clamp(DiscordTargetMB, 1, 500);
         if (string.IsNullOrWhiteSpace(ClipsFolder)) ClipsFolder = Paths.DefaultClipsFolder;
         if (string.IsNullOrWhiteSpace(BufferFolder)) BufferFolder = Paths.DefaultBufferFolder;

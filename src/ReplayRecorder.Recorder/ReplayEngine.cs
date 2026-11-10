@@ -9,8 +9,9 @@ namespace ReplayRecorder.Recorder;
 /// The instant-replay pipeline.
 ///
 ///   screen --(Windows Graphics Capture, GPU texture)--> NVENC --> 2 s MPEG-TS segments on disk
-///   speakers (WASAPI loopback) --pipe--> AAC track 2   \  track 1 = both mixed,
-///   microphone (WASAPI)        --pipe--> AAC track 3   /  all muxed into the same segments
+///   game (loopback without Discord) --pipe--> AAC track 2   \
+///   microphone (WASAPI)             --pipe--> AAC track 3    > track 1 = all three mixed,
+///   Discord (process loopback)      --pipe--> AAC track 4   /  all muxed into the same segments
 ///
 /// Video frames never leave the GPU. Old segments are deleted as new ones arrive, so disk use
 /// stays at roughly (buffer length x bitrate). Saving a clip just joins the newest segments
@@ -48,8 +49,9 @@ sealed class ReplayEngine : IDisposable
 
     Settings _s;
     Process? _ffmpeg;
-    ClockedAudioSink? _sysSink, _micSink;
-    WasapiSource? _sysSrc, _micSrc;
+    ClockedAudioSink? _sysSink, _micSink, _discordSink;
+    SystemAudio? _sysSrc;
+    WasapiSource? _micSrc;
     string _runDir = "";
     long _epochTicks;        // DateTime.UtcNow.Ticks at timeline zero (only to line video up at start)
     long _epochQpc;          // Stopwatch.GetTimestamp() at the same moment: the timeline's clock
@@ -134,6 +136,7 @@ sealed class ReplayEngine : IDisposable
         var tag = Guid.NewGuid().ToString("N"); // unguessable pipe names
         _sysSink = new ClockedAudioSink($"replayrecorder_sys_{tag}", 2) { Gain = DbToGain(_s.SystemVolumeDb), Muted = !_s.SystemAudioEnabled };
         _micSink = new ClockedAudioSink($"replayrecorder_mic_{tag}", 1) { Gain = DbToGain(_s.MicVolumeDb), Muted = !_s.MicEnabled };
+        _discordSink = new ClockedAudioSink($"replayrecorder_discord_{tag}", 2) { Gain = DbToGain(_s.DiscordVolumeDb), Muted = !_s.SystemAudioEnabled };
 
         _ram = _s.BufferInRam;
         _tsHeader = null;
@@ -143,7 +146,8 @@ sealed class ReplayEngine : IDisposable
         var exe = _paced ? Ffmpeg.CapturePath! : Ffmpeg.FfmpegPath;
         Log.Info($"Starting capture of {Display} with {encoder}, buffer in {(_ram ? "RAM" : "files")}");
         // A muted or turned-down track looks exactly like a silent device in clips, so say which it is.
-        Log.Info($"PC audio {(_s.SystemAudioEnabled ? "on" : "OFF")} at {_s.SystemVolumeDb:+0;-0;0} dB, mic {(_s.MicEnabled ? "on" : "OFF")} at {_s.MicVolumeDb:+0;-0;0} dB");
+        Log.Info($"PC audio {(_s.SystemAudioEnabled ? "on" : "OFF")} at {_s.SystemVolumeDb:+0;-0;0} dB, mic {(_s.MicEnabled ? "on" : "OFF")} at {_s.MicVolumeDb:+0;-0;0} dB, " +
+                 $"Discord {(_s.DiscordSeparate ? "separate" : "in the game track")} at {_s.DiscordVolumeDb:+0;-0;0} dB");
         Log.Info(exe + " " + string.Join(' ', args.Select(a => a.Contains(' ') ? $"\"{a}\"" : a)));
 
         var psi = new ProcessStartInfo(exe)
@@ -185,7 +189,8 @@ sealed class ReplayEngine : IDisposable
 
         _sysSink.Start(_epochQpc);
         _micSink.Start(_epochQpc);
-        _sysSrc = new WasapiSource(loopback: true, _s.SystemAudioDeviceId, _sysSink);
+        _discordSink.Start(_epochQpc);
+        _sysSrc = new SystemAudio(_s.SystemAudioDeviceId, _s.DiscordSeparate, _sysSink, _discordSink);
         _micSrc = new WasapiSource(loopback: false, _s.MicDeviceId, _micSink);
         _sysSrc.Start();
         _micSrc.Start();
@@ -230,6 +235,7 @@ sealed class ReplayEngine : IDisposable
         _micSrc?.Dispose(); _micSrc = null;
         _sysSink?.Dispose(); _sysSink = null;
         _micSink?.Dispose(); _micSink = null;
+        _discordSink?.Dispose(); _discordSink = null;
     }
 
     void OnFfmpegExited(object? sender, EventArgs e)
@@ -379,12 +385,12 @@ sealed class ReplayEngine : IDisposable
         video += "[v]";
 
         // Separate graph (own thread) so audio mixing can never hold up video frames.
-        // Track 1 mixes game + mic so ordinary players (which only play the first track) have
-        // everything; tracks 2 and 3 keep them separate so the library can rebalance them.
+        // Track 1 mixes game + mic + Discord so ordinary players (which only play the first track)
+        // have everything; tracks 2-4 keep them separate so the library can rebalance them.
         // Mic leveling runs once, then feeds both the mix (track 1) and the mic track (track 3).
         bool level = _s.MicLevelingStrength != MicLeveling.Off;
         var mic = level ? $"[1:a]{MicLevelingChain(_s.MicLevelingStrength)},asplit[miclv][mic];[miclv]" : "[1:a]";
-        var audio = mic + "pan=stereo|c0=c0|c1=c0[micst];[0:a][micst]amix=inputs=2:normalize=0:duration=longest," +
+        var audio = mic + "pan=stereo|c0=c0|c1=c0[micst];[0:a][micst][2:a]amix=inputs=3:normalize=0:duration=longest," +
                     // Game and voice peaking together would clip the sum; a transparent limiter catches it.
                     "alimiter=limit=0.95:attack=5:release=50:level=0[mix]";
 
@@ -394,9 +400,10 @@ sealed class ReplayEngine : IDisposable
             "-filter_threads", "1", "-filter_complex_threads", "1",
             "-f", "f32le", "-ar", "48000", "-ac", "2", "-thread_queue_size", "4096", "-i", _sysSink!.PipePath,
             "-f", "f32le", "-ar", "48000", "-ac", "1", "-thread_queue_size", "4096", "-i", _micSink!.PipePath,
+            "-f", "f32le", "-ar", "48000", "-ac", "2", "-thread_queue_size", "4096", "-i", _discordSink!.PipePath,
             "-filter_complex", video,
             "-filter_complex", audio,
-            "-map", "[v]", "-map", "[mix]", "-map", "0:a", "-map", level ? "[mic]" : "1:a",
+            "-map", "[v]", "-map", "[mix]", "-map", "0:a", "-map", level ? "[mic]" : "1:a", "-map", "2:a",
         };
 
         switch (encoder)
@@ -447,7 +454,7 @@ sealed class ReplayEngine : IDisposable
 
         a.AddRange(new[]
         {
-            "-c:a", "aac", "-b:a:0", "192k", "-b:a:1", "192k", "-b:a:2", "128k",
+            "-c:a", "aac", "-b:a:0", "192k", "-b:a:1", "192k", "-b:a:2", "128k", "-b:a:3", "128k",
             "-copyts",
             "-max_muxing_queue_size", "4096",
         });
@@ -683,9 +690,10 @@ sealed class ReplayEngine : IDisposable
                 "-metadata", $"title={game}",
                 "-metadata", "comment=Replay Recorder",
                 "-metadata:s:a:0", "title=Everything (game + voice chat + mic)",
-                "-metadata:s:a:1", "title=Game + voice chat",
+                "-metadata:s:a:1", "title=Game",
                 "-metadata:s:a:2", "title=Microphone",
-                "-disposition:a:0", "default", "-disposition:a:1", "0", "-disposition:a:2", "0",
+                "-metadata:s:a:3", "title=Discord",
+                "-disposition:a:0", "default", "-disposition:a:1", "0", "-disposition:a:2", "0", "-disposition:a:3", "0",
             };
             if (_s.Codec == VideoCodec.Hevc) a(args, "-tag:v", "hvc1");
             a(args, "-f", "mp4", part);
@@ -724,6 +732,7 @@ sealed class ReplayEngine : IDisposable
     {
         if (_sysSink != null) { _sysSink.Gain = DbToGain(_s.SystemVolumeDb); _sysSink.Muted = !_s.SystemAudioEnabled; }
         if (_micSink != null) { _micSink.Gain = DbToGain(_s.MicVolumeDb); _micSink.Muted = !_s.MicEnabled; }
+        if (_discordSink != null) { _discordSink.Gain = DbToGain(_s.DiscordVolumeDb); _discordSink.Muted = !_s.SystemAudioEnabled; }
     }
 
     public (float System, float Mic) Peaks => (_sysSink?.Peak ?? 0, _micSink?.Peak ?? 0);
