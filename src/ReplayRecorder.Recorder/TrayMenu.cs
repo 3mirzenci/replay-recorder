@@ -50,9 +50,17 @@ static class TrayMenu
     // Drawn as font text, not a bitmap: sharp at any display scaling, and centred on the text line.
     static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 10.5f);
 
-    static void DrawGlyph(Graphics g, char glyph, Rectangle box, Color color) =>
-        TextRenderer.DrawText(g, glyph.ToString(), IconFont, box, color,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+    static readonly StringFormat Centered = new() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
+    // Grey anti-aliasing, not ClearType: ClearType tints thin strokes (the pause bars) orange and blue.
+    static void DrawGlyph(Graphics g, char glyph, Rectangle box, Color color)
+    {
+        var hint = g.TextRenderingHint;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        using var brush = new SolidBrush(color);
+        g.DrawString(glyph.ToString(), IconFont, brush, box, Centered);
+        g.TextRenderingHint = hint;
+    }
 
     sealed class Renderer(Color accent) : ToolStripProfessionalRenderer(new Colors())
     {
@@ -79,15 +87,14 @@ static class TrayMenu
             e.TextColor = e.Item.Enabled ? Fore : Dim;
             base.OnRenderItemText(e);
             // The icon sits in the margin left of the text, on the same centre line (not for the shortcut text).
-            if (e.Item.Tag is char glyph && e.Text == e.Item.Text)
-                DrawGlyph(e.Graphics, glyph, new Rectangle(0, e.TextRectangle.Y, e.TextRectangle.Left - 4, e.TextRectangle.Height), e.TextColor);
+            if (e.Text != e.Item.Text) return; // the shortcut text
+            // Icon, or the check mark for a ticked item without one: same box, so they all line up.
+            var box = new Rectangle(4, e.TextRectangle.Y, e.TextRectangle.Left - 8, e.TextRectangle.Height);
+            if (e.Item.Tag is char glyph) DrawGlyph(e.Graphics, glyph, box, e.TextColor);
+            else if (e.Item is ToolStripMenuItem { Checked: true }) DrawGlyph(e.Graphics, '', box, accent); // CheckMark
         }
 
-        protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
-        {
-            var r = e.ImageRectangle; // centred where an icon would sit
-            DrawGlyph(e.Graphics, '', new Rectangle(r.X - 6, 0, r.Width + 12, e.Item.Height), accent); // CheckMark
-        }
+        protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e) { } // drawn with the icons, in OnRenderItemText
 
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
