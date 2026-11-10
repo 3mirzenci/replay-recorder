@@ -72,6 +72,8 @@ sealed class TrayApp : ApplicationContext
         Log.Info($"Replay Recorder started (ffmpeg: {Ffmpeg.FfmpegPath ?? "NOT FOUND"})");
         Displays.LogAll();
         _engine.Start();
+        Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        Microsoft.Win32.SystemEvents.TimeChanged += OnTimeChanged;
         _storageTimer = new System.Threading.Timer(_ => CheckStorage(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
         Task.Run(Updater.CleanupDownloads); // the installer that updated us is done by now
         if (Updater.JustUpdatedFrom("recorder") is { } from)
@@ -287,6 +289,36 @@ sealed class TrayApp : ApplicationContext
     void ApplyPendingSettings()
     {
         if (_reloadPending && !_engine.IsRecording && !_engine.Saving) ReloadSettings();
+        else if (_clockRestartPending) RestartForClock("after the recording");
+    }
+
+    // Audio follows the wall clock at once, video only creeps after it (ReplayEngine's setpts anchor), so a
+    // clock jump or a wake from sleep would leave clips out of sync for a long time: start capture afresh.
+    bool _clockRestartPending;
+    void OnPowerModeChanged(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == Microsoft.Win32.PowerModes.Resume) _ui.Post(_ => RestartForClock("woke from sleep"), null);
+    }
+    void OnTimeChanged(object? sender, EventArgs e) => _ui.Post(_ =>
+    {
+        // Also sent for time-zone changes and tiny corrections; only a real jump is worth losing the buffer for.
+        double jump = (DateTime.UtcNow - _clockRefUtc).TotalSeconds - _clockRef.Elapsed.TotalSeconds;
+        ResetClockRef();
+        if (Math.Abs(jump) >= 0.5) RestartForClock($"system clock jumped {jump:+0.0;-0.0} s");
+    }, null);
+
+    DateTime _clockRefUtc = DateTime.UtcNow;
+    System.Diagnostics.Stopwatch _clockRef = System.Diagnostics.Stopwatch.StartNew();
+    void ResetClockRef() { _clockRefUtc = DateTime.UtcNow; _clockRef.Restart(); }
+
+    void RestartForClock(string why)
+    {
+        if (_paused || !_engine.Running) { _clockRestartPending = false; return; } // starts fresh when resumed anyway
+        if (_engine.IsRecording || _engine.Saving) { _clockRestartPending = true; return; } // don't cut it short
+        _clockRestartPending = false;
+        Log.Info($"Restarting capture: {why}");
+        _engine.Stop();
+        _engine.Start();
     }
 
     void ReloadSettings()
@@ -319,6 +351,7 @@ sealed class TrayApp : ApplicationContext
             return;
         }
         _reloadPending = false;
+        _clockRestartPending = false; // the new engine starts on the current clock
         Log.Info("Settings changed, restarting capture");
         _settings = next;
         _engine.Dispose();
@@ -409,6 +442,8 @@ sealed class TrayApp : ApplicationContext
     {
         if (disposing)
         {
+            Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+            Microsoft.Win32.SystemEvents.TimeChanged -= OnTimeChanged;
             _exportCleanup.Dispose();
             _settingsWatcher?.Dispose();
             _hotkeys.Dispose();

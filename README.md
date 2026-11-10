@@ -135,7 +135,7 @@ Setup needs no admin rights and installs to `%LOCALAPPDATA%\Programs\Replay Reco
 
 Uninstalling stops both apps and removes the autostart entry. Your clips and settings stay.
 
-Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC, with a driver from 2023 or newer (531+) for the smooth capture (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer for Windows Graphics Capture (setup installs a current one). The .NET runtime is bundled.
+Requirements: Windows 10 2004 or later, or Windows 11. An NVIDIA GPU for NVENC, with a driver from 2023 or newer (531+) for the smooth capture (Intel Quick Sync and x264 are fallbacks). ffmpeg 8.0 or newer (setup installs a current one): NVIDIA recording uses the bundled capture ffmpeg, and the normal one handles thumbnails, export, AMD/Intel recording and the fallback. The .NET runtime is bundled.
 
 ## Build from source
 
