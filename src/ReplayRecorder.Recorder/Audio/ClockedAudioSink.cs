@@ -8,10 +8,11 @@ namespace ReplayRecorder.Recorder.Audio;
 ///
 /// ffmpeg timestamps a raw PCM input purely by sample count, so this class is what keeps
 /// audio aligned with video: sample N is always written for wall-clock time
-/// <c>epoch + N / 48000</c>, the same clock ffmpeg uses to stamp video frames (RTCTIME).
+/// <c>epoch + N / 48000</c> on the QPC clock (Stopwatch), the same clock Windows stamps captured
+/// video frames with, so wall-clock jumps (time sync, manual changes) can't pull them apart.
 /// Captured audio goes into a small jitter buffer; a pacing thread drains it at exactly
 /// real-time speed, nudging the drain rate by up to ±0.5 % to absorb clock drift between
-/// the sound card and the system clock, and writing silence whenever the device delivers
+/// the sound card and QPC, and writing silence whenever the device delivers
 /// nothing (WASAPI loopback goes quiet when nothing is playing, or while a device is being
 /// re-opened after a change).
 /// </summary>
@@ -49,7 +50,7 @@ sealed class ClockedAudioSink : IDisposable
 
     Thread? _thread;
     volatile bool _stop;
-    long _epochTicks;   // DateTime.UtcNow.Ticks at timeline zero
+    long _epochQpc;     // Stopwatch.GetTimestamp() at timeline zero
     long _framesWritten;
 
     public ClockedAudioSink(string pipeName, int channels)
@@ -61,10 +62,10 @@ sealed class ClockedAudioSink : IDisposable
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, 0, 1 << 20); // only our own user's ffmpeg can connect
     }
 
-    /// <summary>Starts pacing against <paramref name="epochUtcTicks"/> (timeline zero).</summary>
-    public void Start(long epochUtcTicks)
+    /// <summary>Starts pacing against <paramref name="epochQpc"/> (Stopwatch timestamp of timeline zero).</summary>
+    public void Start(long epochQpc)
     {
-        _epochTicks = epochUtcTicks;
+        _epochQpc = epochQpc;
         _thread = new Thread(Run) { IsBackground = true, Name = $"audio-{PipeName}", Priority = ThreadPriority.AboveNormal };
         _thread.Start();
     }
@@ -104,7 +105,7 @@ sealed class ClockedAudioSink : IDisposable
             while (!_stop)
             {
                 long lagFrames = (long)Rate * LagMs / 1000;
-                long nowFrames = (DateTime.UtcNow.Ticks - _epochTicks) * Rate / TimeSpan.TicksPerSecond;
+                long nowFrames = (long)((System.Diagnostics.Stopwatch.GetTimestamp() - _epochQpc) * (double)Rate / System.Diagnostics.Stopwatch.Frequency);
                 long need = nowFrames - lagFrames - _framesWritten;
                 if (need <= 0) { Thread.Sleep(5); continue; }
 

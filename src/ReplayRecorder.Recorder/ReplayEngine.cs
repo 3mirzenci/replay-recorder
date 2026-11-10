@@ -17,8 +17,9 @@ namespace ReplayRecorder.Recorder;
 /// with stream copy (no re-encode), so it is near-instant and costs almost no CPU, and the
 /// recording keeps running untouched while it happens.
 ///
-/// Sync: every video frame is placed at its capture time mapped to wall-clock time minus the
-/// epoch (see BuildArgs), and the audio sinks write sample N for wall-clock epoch + N/48000.
+/// Sync: every video frame is placed at its capture time (QPC) minus the epoch (see BuildArgs), and
+/// the audio sinks write sample N for QPC epoch + N/48000. The wall clock is only used once, to line
+/// the two up at start, so a clock jump can't pull them apart.
 /// With -copyts all streams share one timeline. Constant frame rate comes from the fps filter.
 ///
 /// RAM mode (Settings.BufferInRam): ffmpeg writes one continuous MPEG-TS stream to stdout instead,
@@ -50,7 +51,8 @@ sealed class ReplayEngine : IDisposable
     ClockedAudioSink? _sysSink, _micSink;
     WasapiSource? _sysSrc, _micSrc;
     string _runDir = "";
-    long _epochTicks;        // DateTime.UtcNow.Ticks at timeline zero
+    long _epochTicks;        // DateTime.UtcNow.Ticks at timeline zero (only to line video up at start)
+    long _epochQpc;          // Stopwatch.GetTimestamp() at the same moment: the timeline's clock
     readonly List<Segment> _segments = new();
     readonly object _segLock = new();
     long _segListPos;
@@ -83,7 +85,7 @@ sealed class ReplayEngine : IDisposable
 
     public ReplayEngine(Settings settings) => _s = settings;
 
-    double Now => (DateTime.UtcNow.Ticks - _epochTicks) / (double)TimeSpan.TicksPerSecond;
+    double Now => (Stopwatch.GetTimestamp() - _epochQpc) / (double)Stopwatch.Frequency;
 
     // ------------------------------------------------------------------ start / stop
 
@@ -136,6 +138,7 @@ sealed class ReplayEngine : IDisposable
         _ram = _s.BufferInRam;
         _tsHeader = null;
         _epochTicks = DateTime.UtcNow.Ticks;
+        _epochQpc = Stopwatch.GetTimestamp();
         var args = BuildArgs(Display, encoder);
         var exe = _paced ? Ffmpeg.CapturePath! : Ffmpeg.FfmpegPath;
         Log.Info($"Starting capture of {Display} with {encoder}, buffer in {(_ram ? "RAM" : "files")}");
@@ -180,8 +183,8 @@ sealed class ReplayEngine : IDisposable
             return;
         }
 
-        _sysSink.Start(_epochTicks);
-        _micSink.Start(_epochTicks);
+        _sysSink.Start(_epochQpc);
+        _micSink.Start(_epochQpc);
         _sysSrc = new WasapiSource(loopback: true, _s.SystemAudioDeviceId, _sysSink);
         _micSrc = new WasapiSource(loopback: false, _s.MicDeviceId, _micSink);
         _sysSrc.Start();
@@ -361,15 +364,15 @@ sealed class ReplayEngine : IDisposable
                 .OrderBy(x => x.DeviceName, StringComparer.OrdinalIgnoreCase).ToList().FindIndex(x => x.DeviceName == d.DeviceName);
             src = $"ddagrab=output_idx={Math.Max(0, outputIdx)}:framerate={fps}:draw_mouse={(_s.CaptureCursor ? 1 : 0)}";
         }
-        // Put each frame on the audio timeline (wall clock - epoch) using its *capture* time, not
-        // the time it happens to pass through this filter: ffmpeg's graph can stall briefly, and
-        // stamping on arrival turned those stalls into bunched frames (stutter). The capture
-        // clock (QPC) is mapped to the wall clock with a running minimum of (wall - capture):
-        // the least-delayed frames reveal the true offset, delayed ones are ignored, and the
-        // +10 us/frame creep lets it follow slow drift between the two clocks.
+        // Put each frame on the audio timeline using its *capture* time, not the time it happens to
+        // pass through this filter: ffmpeg's graph can stall briefly, and stamping on arrival turned
+        // those stalls into bunched frames (stutter). Capture times are QPC, like the audio sinks, but
+        // start at 0, so the offset is found once: for the first 3 s, the running minimum of
+        // (wall clock - capture) (the least-delayed frames reveal it), then frozen. From then on video
+        // runs on QPC alone, so a wall-clock jump can't move it.
         //   ld(1) = this frame's (wall - capture) in us;  ld(0) = offset estimate
         var anchor = "setpts='st(1,RTCTIME-PTS*TB*1000000);" +
-                     "st(0,if(eq(ld(0),0),ld(1),min(ld(0)+10,ld(1))));" +
+                     "st(0,if(eq(ld(0),0),ld(1),if(lt(PTS*TB,3),min(ld(0),ld(1)),ld(0))));" +
                      $"(PTS*TB*1000000+ld(0)-{epochUs})/(1000000*TB)'";
         var video = $"{src},{anchor},fps={fps}";
         if (encoder == "libx264") video += ",hwdownload,format=bgra";
