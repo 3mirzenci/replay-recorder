@@ -45,12 +45,11 @@
     <!-- Sticky day header: no box; the clips fade out under it instead (StickyFade masks the list) -->
     <SolidColorBrush x:Key="StickyBg" Color="Transparent"/>
     <SolidColorBrush x:Key="StickyLine" Color="Transparent"/>
-    <!-- Fully visible from 51 px: where the clips start the moment the header sticks (61 px header, 10 px up) -->
-    <LinearGradientBrush x:Key="StickyFade" MappingMode="Absolute" StartPoint="0,0" EndPoint="0,51">
-        <GradientStop Color="Transparent" Offset="0"/>
-        <GradientStop Color="Transparent" Offset="0.6"/>
-        <GradientStop Color="Black" Offset="1"/>
-    </LinearGradientBrush>
+    <!-- Its presence turns the fade on (MainWindow.StickyFade builds it): clips fully visible from StickyFadeStart px
+         the moment the header sticks (61 px header, 10 px up), sliding to StickyFadeEnd as you scroll on -->
+    <SolidColorBrush x:Key="StickyFade" Color="Black"/>
+    <sys:Double x:Key="StickyFadeStart">51</sys:Double>
+    <sys:Double x:Key="StickyFadeEnd">72</sys:Double>
     <!-- Library top row: Aurora has no box, so it sits closer to the window top as in the mock-up -->
     <Thickness x:Key="TopInset">0,-7,0,0</Thickness>
     <CornerRadius x:Key="ThumbRadius">12</CornerRadius>

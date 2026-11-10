@@ -520,7 +520,7 @@ public partial class MainWindow : Window
         StickyHeader.Visibility = sticky ? Visibility.Visible : Visibility.Collapsed;
         // Aurora only: the clips fade out under the sticky header (the content only, not the scrollbar)
         if (FindChild<ScrollContentPresenter>(_gridScroll) is { } content)
-            content.OpacityMask = sticky ? TryFindResource("StickyFade") as System.Windows.Media.Brush : null;
+            content.OpacityMask = sticky && TryFindResource("StickyFade") is System.Windows.Media.Brush ? StickyFade(currentTop) : null;
         if (sticky) StickyContent.Content = current;
 
         void Walk(DependencyObject d)
@@ -543,6 +543,23 @@ public partial class MainWindow : Window
                 Walk(child);
             }
         }
+    }
+
+    /// <summary>
+    /// The clips fade out under the sticky header. When it first sticks the clips start right below it
+    /// (StickyFadeStart), so the fade ends there and cuts nothing off; over the next few px of scrolling it
+    /// slides down to StickyFadeEnd, leaving the header room.
+    /// </summary>
+    System.Windows.Media.Brush StickyFade(double groupTop)
+    {
+        double start = (double)FindResource("StickyFadeStart"), end = (double)FindResource("StickyFadeEnd");
+        double bottom = Math.Min(end, start + (StickyContent.Margin.Top - groupTop));
+        var brush = new System.Windows.Media.LinearGradientBrush(new System.Windows.Media.GradientStopCollection
+        {
+            new(System.Windows.Media.Colors.Transparent, 0), new(System.Windows.Media.Colors.Transparent, Math.Max(0, (bottom - 28) / bottom)), new(System.Windows.Media.Colors.Black, 1),
+        }, new Point(0, 0), new Point(0, bottom)) { MappingMode = System.Windows.Media.BrushMappingMode.Absolute };
+        brush.Freeze();
+        return brush;
     }
 
     static T? FindChild<T>(DependencyObject d) where T : DependencyObject
