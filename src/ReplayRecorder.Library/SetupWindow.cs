@@ -33,7 +33,7 @@ static class SetupWindow
         // 3. Mic, with a live level bar so it's clear it works before anything is recorded
         var mics = AudioDevices.Mics();
         var mic = new ComboBox { ItemsSource = mics, SelectedIndex = Math.Max(0, mics.FindIndex(m => m.Id == s.MicDeviceId)) };
-        var bar = new Border { HorizontalAlignment = HorizontalAlignment.Left, Width = 0, CornerRadius = new CornerRadius(4), Background = new SolidColorBrush(Color.FromRgb(0x2E, 0xCC, 0x71)) };
+        var bar = new Border { HorizontalAlignment = HorizontalAlignment.Left, Width = 0, CornerRadius = new CornerRadius(4), Background = (Brush)owner.FindResource("Good") };
         var track = new Border { Height = 8, CornerRadius = new CornerRadius(4), Background = (Brush)owner.FindResource("Line"), ClipToBounds = true, Margin = new Thickness(0, 8, 0, 0), Child = bar };
         var meter = new LevelMeter();
         void Listen() { var id = (mic.SelectedItem as DeviceChoice)?.Id ?? ""; Task.Run(() => meter.Start(id, loopback: false)); }

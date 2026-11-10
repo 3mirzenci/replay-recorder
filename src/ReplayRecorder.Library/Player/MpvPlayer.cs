@@ -30,6 +30,10 @@ sealed class MpvPlayer : IDisposable
     public event Action? StateChanged;
     public event Action? FileLoaded;
 
+    /// <summary>The look's background, so letterbox bars match the window.</summary>
+    static string BgHex() => System.Windows.Application.Current.Resources["Bg"] is System.Windows.Media.SolidColorBrush { Color: var c }
+        ? $"#{c.R:x2}{c.G:x2}{c.B:x2}" : "#0d0e11";
+
     public MpvPlayer(IntPtr hostWindow)
     {
         _ui = SynchronizationContext.Current ?? throw new InvalidOperationException("Create on the UI thread");
@@ -49,7 +53,7 @@ sealed class MpvPlayer : IDisposable
             "--hwdec=auto-safe", "--vo=gpu-next",
             "--osc=no", "--osd-level=0", "--no-input-default-bindings", "--input-vo-keyboard=no",
             "--input-cursor=no", "--cursor-autohide=no", "--force-window=yes",
-            "--hr-seek=yes", "--background-color=#0d0e11", "--volume=100", "--audio-display=no",
+            "--hr-seek=yes", $"--background-color={BgHex()}", "--volume=100", "--audio-display=no",
             "--msg-level=all=warn", "--terminal=no",
         }) psi.ArgumentList.Add(a);
 

@@ -59,7 +59,7 @@ sealed class FullscreenBar : Window
             VerticalAlignment = VerticalAlignment.Bottom,
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(12, 0, 12, 0),
-            Background = new SolidColorBrush(Color.FromArgb(150, 12, 12, 16)),
+            Background = (Brush)Application.Current.FindResource("Overlay"),
             Child = new DockPanel { LastChildFill = true, Children = { play, exit, mix, _time, _seek } },
         };
         Content = _bar;
@@ -122,7 +122,7 @@ sealed class FullscreenBar : Window
         return new StackPanel
         {
             Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center,
-            Children = { new TextBlock { Text = label, FontSize = 11, Foreground = new SolidColorBrush(Color.FromRgb(190, 190, 200)) }, s },
+            Children = { new TextBlock { Text = label, FontSize = 11, Foreground = (Brush)Application.Current.FindResource("OverlaySubtle") }, s },
         };
     }
 

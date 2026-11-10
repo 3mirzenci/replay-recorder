@@ -51,7 +51,6 @@ sealed class TrimTimeline : FrameworkElement
     int _levelsPerSecond = 10;
     double _gameGain, _micGain, _discordGain;
     double _gameTop, _micTop, _discordTop; // loudest level of each track (dBFS)
-    static readonly Brush DiscordBrush = Frozen(Color.FromRgb(0x58, 0x65, 0xF2));
     const double RangeDb = 30; // a bar is empty this far below its track's loudest moment
     const double FullDb = -20; // quietest level that can still fill a bar
 
@@ -77,7 +76,6 @@ sealed class TrimTimeline : FrameworkElement
     bool InsideRange(double x) => IsTrimmed && x > X(_in) + 8 && x < X(_out) - 8;
 
     static readonly Brush Head = Frozen(Colors.White);
-    static readonly Brush Tick = Frozen(Color.FromRgb(0x6b, 0x6f, 0x7a));
     // Theme colours, looked up on each render so a theme switch shows on the next frame.
     Color Res(string key) => ((SolidColorBrush)FindResource(key)).Color;
     static readonly Typeface Face = new("Segoe UI");
@@ -110,7 +108,8 @@ sealed class TrimTimeline : FrameworkElement
         if (_duration <= 0) return;
 
         var accent = Res("Accent");
-        var sub = Res("Subtle");
+        var game = Res("GameTrack");
+        var Tick = Frozen(Res("Tick"));
         var bg = Res("Bg");
         var Range = Frozen(Color.FromArgb(0x38, accent.R, accent.G, accent.B));
         var Dim = Frozen(Color.FromArgb(0xb0, bg.R, bg.G, bg.B));
@@ -119,9 +118,9 @@ sealed class TrimTimeline : FrameworkElement
         // The kept range is tinted only once you've trimmed; the sound bars go on top of it, the dimming over them.
         if (IsTrimmed)
             foreach (var s in strips) dc.DrawRectangle(Range, null, new Rect(xi, s.Top, Math.Max(0, xo - xi), s.Height));
-        DrawLevels(dc, strips[0], _game, _gameGain + RangeDb - _gameTop, Frozen(Color.FromArgb(0xd0, sub.R, sub.G, sub.B)));
+        DrawLevels(dc, strips[0], _game, _gameGain + RangeDb - _gameTop, Frozen(Color.FromArgb(0xd0, game.R, game.G, game.B)));
         if (strips.Length > 1) DrawLevels(dc, strips[1], _mic, _micGain + RangeDb - _micTop, Frozen(accent));
-        if (strips.Length > 2) DrawLevels(dc, strips[2], _discord, _discordGain + RangeDb - _discordTop, DiscordBrush);
+        if (strips.Length > 2) DrawLevels(dc, strips[2], _discord, _discordGain + RangeDb - _discordTop, Frozen(Res("DiscordTrack")));
         foreach (var s in strips)
         {
             dc.DrawRectangle(Dim, null, new Rect(Pad, s.Top, Math.Max(0, xi - Pad), s.Height));

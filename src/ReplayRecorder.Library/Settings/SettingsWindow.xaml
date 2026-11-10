@@ -198,7 +198,7 @@
                             <TextBlock Text="Monitor to record" Style="{StaticResource Label}"/>
                             <ComboBox x:Name="MonitorBox" Grid.Column="1" SelectionChanged="MonitorBox_SelectionChanged"/>
                         </Grid>
-                        <TextBlock x:Name="MonitorWarning" Style="{StaticResource Hint}" Foreground="#E5A84B" Visibility="Collapsed" Margin="230,-4,0,6"/>
+                        <TextBlock x:Name="MonitorWarning" Style="{StaticResource Hint}" Foreground="{DynamicResource Warn}" Visibility="Collapsed" Margin="230,-4,0,6"/>
                         <Grid Style="{StaticResource Row}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/></Grid.ColumnDefinitions>
                             <TextBlock Text="Resolution" Style="{StaticResource Label}"/>
@@ -267,7 +267,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Level" Style="{StaticResource Label}" Foreground="{DynamicResource Subtle}"/>
                             <Border Grid.Column="1" Height="8" CornerRadius="4" Background="{DynamicResource Line}" ClipToBounds="True">
-                                <Border x:Name="SysMeter" HorizontalAlignment="Left" Width="0" CornerRadius="4" Background="#2ECC71"/>
+                                <Border x:Name="SysMeter" HorizontalAlignment="Left" Width="0" CornerRadius="4" Background="{DynamicResource Good}"/>
                             </Border>
                             <TextBlock x:Name="SysMeterText" Grid.Column="2" Style="{StaticResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
                         </Grid>
@@ -322,7 +322,7 @@
                                 <TextBlock Text="Talk normally: aim for the bar to reach the middle" Style="{StaticResource Hint}"/>
                             </StackPanel>
                             <Border Grid.Column="1" Height="8" CornerRadius="4" Background="{DynamicResource Line}" ClipToBounds="True" VerticalAlignment="Center">
-                                <Border x:Name="MicMeter" HorizontalAlignment="Left" Width="0" CornerRadius="4" Background="#2ECC71"/>
+                                <Border x:Name="MicMeter" HorizontalAlignment="Left" Width="0" CornerRadius="4" Background="{DynamicResource Good}"/>
                             </Border>
                             <TextBlock x:Name="MicMeterText" Grid.Column="2" Style="{StaticResource Hint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
                         </Grid>

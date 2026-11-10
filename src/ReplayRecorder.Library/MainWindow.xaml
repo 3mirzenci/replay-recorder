@@ -124,7 +124,7 @@
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Margin="10,0,0,0" FontFamily="{DynamicResource NumFont}"
                                                    Foreground="{DynamicResource Subtle}"/>
                                         <TextBlock x:Name="star" DockPanel.Dock="Left" Text="&#xE735;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                   Foreground="#FFC83D" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                   Foreground="{DynamicResource Star}" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                         <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
                                     </DockPanel>
                                     <DataTemplate.Triggers>
@@ -354,7 +354,7 @@
                                     <DataTrigger Binding="{Binding IsFavorite}" Value="True">
                                         <Setter TargetName="star" Property="Opacity" Value="1"/>
                                         <Setter TargetName="starGlyph" Property="Text" Value="&#xE735;"/>
-                                        <Setter TargetName="starGlyph" Property="Foreground" Value="#FFC83D"/>
+                                        <Setter TargetName="starGlyph" Property="Foreground" Value="{DynamicResource Star}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}" Value="wall">
                                         <Setter TargetName="overlay" Property="Visibility" Value="Visible"/>

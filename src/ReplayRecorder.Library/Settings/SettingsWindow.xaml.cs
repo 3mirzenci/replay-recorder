@@ -183,8 +183,7 @@ public partial class SettingsWindow : Window
             db = Math.Min(0, db);
             double f = Math.Clamp((db + 60) / 60, 0, 1); // -60..0 dBFS
             bar.Width = f * ((FrameworkElement)bar.Parent).ActualWidth;
-            bar.Background = new System.Windows.Media.SolidColorBrush(db > -3 ? System.Windows.Media.Color.FromRgb(0xE5, 0x53, 0x4B)
-                : db > -12 ? System.Windows.Media.Color.FromRgb(0xE5, 0xA8, 0x4B) : System.Windows.Media.Color.FromRgb(0x2E, 0xCC, 0x71));
+            bar.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, db > -3 ? "Bad" : db > -12 ? "Warn" : "Good");
             label.Text = db <= -59 ? "silent" : $"{db:0} dB";
         }
     }
