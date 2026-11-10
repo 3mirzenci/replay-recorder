@@ -44,7 +44,7 @@ sealed class TrayApp : ApplicationContext
         _startupItem = new ToolStripMenuItem("Start with Windows".T(), null, (_, _) => ToggleStartup()) { Checked = Autostart.IsEnabled };
         _updateItem = new ToolStripMenuItem("Install update".T(), null, (_, _) => InstallUpdate()) { Visible = false, Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) }.WithIcon('\uE896');
 
-        var menu = new ContextMenuStrip();
+        var menu = new TrayMenu.Menu();
         menu.Items.AddRange(new ToolStripItem[]
         {
             _statusItem,

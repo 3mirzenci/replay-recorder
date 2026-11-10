@@ -42,6 +42,30 @@ static class TrayMenu
         };
     }
 
+    /// <summary>
+    /// A menu that never takes focus, like native tray menus: hovering it must not deactivate the taskbar's
+    /// hidden-icons flyout it was opened from, or that flyout closes under the mouse. Clicks still work.
+    /// </summary>
+    public sealed class Menu : ContextMenuStrip
+    {
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+                return cp;
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_MOUSEACTIVATE = 0x0021, MA_NOACTIVATE = 3;
+            if (m.Msg == WM_MOUSEACTIVATE) { m.Result = MA_NOACTIVATE; return; }
+            base.WndProc(ref m);
+        }
+    }
+
     public static void SetAccent(ContextMenuStrip menu, Color accent) => menu.Renderer = new Renderer(accent);
 
     /// <summary>Gives a menu item an icon: a Segoe Fluent Icons glyph the renderer draws beside its text.</summary>
