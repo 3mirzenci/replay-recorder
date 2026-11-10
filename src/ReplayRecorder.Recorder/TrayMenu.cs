@@ -28,12 +28,12 @@ static class TrayMenu
         menu.Renderer = new Renderer(accent);
         menu.BackColor = Bg;
         menu.ForeColor = Fore;
-        menu.Font = new Font("Segoe UI", 9.75f);
+        menu.Font = new Font("Segoe UI", 9f);
         menu.ShowImageMargin = true;
-        menu.ImageScalingSize = new Size(20, 20); // width of the icon margin
-        menu.Padding = new Padding(4, 6, 4, 6);
+        menu.ImageScalingSize = new Size(16, 16); // width of the icon margin
+        menu.Padding = new Padding(3, 4, 3, 4);
         foreach (ToolStripItem item in menu.Items)
-            if (item is ToolStripMenuItem) item.Padding = new Padding(4, 5, 12, 5);
+            if (item is ToolStripMenuItem) item.Padding = new Padding(2, 1, 8, 1);
         // Windows 11 rounds menus it draws itself; ask the same for this one (ignored on Windows 10).
         menu.HandleCreated += (_, _) =>
         {
@@ -48,7 +48,7 @@ static class TrayMenu
     public static T WithIcon<T>(this T item, char glyph) where T : ToolStripItem { item.Tag = glyph; return item; }
 
     // Drawn as font text, not a bitmap: sharp at any display scaling, and centred on the text line.
-    static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 10.5f);
+    static readonly Font IconFont = new(FontFamily.Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets", 9.5f);
 
     /// <summary>
     /// Draws the icon's actual shape centred in <paramref name="box"/> across and on <paramref name="centerY"/>
