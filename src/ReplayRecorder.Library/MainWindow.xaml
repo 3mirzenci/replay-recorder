@@ -59,7 +59,7 @@
         <!-- Day header in the grid, also used for the sticky header at the top while scrolling.
              DataContext is the CollectionViewGroup; Name is the shared DayGroup. -->
                     <DataTemplate x:Key="DayHeaderTemplate">
-                        <Border Background="Transparent" Cursor="Hand" Padding="8,22,8,4" HorizontalAlignment="Left"
+                        <Border Background="Transparent" Cursor="Hand" Padding="18,22,8,4" HorizontalAlignment="Left"
                                 MouseLeftButtonDown="DayHeader_Click" ToolTip="Select every clip from this day">
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="chk" Width="18" Height="18" CornerRadius="9" BorderThickness="1.5"
@@ -107,19 +107,20 @@
             </Rectangle>
 
             <!-- Top bar: app, game filter, search, folder and settings (a box in Classic only) -->
-            <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="14,10">
+            <Border CornerRadius="{DynamicResource PanelRadius}" Background="{DynamicResource PanelBg}" Padding="22,12">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
-                        <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource Accent}">
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
+                        <Border Width="26" Height="26" CornerRadius="8" Background="{DynamicResource Accent}">
                             <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource OnAccent}"/>
                         </Border>
-                        <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Replay Recorder" FontFamily="{DynamicResource DisplayFont}" FontSize="15.5" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                         <!-- Not shown: their text feeds the two buttons' hover text -->
                         <TextBlock x:Name="StorageText" Visibility="Collapsed"/>
                         <TextBlock x:Name="VersionText" Visibility="Collapsed"/>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" Margin="0,0,10,0" TextChanged="SearchBox_TextChanged"/>
                         <Button x:Name="OpenFolderBtn" Style="{StaticResource RoundBtn}" Click="OpenFolder_Click"
                                 ToolTip="{Binding Text, ElementName=StorageText}" ToolTipService.ShowDuration="20000">
                             <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"/>
@@ -147,7 +148,6 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <TextBox x:Name="SearchBox" Style="{StaticResource Search}" Width="230" Margin="14,0,0,0" TextChanged="SearchBox_TextChanged"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -166,7 +166,7 @@
                         </Border.OpacityMask>
                     </Border>
                     <!-- One row: title and count, sort tabs at the right end -->
-                    <DockPanel Margin="24,14,20,0">
+                    <DockPanel Margin="22,22,22,0">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
                             <RadioButton Style="{StaticResource SegRadio}" Content="Newest" IsChecked="True" Tag="newest" Checked="Sort_Checked" GroupName="sort"/>
                             <RadioButton Style="{StaticResource SegRadio}" Content="Oldest" Tag="oldest" Checked="Sort_Checked" GroupName="sort"/>
@@ -182,7 +182,7 @@
                 </Grid>
 
                 <!-- Shown when GitHub has a newer release -->
-                <Border x:Name="UpdatePanel" DockPanel.Dock="Top" Visibility="Collapsed" Margin="24,8,24,4" Padding="14,10" CornerRadius="8"
+                <Border x:Name="UpdatePanel" DockPanel.Dock="Top" Visibility="Collapsed" Margin="22,8,22,4" Padding="14,10" CornerRadius="8"
                         HorizontalAlignment="Left" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Accent}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal">
                         <StackPanel VerticalAlignment="Center" MaxWidth="420">
@@ -196,7 +196,7 @@
                 </Border>
 
                 <!-- Selection bar: actions for every selected clip -->
-                <Border x:Name="SelectionBar" DockPanel.Dock="Bottom" Visibility="Collapsed" Margin="24,0,24,16" Padding="14,10"
+                <Border x:Name="SelectionBar" DockPanel.Dock="Bottom" Visibility="Collapsed" Margin="22,0,22,16" Padding="14,10"
                         Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -256,7 +256,7 @@
                 </Border>
 
                 <Grid>
-                    <ListBox x:Name="ClipGrid" Background="Transparent" BorderThickness="0" Padding="16,0,16,16"
+                    <ListBox x:Name="ClipGrid" Background="Transparent" BorderThickness="0" Padding="4,0,10,16"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionMode="Extended" IsSynchronizedWithCurrentItem="False"
                              VirtualizingPanel.IsVirtualizing="False" SelectionChanged="ClipGrid_SelectionChanged"
                              PreviewMouseLeftButtonDown="ClipGrid_LeftDown" PreviewMouseLeftButtonUp="ClipGrid_LeftUp" KeyDown="ClipGrid_KeyDown"
