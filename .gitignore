@@ -13,3 +13,6 @@ obj/
 
 # ffmpeg-capture build tree (ffmpeg/build.sh)
 ffmpeg/.work/
+
+tools/presentmon/
+bench-results/
