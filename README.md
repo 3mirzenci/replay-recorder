@@ -2,7 +2,7 @@
 
 A lightweight instant-replay recorder for Windows, an alternative to SteelSeries Moments and NVIDIA ShadowPlay. Press **Alt+.** to save the last 60 seconds. Clips keep your game, your mic and your Discord call on separate tracks, and you can export any clip for Discord in one click: it's guaranteed to fit under the upload limit.
 
-![The Replay Recorder library with CS2 clips](assets/library-screenshot.png)
+![The Replay Recorder library with Valorant clips](assets/library-modern.png)
 
 ## ⬇️ Download
 
@@ -36,7 +36,10 @@ Nothing is injected into games, so it's safe with anti-cheats like Vanguard and 
   - While anything is selected, a click selects or unselects a clip instead of opening it.
   - The bar at the bottom can open, show in folder, copy files, export everything for Discord (each clip keeps its saved trim and volumes) or delete.
 - **Right-click** gives the same actions, plus Rename (F2) and favorites.
-- **Sound bars:** the timeline under a playing clip is two bars, game + voice chat on top and your mic below, showing how loud each was across the clip, so the action stands out. They follow the game and mic volume sliders. Drag the trim handles across them as usual.
+- **Sound bars:** the timeline under a playing clip shows how loud the game, your mic and your Discord call were across the clip, one row each, so the action stands out. Each row has its own volume slider next to it. Drag the trim handles across them as usual.
+
+  ![The player: a clip with its game, mic and Discord sound rows, trim frame and Export for Discord](assets/player-modern.png)
+
 - **Fullscreen:** the button next to the frame steps, or **F**, shows just the video with a see-through bar for play/pause, seeking and the game/mic volume. Esc or F comes back.
 - **Large libraries stay light:** thumbnails are only loaded for clips on or near the screen. With 1000 clips the library opens in about 2 s and uses about 250 MB.
 - **English and Turkish**, switchable live in Settings without a restart.
