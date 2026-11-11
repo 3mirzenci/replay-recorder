@@ -85,9 +85,9 @@ sealed class WasapiSource : IDisposable, IMMNotificationClient
         var role = _loopback ? Role.Multimedia : Role.Communications;
         if (!_enumerator.HasDefaultAudioEndpoint(flow, role)) return null;
         var def = _enumerator.GetDefaultAudioEndpoint(flow, role);
-        if (_loopback && IsVirtual(def))
+        if (_loopback && OutputDevices.IsVirtual(def.FriendlyName))
         {
-            var physical = PhysicalOutputFor(def);
+            var physical = OutputDevices.PhysicalOutputFor(_enumerator, def);
             if (physical != null)
             {
                 Log.Info($"{Kind}: default output \"{def.FriendlyName}\" is a virtual device (its loopback is silent); " +
@@ -98,43 +98,6 @@ sealed class WasapiSource : IDisposable, IMMNotificationClient
             Log.Warn($"{Kind}: default output \"{def.FriendlyName}\" looks virtual and no physical output was found; clips may be silent");
         }
         return def;
-    }
-
-    /// <summary>
-    /// Virtual mixers (NGENUITY, Sonar, VB-Cable, Voicemeeter...) present a fake output and forward
-    /// the mix to the real device in their own process; WASAPI loopback of the fake one is silent.
-    /// </summary>
-    public static bool IsVirtual(MMDevice d)
-    {
-        var n = d.FriendlyName;
-        return n.Contains("Virtual", StringComparison.OrdinalIgnoreCase)
-            || n.Contains("Sonar", StringComparison.OrdinalIgnoreCase)
-            || n.Contains("NGENUITY", StringComparison.OrdinalIgnoreCase)
-            || n.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase)
-            || n.Contains("Voicemeeter", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>Picks the physical output a virtual device most likely routes to.</summary>
-    MMDevice? PhysicalOutputFor(MMDevice virtualDev)
-    {
-        var candidates = _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-            .Where(d => !IsVirtual(d)).ToList();
-        if (candidates.Count == 0) return null;
-
-        // 1) Same brand as the virtual device, e.g. "HyperX Virtual Audio Device" -> "HyperX Cloud III".
-        var brand = virtualDev.FriendlyName.Split('(', ')', ' ', '-')
-            .FirstOrDefault(w => w.Length > 3 && candidates.Any(c => c.FriendlyName.Contains(w, StringComparison.OrdinalIgnoreCase))
-                                 && !w.Equals("Audio", StringComparison.OrdinalIgnoreCase));
-        var pick = brand == null ? null : candidates.First(c => c.FriendlyName.Contains(brand, StringComparison.OrdinalIgnoreCase));
-
-        // 2) Otherwise a USB/Bluetooth headset, 3) otherwise anything that isn't a monitor's HDMI/DP audio.
-        pick ??= candidates.FirstOrDefault(c => c.FriendlyName.Contains("Headset", StringComparison.OrdinalIgnoreCase)
-                                                || c.FriendlyName.Contains("USB", StringComparison.OrdinalIgnoreCase));
-        pick ??= candidates.FirstOrDefault(c => !c.FriendlyName.Contains("High Definition Audio", StringComparison.OrdinalIgnoreCase)
-                                                && !c.FriendlyName.Contains("Display Audio", StringComparison.OrdinalIgnoreCase));
-        pick ??= candidates[0];
-        foreach (var c in candidates) if (c != pick) c.Dispose();
-        return pick;
     }
 
     void OnData(object? sender, WaveInEventArgs e)

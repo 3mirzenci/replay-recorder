@@ -214,6 +214,15 @@ public partial class SettingsWindow : Window
         {
             Error("Put the Discord exports folder outside the clips folder, so exports don't show up as clips.".T()); return;
         }
+        // Newly on, or fewer days: say how many clips the next round deletes before it happens.
+        if (AutoDeleteBox.IsChecked == true && (!_s.AutoDelete || days < _s.AutoDeleteDays))
+        {
+            var due = AutoDelete.Due(new ClipIndex(ClipsFolderBox.Text.Trim()).Scan(), (int)Math.Round(days), p => ClipEdits.Get(p).Favorite, DateTime.Now);
+            if (due.Count > 0 && MessageBox.Show(this,
+                    (due.Count == 1 ? "Auto-delete will delete 1 clip older than {0} days for good. Favorites are kept.\n\nTurn it on?"
+                                    : "Auto-delete will delete {1} clips older than {0} days for good. Favorites are kept.\n\nTurn it on?").T((int)Math.Round(days), due.Count),
+                    "Auto-delete".T(), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) != MessageBoxResult.OK) return;
+        }
 
         _s.BufferSeconds = (int)(Math.Round(BufferSlider.Value / 5) * 5);
         _s.SaveClipHotkey = SaveHotkey.Value;

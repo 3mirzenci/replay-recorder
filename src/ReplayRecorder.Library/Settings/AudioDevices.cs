@@ -11,15 +11,14 @@ sealed record DeviceChoice(string Id, string Label)
 
 static class AudioDevices
 {
-    static bool IsVirtual(string name) =>
-        new[] { "Virtual", "Sonar", "NGENUITY", "VB-Audio", "Voicemeeter" }.Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase));
-
     public static List<DeviceChoice> Outputs()
     {
-        var list = new List<DeviceChoice> { new("", "Automatic (real device behind the Windows default)".T()) };
         using var en = new MMDeviceEnumerator();
+        using var auto = OutputDevices.Automatic(en);
+        // Shows the device "Automatic" lands on, so a wrong guess (e.g. two USB headsets) is visible and can be overridden.
+        var list = new List<DeviceChoice> { new("", auto == null ? "Automatic (real device behind the Windows default)".T() : "Automatic (now: {0})".T(auto.FriendlyName)) };
         foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
-            list.Add(new(d.ID, IsVirtual(d.FriendlyName) ? "{0}  (virtual: may record silence)".T(d.FriendlyName) : d.FriendlyName));
+            list.Add(new(d.ID, OutputDevices.IsVirtual(d.FriendlyName) ? "{0}  (virtual: may record silence)".T(d.FriendlyName) : d.FriendlyName));
         return list;
     }
 
@@ -55,20 +54,7 @@ sealed class LevelMeter : IDisposable
             using var en = new MMDeviceEnumerator();
             MMDevice dev;
             if (!string.IsNullOrEmpty(deviceId)) dev = en.GetDevice(deviceId);
-            else if (loopback)
-            {
-                // Same rule as the recorder: a virtual default output is replaced by the real one.
-                dev = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-                if (dev.FriendlyName.Contains("Virtual", StringComparison.OrdinalIgnoreCase) || dev.FriendlyName.Contains("NGENUITY", StringComparison.OrdinalIgnoreCase)
-                    || dev.FriendlyName.Contains("Sonar", StringComparison.OrdinalIgnoreCase))
-                {
-                    var brand = dev.FriendlyName.Split('(', ')', ' ', '-').FirstOrDefault(w => w.Length > 3 &&
-                        en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Any(o => o.FriendlyName.Contains(w) && !o.FriendlyName.Contains("Virtual")));
-                    var real = en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                        .FirstOrDefault(o => !o.FriendlyName.Contains("Virtual") && !o.FriendlyName.Contains("NGENUITY") && (brand == null || o.FriendlyName.Contains(brand)));
-                    if (real != null) dev = real;
-                }
-            }
+            else if (loopback) dev = OutputDevices.Automatic(en) ?? throw new InvalidOperationException("no output");
             else dev = en.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
 
             _cap = loopback ? new WasapiLoopbackCapture(dev) : new WasapiCapture(dev, true, 30);

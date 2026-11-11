@@ -9,7 +9,7 @@ public sealed record ExportPlan(int Width, int Height, int Fps, int VideoKbps, i
 {
     public string Describe() => StreamCopy
         ? "{0}p (original quality, no re-encode)".T(Height)
-        : $"{Height}p{Fps} · {VideoKbps / 1000.0:0.0} Mbps · {(Encoder == "h264_nvenc" ? "NVENC" : "x264")}";
+        : string.Create(Lang.Culture, $"{Height}p{Fps} · {VideoKbps / 1000.0:0.0} Mbps · {(Encoder == "h264_nvenc" ? "NVENC" : "x264")}");
 }
 
 public sealed record ExportResult(string Path, long SizeBytes, ExportPlan Plan, int Attempts, TimeSpan Elapsed);

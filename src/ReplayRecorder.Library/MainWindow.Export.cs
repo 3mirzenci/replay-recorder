@@ -59,7 +59,7 @@ public partial class MainWindow
             _exportPath = r.Path;
             SetExportBar(1);
             ExportStatus.Text = "Ready for Discord".T();
-            ExportSizeText.Text = $"{r.SizeBytes / 1e6:0.0} MB";
+            ExportSizeText.Text = string.Create(Lang.Culture, $"{r.SizeBytes / 1e6:0.0} MB");
             ExportDetail.Text = $"{r.Plan.Describe()} · {r.Elapsed.TotalSeconds:0}s" +
                                 (r.Attempts > 1 ? " · {0} passes to fit".T(r.Attempts) : "") +
                                 (r.Plan.StreamCopy ? " · starts at the nearest keyframe".T() : "");

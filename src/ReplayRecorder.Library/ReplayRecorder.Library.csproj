@@ -14,16 +14,6 @@
     <ApplicationIcon>..\..\assets\replayrecorder.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- WinForms only for the Windows colour picker (Settings > Accent colour > Custom). Its global usings
-       would clash with WPF names (Button, Color, Brush...), so code names it in full instead. -->
-  <PropertyGroup>
-    <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-  <ItemGroup>
-    <Using Remove="System.Windows.Forms" />
-    <Using Remove="System.Drawing" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\ReplayRecorder.Core\ReplayRecorder.Core.csproj" />
   </ItemGroup>
