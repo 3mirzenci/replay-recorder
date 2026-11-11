@@ -96,7 +96,7 @@ You can also drag the handles at both ends of the timeline. Trim and volumes are
 
 ## Performance
 
-Replay Recorder 1.2.1, measured on a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty. Two matches of the same mode, Discord closed: one with no recorder (Mumbai) and one with Replay Recorder (Shoot House), saving 19 clips during it, about one every 30 seconds. Replay Recorder recorded **1080p60**, "Balanced" quality, a 60-second replay with the buffer on disk, the same settings as the comparison below. The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon), counting only gameplay (loading and end-of-match screens cut).
+Replay Recorder 1.2.1, measured on a laptop with an RTX 4060 Laptop GPU and a 1440p 144 Hz screen, playing Call of Duty. Two matches of the same mode, Discord closed: one with no recorder and one with Replay Recorder, saving 19 clips during it, about one every 30 seconds. The matches were on different maps (Mumbai without the recorder, Shoot House with it), since maps are random in matchmaking, so treat the FPS comparison as approximate. Replay Recorder recorded **1080p60**, "Balanced" quality, a 60-second replay with the buffer on disk, the same settings as the comparison below. The game's FPS was logged with [PresentMon](https://github.com/GameTechDev/PresentMon), counting only gameplay (loading and end-of-match screens cut).
 
 | | No recorder | Replay Recorder 1.2.1 |
 |---|---|---|
@@ -109,8 +109,8 @@ Replay Recorder 1.2.1, measured on a laptop with an RTX 4060 Laptop GPU and a 14
 | GPU | – | under 1 % (too little for Windows to show) |
 | Clip smoothness (new pictures) | – | 86–87 % |
 
-- **Game FPS:** the same with and without recording. The two maps differ a little, so a few tenths either way is normal.
-- **Saving clips:** no lag spikes. In the 5 seconds after each of the 19 saves, the slowest frame was 42 ms on average (67 ms at worst). Anywhere else in the match it was 41 ms. You can't tell from the game when a clip was saved.
+- **Saving clips:** no lag spikes. This is the most reliable result, because it compares moments within the same match: in the 5 seconds after each of the 19 saves, the slowest frame was 42 ms on average (67 ms at worst), and 41 ms anywhere else in the match. You can't tell from the game when a clip was saved.
+- **Game FPS:** about the same with and without recording (62.9 vs 62.6 average, 28.2 vs 28.2 1 % low). The two matches were on different maps, which can shift FPS by a few frames on their own, so this shows recording has no large cost, not an exact figure.
 - **Smoothness:** in three of the saved clips, 86–87 % of frames were new pictures (the rest repeat because the game itself didn't reach 60 FPS every moment), about the same as NVIDIA's own recorder (88 %). Measured as described in [Measuring resource use](#measuring-resource-use).
 
 To run the same test on your own PC, see [Measuring resource use](#measuring-resource-use).
@@ -134,7 +134,7 @@ The two numbers in a cell are the two matches. Matches vary by a few FPS on thei
 - **RAM:** about a quarter of Moments'. Moments also starts a separate ffmpeg for each saved clip, on top of its total.
 - **CPU and encoder:** about the same.
 - **GPU:** Moments was lighter in 1.0.8. Since 1.0.10 Replay Recorder records through its own small capture ffmpeg (see [How recording works](#how-recording-works)), and GPU use in the same game dropped from 4.1–4.6 % to **under 1 %** (one match measured).
-- **Smoothness:** in 1.0.10 about 90 % of a clip's frames are new pictures in a fast game, about the same as NVIDIA's own recorder (88 %). In 1.0.8 it was about half.
+- **Smoothness:** in 1.0.10 about 90 % of a clip's frames are new pictures in a fast game, about the same as NVIDIA's own recorder (88 %).
 
 This is one game on one PC, so your numbers will differ.
 
