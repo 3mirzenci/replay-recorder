@@ -67,7 +67,15 @@ public partial class MainWindow
         try
         {
             var levels = await _index.EnsureLevelsAsync(c.Clip, _cts.Token);
-            if (levels is var (game, mic, discord) && _current == c) Timeline.SetLevels(game, mic, discord, ClipIndex.LevelsPerSecond);
+            if (levels is not var (game, mic, discord) || _current != c) return;
+            // Discord wasn't running (its track is silence, -100 dB): drop the empty lane and its slider.
+            if (discord is { Length: > 0 } && discord.Max() < -60)
+            {
+                discord = null;
+                DiscordMix.Visibility = Visibility.Collapsed;
+                Timeline.Lanes = 2;
+            }
+            Timeline.SetLevels(game, mic, discord, ClipIndex.LevelsPerSecond);
         }
         catch (OperationCanceledException) { }
     }
