@@ -247,4 +247,18 @@ public class AccentTextTests
         byte C(int i) => Convert.ToByte(hex.Substring(i, 2), 16);
         Assert.Equal(dark, ColorContrast.DarkTextOn(C(0), C(2), C(4)));
     }
+
+    [Theory]
+    [InlineData("FFC21A")]
+    [InlineData("3B5BFF")]
+    [InlineData("000000")]
+    [InlineData("FFFFFF")]
+    [InlineData("8B7CFF")]
+    [InlineData("2ED3E6")]
+    public void Hsv_round_trips_to_the_same_colour(string hex)
+    {
+        byte C(int i) => Convert.ToByte(hex.Substring(i, 2), 16);
+        var (h, s, v) = ColorHsv.FromRgb(C(0), C(2), C(4));
+        Assert.Equal((C(0), C(2), C(4)), ColorHsv.ToRgb(h, s, v));
+    }
 }

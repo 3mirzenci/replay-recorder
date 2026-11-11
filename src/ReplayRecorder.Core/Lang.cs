@@ -219,6 +219,8 @@ public static class Lang
         ["Auto: the look's own colour"] = "Otomatik: görünümün kendi rengi",
         ["Pick any colour"] = "İstediğin rengi seç",
         ["Custom…"] = "Özel…",
+        ["Use colour"] = "Rengi kullan", ["Custom colour"] = "Özel renk", ["Colour code"] = "Renk kodu",
+        ["This colour may be hard to see on the dark background."] = "Bu renk koyu arka planda zor görünebilir.",
         ["Amber"] = "Kehribar", ["Blue"] = "Mavi", ["Cyan"] = "Camgöbeği", ["Green"] = "Yeşil", ["Orange"] = "Turuncu",
         ["Pink"] = "Pembe", ["Red"] = "Kırmızı", ["Violet"] = "Mor",
         ["Modern"] = "Modern",

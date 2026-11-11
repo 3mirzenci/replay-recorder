@@ -314,10 +314,10 @@ public partial class SettingsWindow : Window
 
     void CustomAccent_Click(object sender, RoutedEventArgs e)
     {
-        using var dlg = new System.Windows.Forms.ColorDialog { FullOpen = true };
-        if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+        var picked = ColorPicker.Ask(this, ((System.Windows.Media.SolidColorBrush)FindResource("Accent")).Color);
+        if (picked == null) return;
         foreach (var rb in AccentSwatches.Children.OfType<RadioButton>()) rb.IsChecked = false;
-        _accent = $"#{dlg.Color.R:X2}{dlg.Color.G:X2}{dlg.Color.B:X2}";
+        _accent = picked;
         PreviewLook();
     }
 
