@@ -107,9 +107,11 @@ Replay Recorder 1.2.1, measured on a laptop with an RTX 4060 Laptop GPU and a 14
 | Recorder RAM | – | ~265 MB |
 | GPU video encoder | – | 11 % |
 | GPU | – | under 1 % (too little for Windows to show) |
+| Clip smoothness (new pictures) | – | 86–87 % |
 
 - **Game FPS:** the same with and without recording. The two maps differ a little, so a few tenths either way is normal.
 - **Saving clips:** no lag spikes. In the 5 seconds after each of the 19 saves, the slowest frame was 42 ms on average (67 ms at worst). Anywhere else in the match it was 41 ms. You can't tell from the game when a clip was saved.
+- **Smoothness:** in three of the saved clips, 86–87 % of frames were new pictures (the rest repeat because the game itself didn't reach 60 FPS every moment), about the same as NVIDIA's own recorder (88 %). Measured as described in [Measuring resource use](#measuring-resource-use).
 
 To run the same test on your own PC, see [Measuring resource use](#measuring-resource-use).
 
