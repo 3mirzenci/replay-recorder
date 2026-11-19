@@ -1,4 +1,5 @@
-﻿// Usage: ExportTest <clip.mp4> [in] [out] [--x264]
+﻿// Usage: ExportTest <clip.mp4> [in] [out] [--x264] [--save]
+// --save runs "Save trimmed clip" instead (writes the new clip next to the original).
 // Exports with the same code path as the library's button and prints the result.
 using System.Globalization;
 using ReplayRecorder.Core;
@@ -12,6 +13,12 @@ var s = Settings.Load();
 s.ExportFolder = Path.Combine(Path.GetTempPath(), "replayrecorder-export-test");
 var edit = new ClipEdit { In = In(1), Out = In(2) };
 var progress = new Progress<(double F, string S)>(p => { });
+if (args.Contains("--save"))
+{
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    Console.WriteLine($"saved {await ClipTrimmer.SaveAsync(clip, edit, s, progress)} in {sw.Elapsed.TotalSeconds:0.0}s");
+    return;
+}
 var r = await DiscordExporter.ExportAsync(clip, edit, s, progress);
 double len = edit.EffectiveOut(clip.Duration) - edit.In;
 Console.WriteLine(string.Create(CultureInfo.InvariantCulture,

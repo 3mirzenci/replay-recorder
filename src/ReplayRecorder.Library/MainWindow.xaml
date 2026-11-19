@@ -582,6 +582,13 @@
                                    Typography.NumeralAlignment="Tabular"/>
                         <TextBlock x:Name="ExportLineSub" HorizontalAlignment="Right" Foreground="{DynamicResource Subtle}" FontSize="12" Margin="0,1,0,0"/>
                     </StackPanel>
+                    <Button x:Name="SaveTrimBtn" AutomationProperties.Name="Save trimmed clip" Padding="14,8" Margin="0,0,6,0" Click="SaveTrim_Click"
+                            ToolTip="Save the trimmed range as a new clip in the library (S)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="Save trimmed clip" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="ExportBtn" Style="{StaticResource AccentBtn}" AutomationProperties.Name="Export for Discord" Padding="14,8" Click="Export_Click"
                             ToolTip="Export the trimmed range as an MP4 under the Discord size limit (E)">
                         <StackPanel Orientation="Horizontal">
@@ -619,7 +626,7 @@
                         </StackPanel>
                     </Border>
 
-                    <StackPanel Grid.Column="1" Margin="18,0" VerticalAlignment="Center">
+                    <StackPanel x:Name="ExportInfo" Grid.Column="1" Margin="18,0" VerticalAlignment="Center">
                         <DockPanel>
                             <TextBlock x:Name="ExportSizeText" DockPanel.Dock="Right" FontWeight="SemiBold" FontSize="13"/>
                             <TextBlock x:Name="ExportStatus" FontSize="13" TextTrimming="CharacterEllipsis"/>
@@ -634,6 +641,9 @@
                         <Button x:Name="CopyFileBtn" Content="Copy file" Click="CopyFile_Click" Margin="0,0,6,0" IsEnabled="False"
                                 ToolTip="Then press Ctrl+V in Discord"/>
                         <Button x:Name="OpenExportBtn" Content="Open folder" Click="OpenExport_Click" Margin="0,0,6,0" IsEnabled="False"/>
+                        <Button x:Name="OpenTrimBtn" Content="Open new clip" Click="OpenTrim_Click" Margin="0,0,6,0" Visibility="Collapsed"/>
+                        <Button x:Name="DeleteOriginalBtn" Content="Delete original" Click="DeleteOriginal_Click" Margin="0,0,6,0" Visibility="Collapsed"
+                                ToolTip="Delete the long clip this was trimmed from (asks first, and you can undo)"/>
                         <Button x:Name="CancelExportBtn" Content="Cancel" Click="CancelExport_Click" Style="{StaticResource GhostBtn}"/>
                         <Button x:Name="CloseExportBtn" Click="CloseExport_Click" Style="{StaticResource GhostBtn}" Padding="8,6" Visibility="Collapsed" ToolTip="Close" AutomationProperties.Name="Close">
                             <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"/>

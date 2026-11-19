@@ -155,6 +155,7 @@ public partial class MainWindow
         double dur = Timeline.Duration;
         double len = _edit.EffectiveOut(dur) - _edit.In;
         TrimText.Text = _edit.IsTrimmed(dur) ? "Trimmed: {0} of {1}".T(TrimTimeline.Fmt(len), TrimTimeline.Fmt(dur)) : "";
+        SaveTrimBtn.IsEnabled = _edit.IsTrimmed(dur) && _exportCts == null; // an untrimmed copy would just be a second, bigger file
         UpdateExportLine();
     }
 
@@ -270,7 +271,7 @@ public partial class MainWindow
         }
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         // Fullscreen is for watching: no trimming, exporting or deleting from there.
-        if (_fullscreen != null && e.Key is Key.I or Key.O or Key.P or Key.E or Key.Delete) { e.Handled = true; return; }
+        if (_fullscreen != null && e.Key is Key.I or Key.O or Key.P or Key.E or Key.S or Key.Delete) { e.Handled = true; return; }
         switch (e.Key)
         {
             case Key.Space: _mpv?.TogglePause(); break;
@@ -286,6 +287,7 @@ public partial class MainWindow
             case Key.Home: _mpv?.Seek(_edit.In); break;
             case Key.End: _mpv?.Seek(Math.Max(_edit.In, _edit.EffectiveOut(Timeline.Duration) - 0.05)); break;
             case Key.E: _ = ExportCurrent(); break;
+            case Key.S: _ = SaveTrimmed(); break;
             case Key.F: SetFullscreen(_fullscreen == null); break;
             case Key.Escape: if (_fullscreen != null) SetFullscreen(false); else CloseClip(); break;
             case Key.Delete: if (_current != null) DeleteClips(new() { _current }); break;

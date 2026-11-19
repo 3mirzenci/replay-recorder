@@ -202,6 +202,21 @@ public static class Lang
         ["Analysing ({0})"] = "İnceleniyor ({0})",
         ["Done"] = "Bitti",
 
+        // save trimmed clip
+        ["Save trimmed clip"] = "Kırpılmış klibi kaydet",
+        ["Save the trimmed range as a new clip in the library (S)"] = "Kırpılan bölümü kitaplığa yeni bir klip olarak kaydet (S)",
+        ["Open new clip"] = "Yeni klibi aç",
+        ["Delete original"] = "Orijinali sil",
+        ["Delete the long clip this was trimmed from (asks first, and you can undo)"] = "Bunun kırpıldığı uzun klibi sil (önce sorar, geri alabilirsin)",
+        ["{0} trimmed"] = "{0} kırpılmış",
+        ["The trimmed clip is too short to save."] = "Kırpılan klip kaydetmek için çok kısa.",
+        ["Saving trimmed clip…"] = "Kırpılmış klip kaydediliyor…",
+        ["Saving failed. See the log for details."] = "Kaydedilemedi. Ayrıntılar için günlüğe bak.",
+        ["{0} of {1} · same quality, all audio tracks · the original is kept"] = "{1} içinden {0} · aynı kalite, tüm ses parçaları · orijinal korunur",
+        ["Saved to your library as \"{0}\""] = "Kitaplığına \"{0}\" olarak kaydedildi",
+        ["{0} clip · same quality, all audio tracks · you can delete the long original now"] = "{0} klip · aynı kalite, tüm ses parçaları · artık uzun orijinali silebilirsin",
+        ["Saving cancelled"] = "Kaydetme iptal edildi",
+
         // ---------------------------------------------------------------- settings
         ["Replay Recorder Settings"] = "Replay Recorder Ayarları",
         ["Save"] = "Kaydet",

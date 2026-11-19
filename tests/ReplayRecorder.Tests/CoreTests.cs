@@ -202,6 +202,20 @@ public class AutoDeleteTests
         var due = ReplayRecorder.Core.AutoDelete.Due(clips, 30, p => p == Star, now);
         Assert.Equal(new[] { Old }, due.Select(c => c.Path));
     }
+
+    [Theory]
+    [InlineData("CS2 2026-10-01 20-00-00", "CS2 trimmed")]
+    [InlineData("CS2 2026-10-01 20-00-00 (recording) (2)", "CS2 trimmed")]
+    [InlineData("big fight", "big fight trimmed")]
+    [InlineData("2026-10-01 20-00-00", "CS2 trimmed")] // nothing left of the name: use the game
+    public void SavedTrimsAreNamedWithoutTheDateSoAutoDeleteKeepsThem(string title, string expected)
+    {
+        Lang.Use("en");
+        var name = ClipTrimmer.TrimmedName(title, "CS2");
+        Assert.Equal(expected, name);
+        var trim = Clip($@"C:\Clips\CS2\{name}.mp4", new DateTime(2020, 1, 1));
+        Assert.Empty(ReplayRecorder.Core.AutoDelete.Due(new[] { trim }, 30, _ => false, DateTime.Now));
+    }
 }
 
 public class TrackLayoutTests

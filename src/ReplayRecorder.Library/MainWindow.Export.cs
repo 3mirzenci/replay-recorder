@@ -34,15 +34,9 @@ public partial class MainWindow
 
         _exportCts = new CancellationTokenSource();
         _exportPath = null;
-        ExportPanel.Visibility = Visibility.Visible;
-        ExportBtn.IsEnabled = false;
-        CopyFileBtn.IsEnabled = OpenExportBtn.IsEnabled = false;
-        CancelExportBtn.Visibility = Visibility.Visible;
-        CloseExportBtn.Visibility = Visibility.Collapsed;
+        ShowExportPanel(save: false);
         DragTile.Opacity = 0.4;
         ExportFileText.Text = "Preparing…".T();
-        ExportSizeText.Text = "";
-        ExportStatus.Foreground = (System.Windows.Media.Brush)FindResource("Text");
         ExportStatus.Text = "Starting export…".T();
         double len = edit.EffectiveOut(clip.Duration) - edit.In;
         ExportDetail.Text = "{0} clip · target {1:0.#} MB · original is never changed".T(TrimTimeline.Fmt(len), _settings.DiscordTargetMB);
@@ -82,12 +76,107 @@ public partial class MainWindow
         }
         finally
         {
-            _exportCts.Dispose();
-            _exportCts = null;
-            ExportBtn.IsEnabled = true;
-            CancelExportBtn.Visibility = Visibility.Collapsed;
-            CloseExportBtn.Visibility = Visibility.Visible;
+            EndExportPanel();
         }
+    }
+
+    /// <summary>The export panel, set up for a Discord export or for saving a trimmed clip (no Discord tile then).</summary>
+    void ShowExportPanel(bool save)
+    {
+        ExportPanel.Visibility = Visibility.Visible;
+        ExportBtn.IsEnabled = SaveTrimBtn.IsEnabled = false;
+        CopyFileBtn.IsEnabled = OpenExportBtn.IsEnabled = false;
+        var discord = save ? Visibility.Collapsed : Visibility.Visible;
+        DragTile.Visibility = CopyFileBtn.Visibility = OpenExportBtn.Visibility = discord;
+        ExportInfo.Margin = new Thickness(save ? 4 : 18, 0, 18, 0);
+        OpenTrimBtn.Visibility = DeleteOriginalBtn.Visibility = Visibility.Collapsed;
+        CancelExportBtn.Visibility = Visibility.Visible;
+        CloseExportBtn.Visibility = Visibility.Collapsed;
+        ExportSizeText.Text = "";
+        ExportStatus.Foreground = (System.Windows.Media.Brush)FindResource("Text");
+        SetExportBar(0);
+    }
+
+    void EndExportPanel()
+    {
+        _exportCts?.Dispose();
+        _exportCts = null;
+        ExportBtn.IsEnabled = true;
+        CancelExportBtn.Visibility = Visibility.Collapsed;
+        CloseExportBtn.Visibility = Visibility.Visible;
+        UpdateTrimText();
+    }
+
+    // ================================================================== save trimmed clip
+
+    ClipItem? _trimOriginal, _trimSaved;
+
+    async void SaveTrim_Click(object sender, RoutedEventArgs e) => await SaveTrimmed();
+
+    /// <summary>Saves the trimmed range as its own clip next to the original, then offers to delete the original.</summary>
+    async Task SaveTrimmed()
+    {
+        if (_current == null || _exportCts != null) return;
+        var original = _current;
+        var clip = original.Clip;
+        if (clip.Duration <= 0 && Timeline.Duration > 0) clip.Duration = Timeline.Duration;
+        if (!_edit.IsTrimmed(clip.Duration)) return; // the S key, while the button is greyed out
+        var edit = new ClipEdit { In = _edit.In, Out = _edit.Out, GameVolumeDb = _edit.GameVolumeDb, MicVolumeDb = _edit.MicVolumeDb, DiscordVolumeDb = _edit.DiscordVolumeDb };
+        double len = edit.EffectiveOut(clip.Duration) - edit.In;
+
+        _exportCts = new CancellationTokenSource();
+        _trimOriginal = _trimSaved = null;
+        ShowExportPanel(save: true);
+        ExportStatus.Text = "Saving trimmed clip…".T();
+        ExportDetail.Text = "{0} of {1} · same quality, all audio tracks · the original is kept".T(TrimTimeline.Fmt(len), TrimTimeline.Fmt(clip.Duration));
+        var progress = new Progress<(double Fraction, string Status)>(p => { SetExportBar(p.Fraction); ExportStatus.Text = p.Status; });
+        try
+        {
+            var path = await Task.Run(() => ClipTrimmer.SaveAsync(clip, edit, _settings, progress, _exportCts.Token));
+            // Same volume sliders as the original (the tracks are copied as they are); the new clip is the trim, so no trim marks.
+            ClipEdits.Set(path, new ClipEdit { GameVolumeDb = edit.GameVolumeDb, MicVolumeDb = edit.MicVolumeDb, DiscordVolumeDb = edit.DiscordVolumeDb });
+            SyncWithDisk();
+            _trimSaved = _items.FirstOrDefault(i => string.Equals(i.Path, path, StringComparison.OrdinalIgnoreCase));
+            _trimOriginal = original;
+            SetExportBar(1);
+            ExportStatus.Text = "Saved to your library as \"{0}\"".T(Path.GetFileNameWithoutExtension(path));
+            ExportSizeText.Text = string.Create(Lang.Culture, $"{new FileInfo(path).Length / 1e6:0.0} MB");
+            ExportDetail.Text = "{0} clip · same quality, all audio tracks · you can delete the long original now".T(TrimTimeline.Fmt(len));
+            OpenTrimBtn.Visibility = _trimSaved != null ? Visibility.Visible : Visibility.Collapsed;
+            DeleteOriginalBtn.Visibility = _items.Contains(original) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (OperationCanceledException)
+        {
+            ExportStatus.Text = "Saving cancelled".T();
+            SetExportBar(0);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Save trimmed clip failed", ex);
+            ExportStatus.Foreground = (System.Windows.Media.Brush)FindResource("Danger");
+            ExportStatus.Text = ex.Message;
+        }
+        finally
+        {
+            EndExportPanel();
+        }
+    }
+
+    void OpenTrim_Click(object sender, RoutedEventArgs e)
+    {
+        if (_trimSaved == null || !_items.Contains(_trimSaved)) return;
+        ExportPanel.Visibility = Visibility.Collapsed;
+        OpenClip(_trimSaved);
+    }
+
+    void DeleteOriginal_Click(object sender, RoutedEventArgs e)
+    {
+        if (_trimOriginal == null || !_items.Contains(_trimOriginal)) return;
+        // The usual delete: asks first, then 10 s to Undo. Afterwards the player shows the new clip.
+        if (!DeleteClips(new() { _trimOriginal })) return;
+        _trimOriginal = null;
+        ExportPanel.Visibility = Visibility.Collapsed;
+        if (_trimSaved != null && _items.Contains(_trimSaved)) OpenClip(_trimSaved);
     }
 
     void SetExportBar(double f) =>

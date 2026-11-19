@@ -349,7 +349,7 @@ public static class DiscordExporter
     }
 
     /// <summary>Runs ffmpeg, reporting progress from -progress output (out_time_us).</summary>
-    static async Task<int> RunFfmpeg(List<string> args, double seconds, Action<double>? onFraction, CancellationToken ct)
+    internal static async Task<int> RunFfmpeg(List<string> args, double seconds, Action<double>? onFraction, CancellationToken ct)
     {
         var psi = new ProcessStartInfo(Ffmpeg.FfmpegPath!)
         {
@@ -380,7 +380,7 @@ public static class DiscordExporter
         return p.ExitCode;
     }
 
-    static string? ProbeVideoCodec(string path)
+    internal static string? ProbeVideoCodec(string path)
     {
         if (Ffmpeg.FfprobePath == null) return null;
         try
@@ -400,7 +400,7 @@ public static class DiscordExporter
         catch { return null; }
     }
 
-    static string UniquePath(string path)
+    internal static string UniquePath(string path)
     {
         // A .part means another export (single and batch can run together) is writing that name right now.
         static bool Taken(string p) => File.Exists(p) || File.Exists(p + ".part");
@@ -414,7 +414,7 @@ public static class DiscordExporter
         }
     }
 
-    static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+    internal static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 
     static string Fmt(double seconds)
     {
@@ -422,7 +422,7 @@ public static class DiscordExporter
         return ts.TotalMinutes >= 1 ? $"{(int)ts.TotalMinutes}:{ts.Seconds:00} min" : $"{ts.Seconds} s";
     }
 
-    static void TryDelete(string path)
+    internal static void TryDelete(string path)
     {
         try { if (File.Exists(path)) File.Delete(path); } catch { }
     }

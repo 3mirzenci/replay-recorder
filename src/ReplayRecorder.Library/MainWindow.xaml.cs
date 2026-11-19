@@ -584,16 +584,17 @@ public partial class MainWindow : Window
     static void ShowInFolder(string path) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
 
-    void DeleteClips(List<ClipItem> clips)
+    /// <summary>Asks, then hides the clips behind the Undo bar; false if the user said no.</summary>
+    bool DeleteClips(List<ClipItem> clips)
     {
-        if (clips.Count == 0) return;
+        if (clips.Count == 0) return false;
         string what = clips.Count == 1 ? $"\"{clips[0].Clip.FileName}\"" :
             "{0} clips ({1})".T(clips.Count, ClipItem.FormatSize(clips.Sum(c => c.SizeBytes)));
         int favs = clips.Count(c => c.IsFavorite);
         string favNote = favs == 0 ? "" : (clips.Count == 1 ? "\n\nThis clip is a favorite." : "\n\n{0} of them are favorites.").T(favs);
         var r = MessageBox.Show(this, (clips.Count == 1 ? "Delete {0}?{1}\n\nIt's deleted for good, not moved to the Recycle Bin." : "Delete {0}?{1}\n\nThey're deleted for good, not moved to the Recycle Bin.").T(what, favNote),
             (clips.Count == 1 ? "Delete clip" : "Delete clips").T(), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
-        if (r != MessageBoxResult.OK) return;
+        if (r != MessageBoxResult.OK) return false;
 
         FinishPendingDelete(); // an earlier batch still waiting goes now
         if (_current != null && clips.Contains(_current)) CloseClip(); // mpv must release the file first
@@ -605,6 +606,7 @@ public partial class MainWindow : Window
         UndoBar.Visibility = Visibility.Visible;
         _undoTimer.Stop();
         _undoTimer.Start();
+        return true;
     }
 
     List<ClipItem>? _pendingDelete;
